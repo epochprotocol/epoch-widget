@@ -1,0 +1,58 @@
+{
+  "name": "epoch-intent-widget",
+  "version": "0.1.0",
+  "description": "Drop-in React widget for sending cross-chain intents via Epoch Protocol",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "demo": "cd demo && npm run dev"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "wagmi": "^2.0.0",
+    "viem": "^2.0.0",
+    "@epoch-protocol/epoch-intents-sdk": "*",
+    "@epoch-protocol/epoch-commons-sdk": "^0.1.0",
+    "@tanstack/react-query": "^5.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wagmi": "^2.9.0",
+    "viem": "^2.42.0",
+    "@epoch-protocol/epoch-commons-sdk": "^0.1.4",
+    "@epoch-protocol/epoch-intents-sdk": "*",
+    "@tanstack/react-query": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": false
+    }
+  },
+  "license": "MIT",
+  "keywords": ["epoch", "intent", "cross-chain", "widget", "react", "wagmi", "viem"]
+}
