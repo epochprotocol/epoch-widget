@@ -1,72 +1,15 @@
-// ---- Intent configuration ----
+import type { EpochTheme } from './theme';
 
-export interface IntentConfig {
-  /** Protocol identifier string, e.g. "raffles". Will be keccak256'd internally. */
-  protocol: string;
-  /** Action identifier string, e.g. "buyTicket". Will be keccak256'd internally. */
-  action: string;
-  /** Optional override for the protocol hash identifier passed to the Epoch SDK.
-   *  If not provided, computed as keccak256(toBytes(protocol)). */
-  protocolHashIdentifier?: string;
-  /** ABI-encoded type string for any extra parameters, e.g. "address raffleAddress,uint256 numberOfTickets" */
-  extraDataTypestring?: string;
-  /** Key-value pairs matching extraDataTypestring fields. Values must match the ABI type — use actual booleans for bool, strings for address/bytes32/uint, etc. */
-  extraData?: Record<string, string | boolean | number | bigint>;
-  /** When true, passes 0 as tokenInAmount and sets fixed-output fields for the backend to compute input. */
-  fixedOutput?: boolean;
-  /** Destination chain ID for mainnet (default: 8453 Base) */
-  destinationChainId?: number;
-  /** Destination chain ID for testnet (default: 84532 Base Sepolia) */
-  destinationTestnetChainId?: number;
-}
-
-// ---- Callback payloads ----
-
-export interface IntentSentPayload {
-  nonce: string;
-}
-
-export interface IntentCompletePayload {
-  nonce: string;
-  status: unknown;
-}
-
-// ---- Theme / styling ----
-
-export interface EpochWidgetTheme {
-  /** Outer overlay backdrop */
-  overlay?: string;
-  /** Dialog content card */
-  container?: string;
-  /** Header section (title + description) */
-  header?: string;
-  /** Title text element */
-  title?: string;
-  /** Description text element */
-  description?: string;
-  /** Select/dropdown trigger elements */
-  select?: string;
-  /** Info/alert boxes */
-  alert?: string;
-  /** Destructive/error alert boxes */
-  alertDestructive?: string;
-  /** Submit button */
-  button?: string;
-  /** Progress stepper container */
-  progress?: string;
-  /** Balance display box */
-  balanceBox?: string;
-  /** Scrollable content area */
-  scrollArea?: string;
-}
-
-// ---- Chain and token types ----
+// ---------------------------------------------------------------------------
+// Chain & token metadata
+// ---------------------------------------------------------------------------
 
 export interface EpochChain {
   id: number;
   name: string;
   network: string;
   rpcUrl?: string;
+  logoURI?: string;
 }
 
 export interface EpochToken {
@@ -78,73 +21,168 @@ export interface EpochToken {
   logoURI?: string;
 }
 
-// ---- Widget props ----
+// ---------------------------------------------------------------------------
+// Intent configuration
+// ---------------------------------------------------------------------------
+
+export interface IntentConfig {
+  /** Protocol identifier string, e.g. "raffles". Hashed with keccak256 internally. */
+  protocol: string;
+  /** Action identifier string, e.g. "buyTicket". Hashed with keccak256 internally. */
+  action: string;
+  /** Optional override for the protocol hash identifier sent to the solver. */
+  protocolHashIdentifier?: string;
+  /** ABI-encoded type string for extra fields, e.g. `"address raffleAddress,uint256 numberOfTickets"`. */
+  extraDataTypestring?: string;
+  /** Key-value pairs matching `extraDataTypestring`. */
+  extraData?: Record<string, string | boolean | number | bigint>;
+  /**
+   * When true, `tokenInAmount` is submitted as 0 and the solver performs a
+   * reverse quote to compute the required input.
+   */
+  fixedOutput?: boolean;
+  /** Destination chain ID for mainnet flows (default: 8453). */
+  destinationChainId?: number;
+  /** Destination chain ID for testnet flows (default: 84532). */
+  destinationTestnetChainId?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Grouped prop interfaces
+// ---------------------------------------------------------------------------
+
+/** Describes what the user is paying for across chains. */
+export interface IntentProps {
+  /** The token required on the destination chain. */
+  requiredToken: { address: string; symbol: string; decimals: number };
+  /** Amount of `requiredToken` needed, in raw units. */
+  requiredAmount: bigint;
+  /** Cross-chain intent configuration. */
+  config: IntentConfig;
+  /** Human-readable destination chain name, shown in the summary (e.g. "Base"). */
+  destinationChainName?: string;
+}
+
+/** API / RPC endpoint configuration. */
+export interface ApiConfig {
+  /** Epoch allocator API base URL (e.g. `http://localhost:3000`). */
+  baseUrl: string;
+  /** Override RPC URLs by chain ID for on-chain reads. */
+  rpcUrls?: Record<number, string>;
+}
+
+// ---------------------------------------------------------------------------
+// Custom class names (CSS / Tailwind support)
+// ---------------------------------------------------------------------------
+
+/**
+ * Class name overrides for every visual slot in the widget. When a className
+ * is provided for a slot, the widget skips its default inline styles for that
+ * element — giving the consumer full CSS control (vanilla, Tailwind, modules).
+ *
+ * @example Tailwind
+ * ```tsx
+ * classNames={{
+ *   button: 'bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 font-semibold',
+ *   container: 'bg-white shadow-2xl rounded-2xl max-w-md',
+ * }}
+ * ```
+ */
+export interface EpochClassNames {
+  // Layout
+  overlay?: string;
+  container?: string;
+  header?: string;
+  body?: string;
+  footer?: string;
+  // Receive section
+  receiveCard?: string;
+  receiveAmount?: string;
+  receiveLabel?: string;
+  // Pay section
+  payCard?: string;
+  payAmount?: string;
+  payLabel?: string;
+  // Controls
+  button?: string;
+  chainSelector?: string;
+  tokenSelector?: string;
+  // Feedback
+  banner?: string;
+  progress?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Callback payloads
+// ---------------------------------------------------------------------------
+
+export interface IntentSentPayload {
+  nonce: string;
+}
+
+export interface IntentCompletePayload {
+  nonce: string;
+  status: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Widget props
+// ---------------------------------------------------------------------------
 
 export interface EpochIntentWidgetProps {
-  /** Whether the dialog is open */
+  /** Whether the dialog is open. */
   isOpen: boolean;
-  /** Called when the widget wants to close */
+  /** Called when the user dismisses the dialog. */
   onClose: () => void;
 
-  /** The token required on the destination chain */
-  requiredToken: {
-    address: string;
-    symbol: string;
-    decimals: number;
-  };
-  /** Amount of requiredToken required, in raw units (bigint) */
-  requiredAmount: bigint;
+  // ---- Intent ---------------------------------------------------------------
 
-  /** Epoch Protocol API base URL (e.g. "http://localhost:3000") */
-  apiBaseUrl: string;
+  /** Describes the cross-chain intent (token, amount, config). */
+  intent: IntentProps;
 
-  /**
-   * Override RPC URLs for mainnet chains. Merged with built-in defaults —
-   * only the chains you specify are overridden.
-   *
-   * Example:
-   *   customRpcUrls={{ 8453: "https://base-mainnet.g.alchemy.com/v2/YOUR_KEY" }}
-   */
-  customRpcUrls?: Record<number, string>;
+  // ---- API ------------------------------------------------------------------
 
-  /**
-   * Override RPC URLs for testnet chains. Used when the widget is in testnet
-   * mode (enableTestnet=true). Same merging behaviour as customRpcUrls.
-   *
-   * Example:
-   *   testnetRpcUrls={{ 84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_KEY" }}
-   */
-  testnetRpcUrls?: Record<number, string>;
+  /** Epoch API endpoints and RPC configuration. */
+  api: ApiConfig;
 
-  /** Describes the cross-chain intent this widget will submit */
-  intentConfig: IntentConfig;
+  // ---- Network --------------------------------------------------------------
 
-  // ---- Callbacks ----
-  /** Fired right after the intent is submitted (before execution confirmed) */
+  /** Network mode. Default: `"mainnet"`. */
+  network?: 'mainnet' | 'testnet';
+  /** Allow the user to toggle mainnet/testnet inside the widget. Default: false. */
+  allowNetworkToggle?: boolean;
+
+  // ---- Callbacks ------------------------------------------------------------
+
+  /** Fired when the intent is accepted by the solver. */
   onIntentSent?: (data: IntentSentPayload) => void;
-  /** Fired when polling confirms execution is complete */
+  /** Fired when polling confirms the intent has been executed on-chain. */
   onIntentComplete?: (data: IntentCompletePayload) => void;
-  /** Fired on any error */
+  /** Fired on any error during the submit/execute flow. */
   onError?: (error: Error) => void;
 
-  // ---- Text overrides ----
+  // ---- Customisation --------------------------------------------------------
+
+  /** Title displayed in the dialog header. Default: "Pay". */
   title?: string;
-  description?: string;
+  /** Label on the submit button. Default: "Pay". */
   submitButtonText?: string;
-  /** Human-readable name for the destination chain, shown in the UI */
-  destinationChainName?: string;
 
-  // ---- Feature flags ----
   /**
-   * Force the widget into testnet mode with no toggle shown.
-   * Takes precedence over enableTestnet/defaultTestnet when set to true.
+   * CSS class name overrides for every visual slot. When provided for a slot,
+   * the widget skips its built-in inline styles — giving full CSS control
+   * (vanilla CSS, Tailwind, CSS Modules, etc.).
    */
-  testnet?: boolean;
-  /** Show a mainnet/testnet toggle in the UI. Default: false */
-  enableTestnet?: boolean;
-  /** Start in testnet mode when the toggle is shown. Default: false */
-  defaultTestnet?: boolean;
-
-  // ---- Styling ----
-  theme?: EpochWidgetTheme;
+  classNames?: EpochClassNames;
+  /**
+   * Theme tokens (colours, radii, typography). Projected as CSS custom
+   * properties on the widget root. Omitted tokens fall back to defaults.
+   */
+  theme?: EpochTheme;
 }
+
+// ---------------------------------------------------------------------------
+// Re-exports
+// ---------------------------------------------------------------------------
+
+export type { EpochTheme } from './theme';

@@ -1,228 +1,336 @@
 import type { CSSProperties } from 'react';
+import { t } from './theme';
 
-export const defaultStyles = {
+// ---------------------------------------------------------------------------
+// Style objects — clean, minimal pay-widget design
+//
+// Every value references CSS custom properties from theme.ts so consumers
+// can rebrand with a `theme` prop. For full structural control, consumers
+// pass `classNames` and these styles are skipped entirely.
+// ---------------------------------------------------------------------------
+
+export const s = {
+  // ---- Layout ---------------------------------------------------------------
+
   overlay: {
     position: 'fixed',
     inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: t.overlay,
     zIndex: 9999,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '1rem',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    animation: 'epoch-overlay-in 0.2s ease-out',
   } satisfies CSSProperties,
 
   container: {
-    backgroundColor: '#ffffff',
-    borderRadius: '0.75rem',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+    backgroundColor: t.bg,
+    borderRadius: t.radiusLg,
+    boxShadow: '0 24px 48px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05)',
     width: '100%',
-    maxWidth: '28rem',
+    maxWidth: '420px',
     maxHeight: '90vh',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: t.font,
     fontSize: '14px',
-    color: '#111827',
+    color: t.text,
+    animation: 'epoch-modal-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
   } satisfies CSSProperties,
 
   header: {
-    padding: '1.25rem 1.5rem 1rem',
-    borderBottom: '1px solid #e5e7eb',
-  } satisfies CSSProperties,
-
-  title: {
-    margin: 0,
-    fontSize: '1.125rem',
-    fontWeight: 600,
-    color: '#111827',
-    lineHeight: 1.4,
-  } satisfies CSSProperties,
-
-  description: {
-    margin: '0.375rem 0 0',
-    fontSize: '0.8125rem',
-    color: '#6b7280',
-    lineHeight: 1.5,
-  } satisfies CSSProperties,
-
-  scrollArea: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '1rem 1.5rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.875rem',
-    minHeight: 0,
-  } satisfies CSSProperties,
-
-  label: {
-    display: 'block',
-    fontSize: '0.8125rem',
-    fontWeight: 500,
-    color: '#374151',
-    marginBottom: '0.375rem',
-  } satisfies CSSProperties,
-
-  select: {
-    width: '100%',
-    padding: '0.5rem 0.75rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '0.5rem',
-    backgroundColor: '#f9fafb',
-    fontSize: '0.875rem',
-    color: '#111827',
-    cursor: 'pointer',
-    outline: 'none',
-    appearance: 'auto',
-  } satisfies CSSProperties,
-
-  input: {
-    width: '100%',
-    padding: '0.5rem 0.75rem',
-    border: '1px solid #e5e7eb',
-    borderRadius: '0.5rem',
-    backgroundColor: '#f3f4f6',
-    fontSize: '0.875rem',
-    color: '#6b7280',
-    boxSizing: 'border-box',
-  } satisfies CSSProperties,
-
-  alert: {
-    padding: '0.625rem 0.875rem',
-    borderRadius: '0.5rem',
-    backgroundColor: '#eff6ff',
-    border: '1px solid #bfdbfe',
-    fontSize: '0.8125rem',
-    color: '#1e40af',
-    lineHeight: 1.5,
-  } satisfies CSSProperties,
-
-  alertDestructive: {
-    padding: '0.625rem 0.875rem',
-    borderRadius: '0.5rem',
-    backgroundColor: '#fef2f2',
-    border: '1px solid #fecaca',
-    fontSize: '0.8125rem',
-    color: '#991b1b',
-    lineHeight: 1.5,
+    padding: '20px 24px 12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '0.5rem',
   } satisfies CSSProperties,
 
-  balanceBox: {
-    padding: '0.625rem 0.875rem',
-    borderRadius: '0.5rem',
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    fontSize: '0.8125rem',
+  headerTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: 600,
+    color: t.text,
+    letterSpacing: '-0.01em',
   } satisfies CSSProperties,
 
-  arrowSeparator: {
+  closeBtn: {
+    all: 'unset',
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#9ca3af',
-    fontSize: '1.25rem',
-    padding: '0.25rem 0',
+    cursor: 'pointer',
+    color: t.textMuted,
+    transition: 'background 0.15s, color 0.15s',
+    flexShrink: 0,
   } satisfies CSSProperties,
 
+  body: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '4px 24px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    minHeight: 0,
+  } satisfies CSSProperties,
+
+  footer: {
+    padding: '16px 24px 20px',
+  } satisfies CSSProperties,
+
+  // ---- Receive card (top) ---------------------------------------------------
+
+  receiveCard: {
+    padding: '24px',
+    borderRadius: t.radiusSm,
+    backgroundColor: t.surface,
+    textAlign: 'center',
+  } satisfies CSSProperties,
+
+  receiveAmount: {
+    fontSize: '32px',
+    fontWeight: 700,
+    color: t.text,
+    letterSpacing: '-0.02em',
+    lineHeight: 1.2,
+    margin: 0,
+  } satisfies CSSProperties,
+
+  receiveLabel: {
+    fontSize: '13px',
+    color: t.textMuted,
+    marginTop: '6px',
+  } satisfies CSSProperties,
+
+  // ---- Pay card (bottom) ----------------------------------------------------
+
+  payCard: {
+    padding: '16px 20px',
+    borderRadius: t.radiusSm,
+    border: `1px solid ${t.border}`,
+    backgroundColor: t.bg,
+  } satisfies CSSProperties,
+
+  payHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  } satisfies CSSProperties,
+
+  payLabel: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: t.textMuted,
+  } satisfies CSSProperties,
+
+  payAmountRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+  } satisfies CSSProperties,
+
+  payAmount: {
+    fontSize: '24px',
+    fontWeight: 700,
+    color: t.text,
+    letterSpacing: '-0.02em',
+    lineHeight: 1.2,
+    margin: 0,
+    flex: 1,
+    minWidth: 0,
+  } satisfies CSSProperties,
+
+  payMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '8px',
+    fontSize: '12px',
+    color: t.textMuted,
+  } satisfies CSSProperties,
+
+  // ---- Token selector pill --------------------------------------------------
+
+  tokenPill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    borderRadius: '999px',
+    border: `1px solid ${t.border}`,
+    backgroundColor: t.surface,
+    cursor: 'pointer',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: t.text,
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  } satisfies CSSProperties,
+
+  tokenPillChain: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: t.textMuted,
+  } satisfies CSSProperties,
+
+  chevron: {
+    width: '16px',
+    height: '16px',
+    color: t.textMuted,
+    flexShrink: 0,
+  } satisfies CSSProperties,
+
+  // ---- Button ---------------------------------------------------------------
+
+  button: {
+    width: '100%',
+    padding: '14px 16px',
+    backgroundColor: t.primary,
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: t.radiusSm,
+    fontSize: '16px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    transition: 'background-color 0.15s, transform 0.1s',
+    fontFamily: 'inherit',
+    letterSpacing: '-0.005em',
+  } satisfies CSSProperties,
+
+  buttonDisabled: {
+    opacity: 0.45,
+    cursor: 'not-allowed',
+    pointerEvents: 'none',
+  } satisfies CSSProperties,
+
+  // ---- Banners --------------------------------------------------------------
+
+  banner: {
+    padding: '12px 14px',
+    borderRadius: t.radiusSm,
+    fontSize: '13px',
+    lineHeight: 1.5,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+  } satisfies CSSProperties,
+
+  // ---- Progress -------------------------------------------------------------
+
   progressContainer: {
-    padding: '1rem',
-    borderRadius: '0.5rem',
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
+    padding: '16px',
+    borderRadius: t.radiusSm,
+    backgroundColor: t.surface,
+    border: `1px solid ${t.border}`,
   } satisfies CSSProperties,
 
   progressTitle: {
-    margin: '0 0 1rem',
-    fontSize: '0.875rem',
+    margin: '0 0 12px',
+    fontSize: '13px',
     fontWeight: 600,
-    color: '#111827',
+    color: t.text,
   } satisfies CSSProperties,
 
   progressStep: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '0.625rem',
+    gap: '10px',
   } satisfies CSSProperties,
 
   progressConnector: {
     width: '2px',
-    height: '1rem',
-    marginLeft: '0.625rem',
-    backgroundColor: '#e5e7eb',
+    height: '12px',
+    marginLeft: '10px',
+    backgroundColor: t.border,
   } satisfies CSSProperties,
 
   progressConnectorActive: {
     width: '2px',
-    height: '1rem',
-    marginLeft: '0.625rem',
-    backgroundColor: '#22c55e',
+    height: '12px',
+    marginLeft: '10px',
+    backgroundColor: t.success,
   } satisfies CSSProperties,
 
   progressBar: {
     width: '100%',
-    height: '0.5rem',
-    backgroundColor: '#e5e7eb',
-    borderRadius: '9999px',
+    height: '4px',
+    backgroundColor: t.border,
+    borderRadius: '999px',
     overflow: 'hidden',
-    marginTop: '0.375rem',
+    marginTop: '6px',
   } satisfies CSSProperties,
 
-  footer: {
-    padding: '1rem 1.5rem',
-    borderTop: '1px solid #e5e7eb',
+  // ---- Misc -----------------------------------------------------------------
+
+  spinner: {
+    display: 'inline-block',
+    width: '14px',
+    height: '14px',
+    border: '2px solid currentColor',
+    borderTopColor: 'transparent',
+    borderRadius: '50%',
+    animation: 'epoch-spin 0.8s linear infinite',
+    flexShrink: 0,
   } satisfies CSSProperties,
 
-  button: {
-    width: '100%',
-    padding: '0.75rem 1rem',
-    backgroundColor: '#3b82f6',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '0.5rem',
-    fontSize: '0.9375rem',
+  networkSwitchBtn: {
+    padding: '4px 10px',
+    fontSize: '12px',
     fontWeight: 500,
+    backgroundColor: 'transparent',
+    border: `1px solid ${t.error}`,
+    borderRadius: t.radiusSm,
+    color: t.error,
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
+    whiteSpace: 'nowrap' as const,
+    fontFamily: 'inherit',
     transition: 'background-color 0.15s',
   } satisfies CSSProperties,
 
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-    pointerEvents: 'none',
-  } satisfies CSSProperties,
-
-  switchRow: {
+  powered: {
+    marginTop: '10px',
     display: 'flex',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: '6px',
+    fontSize: '11px',
+    color: t.textMuted,
+    opacity: 0.6,
+    letterSpacing: '0.01em',
   } satisfies CSSProperties,
 
-  switchContainer: {
+  // ---- Source picker (dropdowns) --------------------------------------------
+
+  pickerGroup: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    fontSize: '0.8125rem',
-    color: '#6b7280',
+    flexDirection: 'column',
+    gap: '8px',
   } satisfies CSSProperties,
 
-  networkSwitchButton: {
-    padding: '0.25rem 0.625rem',
-    fontSize: '0.75rem',
-    backgroundColor: 'transparent',
-    border: '1px solid #fca5a5',
-    borderRadius: '0.375rem',
-    color: '#991b1b',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
+  pickerLabel: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: t.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  } satisfies CSSProperties,
+
+  balanceText: {
+    fontSize: '12px',
+    fontWeight: 500,
   } satisfies CSSProperties,
 } as const;

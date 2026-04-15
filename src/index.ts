@@ -13,9 +13,14 @@ export {
 export type {
   EpochIntentWidgetProps,
   IntentConfig,
+  IntentProps,
+  ApiConfig,
+  EpochClassNames,
   IntentSentPayload,
   IntentCompletePayload,
-  EpochWidgetTheme,
+  EpochTheme,
   EpochChain,
   EpochToken,
 } from './types';
+export { DEFAULT_THEME } from './theme';
+export { formatAmount, truncateAddress } from './utils';

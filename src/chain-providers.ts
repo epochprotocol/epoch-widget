@@ -40,7 +40,7 @@ export function getChainPublicClient(
       rpcUrls: { default: { http: [rpcUrl] } },
     } as any,
     transport: http(rpcUrl),
-  });
+  }) as any as PublicClient;
 
   clientCache.set(cacheKey, client);
   return client;

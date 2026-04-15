@@ -31,8 +31,8 @@
     "react-dom": "^18.0.0",
     "wagmi": "^2.0.0",
     "viem": "^2.0.0",
-    "@epoch-protocol/epoch-intents-sdk": "*",
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.0",
+    "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
+    "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
     "@tanstack/react-query": "^5.0.0"
   },
   "devDependencies": {
@@ -44,8 +44,8 @@
     "react-dom": "^18.3.1",
     "wagmi": "^2.9.0",
     "viem": "^2.42.0",
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.4",
-    "@epoch-protocol/epoch-intents-sdk": "*",
+    "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
+    "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
     "@tanstack/react-query": "^5.0.0"
   },
   "peerDependenciesMeta": {
