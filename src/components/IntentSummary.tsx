@@ -14,6 +14,11 @@ interface CardData {
   subtitle?: string;
   /** Logo URI for the token shown on the floating pill. */
   logoURI?: string;
+  /**
+   * Human-readable description of the position (e.g. "1 Raffle Ticket").
+   * When set, replaces the default `<amount>` display in the receive card.
+   */
+  positionLabel?: string;
 }
 
 interface IntentSummaryProps {
@@ -33,10 +38,14 @@ interface IntentSummaryProps {
    * destination token + chain. Not interactive — intentionally fixed.
    */
   destinationPill?: ReactNode;
-  /** Balance string shown below the pay card. */
+  /** Balance string shown below the pay card (when loaded). */
   balanceStr?: string;
   /** Show balance in error colour. */
   balanceError?: boolean;
+  /** True while the on-chain balance request is in flight. */
+  isBalanceLoading?: boolean;
+  /** Whether the user's wallet is currently connected. */
+  walletConnected?: boolean;
   /** Connected wallet address — shown at the top of the pay card. */
   walletAddress?: string;
   /** Optional connector icon (e.g. MetaMask fox) shown next to the address. */
@@ -44,8 +53,22 @@ interface IntentSummaryProps {
   classNames?: EpochClassNames;
 }
 
+// Reserve a stable height for the meta row under each card's amount. This is
+// the whole reason the separator stays put — if this row collapsed when the
+// balance was absent, the pay card would shrink and the separator would jump.
+const META_ROW_HEIGHT = 18;
+
+// Numeric displays use tabular figures so digits don't shift as values change
+// (e.g. while streaming a quote or balance update).
+const NUMERIC: React.CSSProperties = {
+  fontVariantNumeric: 'tabular-nums',
+  fontFeatureSettings: '"tnum"',
+};
+
 /**
  * Two-card summary: pay on top (with floating token pill), receive on bottom.
+ * The pay card reserves a fixed-height balance slot even when empty so async
+ * balance fetches don't shift the separator circle between the cards.
  */
 export function IntentSummary({
   pay,
@@ -55,32 +78,44 @@ export function IntentSummary({
   destinationPill,
   balanceStr,
   balanceError,
+  isBalanceLoading,
+  walletConnected,
   walletAddress,
   walletIcon,
   classNames: cn,
 }: IntentSummaryProps) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
+  const cardStyle: React.CSSProperties = {
+    ...s.payCard,
+    padding: '18px 20px',
+    position: 'relative',
+    backgroundColor: t.surface,
+    border: `1px solid ${t.border}`,
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+  };
 
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        position: 'relative',
+      }}
+    >
       {/* ── Pay card (top) ─────────────────────────────────── */}
       <div
         className={cn?.payCard}
-        style={cn?.payCard ? undefined : {
-          ...s.payCard,
-          padding: '20px',
-          position: 'relative',
-          backgroundColor: t.surface,
-          border: 'none',
-        }}
+        style={cn?.payCard ? undefined : cardStyle}
       >
-        {/* Label row — "You pay" on the left, wallet address badge on the right */}
+        {/* Label row — "You pay" on the left, wallet badge on the right */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            marginBottom: '8px',
+            marginBottom: '10px',
+            minHeight: '20px',
           }}
         >
           <span
@@ -96,89 +131,140 @@ export function IntentSummary({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: 600,
-                color: t.primary,
+                color: t.textSecondary,
                 lineHeight: 1,
+                padding: '4px 8px 4px 4px',
+                borderRadius: '999px',
+                backgroundColor: t.bg,
+                border: `1px solid ${t.border}`,
               }}
               title={walletAddress}
             >
               {walletIcon ? (
                 <Avatar src={walletIcon} label="Wallet" size={16} />
               ) : (
-                <span style={{ color: t.primary, display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: t.textMuted,
+                  }}
+                >
                   <WalletIcon width={14} height={14} />
                 </span>
               )}
-              <span>{truncateAddress(walletAddress, 4)}</span>
+              <span style={NUMERIC}>{truncateAddress(walletAddress, 4)}</span>
             </div>
           )}
         </div>
 
         {/* Amount row — amount on left, floating pill vertically centered on right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', minHeight: '44px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            minHeight: '44px',
+          }}
+        >
           <div style={{ flex: 1, minWidth: 0 }}>
             {isQuoting ? (
-              <Shimmer width="120px" height="36px" radius="8px" />
+              <Shimmer width="140px" height="36px" radius="8px" />
             ) : (
               <p
                 className={cn?.payAmount}
-                style={cn?.payAmount ? undefined : { ...s.payAmount, margin: 0 }}
+                style={
+                  cn?.payAmount
+                    ? undefined
+                    : { ...s.payAmount, ...NUMERIC, margin: 0 }
+                }
               >
                 {pay.amount}
               </p>
             )}
           </div>
 
-          {/* Floating token+chain pill (vertically centered with amount) */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {tokenSelectorTrigger}
           </div>
         </div>
 
-        {/* Balance */}
-        {balanceStr && (
-          <div
-            style={{
-              marginTop: '10px',
-              fontSize: '12px',
-              color: balanceError ? t.error : t.textMuted,
-            }}
-          >
-            {balanceStr}
-          </div>
-        )}
+        {/* Balance row — always rendered at a fixed height so the pay card
+            never resizes when the balance resolves. This is what prevents the
+            separator circle from jumping. */}
+        <div
+          style={{
+            marginTop: '12px',
+            minHeight: `${META_ROW_HEIGHT}px`,
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '12px',
+            lineHeight: `${META_ROW_HEIGHT}px`,
+            color: balanceError ? t.error : t.textMuted,
+            fontWeight: balanceError ? 600 : 500,
+            ...NUMERIC,
+          }}
+        >
+          {isBalanceLoading ? (
+            <Shimmer width="150px" height="12px" radius="4px" />
+          ) : balanceStr ? (
+            <span>{balanceStr}</span>
+          ) : !walletConnected ? (
+            <span style={{ opacity: 0.75 }}>
+              Connect your wallet to see balance
+            </span>
+          ) : (
+            <span style={{ opacity: 0.55 }}>—</span>
+          )}
+        </div>
       </div>
 
-      {/* ── Arrow separator (absolutely centered over the gap) ── */}
+      {/* ── Arrow separator ────────────────────────────────────
+          Zero-height flex child sitting exactly in the 6px gap between the
+          two cards. The circle is absolutely positioned at the midpoint, so
+          its centre lines up with the pay→receive boundary regardless of
+          either card's height. Combined with the reserved-height balance row
+          above, this keeps the circle rock-steady during async updates. */}
       <div
+        aria-hidden="true"
         style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 2,
+          height: 0,
+          position: 'relative',
+          display: 'flex',
+          justifyContent: 'center',
           pointerEvents: 'none',
+          zIndex: 2,
         }}
       >
         <div
           style={{
-            width: '30px',
-            height: '30px',
+            position: 'absolute',
+            top: 0,
+            transform: 'translateY(-50%)',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             backgroundColor: t.bg,
+            border: `1px solid ${t.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: t.text,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08), 0 0 0 4px var(--epoch-color-bg)',
+            color: t.primary,
+            // Thick background-coloured ring so the circle looks like it's
+            // punching a clean hole through the gap. The outer drop shadow
+            // gives it a subtle lift.
+            boxShadow:
+              '0 0 0 4px var(--epoch-color-bg), 0 2px 8px rgba(15, 23, 42, 0.08)',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
-              d="M8 3.5v9M4.5 9l3.5 3.5L11.5 9"
+              d="M8 3.25v9.5M4 8.75l4 4 4-4"
               stroke="currentColor"
-              strokeWidth="1.75"
+              strokeWidth="1.85"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -189,50 +275,106 @@ export function IntentSummary({
       {/* ── Receive card (bottom) ───────────────────────────── */}
       <div
         className={cn?.receiveCard}
-        style={cn?.receiveCard ? undefined : {
-          ...s.receiveCard,
-          textAlign: 'left',
-          padding: '20px',
-          backgroundColor: t.surface,
-          border: 'none',
-        }}
+        style={
+          cn?.receiveCard
+            ? undefined
+            : {
+                ...s.receiveCard,
+                textAlign: 'left',
+                padding: '18px 20px',
+                backgroundColor: t.surface,
+                border: `1px solid ${t.border}`,
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+              }
+        }
       >
-        {/* Label row — "You receive" on the left, locked destination pill right */}
+        {/* Label row — "You receive" on the left */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            marginBottom: '8px',
+            marginBottom: '10px',
+            minHeight: '20px',
           }}
         >
           <span
             className={cn?.receiveLabel}
-            style={cn?.receiveLabel ? undefined : {
-              ...s.receiveLabel,
-              marginTop: 0,
-              textAlign: 'left',
-            }}
+            style={
+              cn?.receiveLabel
+                ? undefined
+                : {
+                    ...s.receiveLabel,
+                    marginTop: 0,
+                    textAlign: 'left',
+                  }
+            }
           >
             {receive.label}
           </span>
         </div>
 
-        {/* Amount row — amount on left, locked destination pill on right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', minHeight: '44px' }}>
+        {/* Amount row — position label or amount on left, destination pill on right */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            minHeight: '44px',
+          }}
+        >
           <div style={{ flex: 1, minWidth: 0 }}>
             <p
               className={cn?.receiveAmount}
-              style={cn?.receiveAmount ? undefined : { ...s.receiveAmount, textAlign: 'left', margin: 0 }}
+              style={
+                cn?.receiveAmount
+                  ? undefined
+                  : {
+                      ...s.receiveAmount,
+                      ...NUMERIC,
+                      textAlign: 'left',
+                      margin: 0,
+                      fontSize: receive.positionLabel
+                        ? '22px'
+                        : s.receiveAmount.fontSize,
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: receive.positionLabel ? 'normal' : 'nowrap',
+                      wordBreak: 'break-word',
+                    }
+              }
             >
-              {receive.amount}
+              {receive.positionLabel ?? receive.amount}
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {destinationPill}
           </div>
+        </div>
+
+        {/* Meta row — reserves the same footprint as the pay card's balance
+            row so both cards visually balance around the separator. */}
+        <div
+          style={{
+            marginTop: '12px',
+            minHeight: `${META_ROW_HEIGHT}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            fontSize: '12px',
+            lineHeight: `${META_ROW_HEIGHT}px`,
+            color: t.textMuted,
+            fontWeight: 500,
+          }}
+        >
+          <span style={{ opacity: 0.75 }}>
+            {receive.subtitle ? `Settles on ${receive.subtitle}` : 'Settled instantly'}
+          </span>
         </div>
       </div>
     </div>

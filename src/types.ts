@@ -61,6 +61,16 @@ export interface IntentProps {
   config: IntentConfig;
   /** Human-readable destination chain name, shown in the summary (e.g. "Base"). */
   destinationChainName?: string;
+  /**
+   * Human-readable label describing the position being purchased. Shown as the
+   * primary text inside the "You receive" card — overrides the default
+   * `<amount> <symbol>` rendering. Also used as a default for the modal header
+   * and submit button when they are not explicitly set.
+   *
+   * @example "1 Raffle Ticket"
+   * @example "500 USDC position on Aave"
+   */
+  positionLabel?: string;
 }
 
 /** API / RPC endpoint configuration. */

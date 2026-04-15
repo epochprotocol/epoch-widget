@@ -32,6 +32,7 @@ const SCENARIOS: Scenario[] = [
         },
         requiredAmount: BigInt(5_000_000),
         destinationChainName: 'Base',
+        positionLabel: '1 Raffle Ticket',
         config: {
           protocol: 'raffles',
           action: 'buyTicket',
@@ -61,6 +62,7 @@ const SCENARIOS: Scenario[] = [
         },
         requiredAmount: BigInt(10_000_000),
         destinationChainName: 'Base',
+        positionLabel: '10 USDC Vault Deposit',
         config: {
           protocol: 'my-dapp',
           action: 'deposit',
@@ -89,6 +91,7 @@ const SCENARIOS: Scenario[] = [
         },
         requiredAmount: BigInt('1000000000000000000'),
         destinationChainName: 'Base Sepolia',
+        positionLabel: '1 Raffle Ticket',
         config: {
           protocol: 'raffles',
           action: 'buyTicket',
@@ -120,6 +123,7 @@ const SCENARIOS: Scenario[] = [
         },
         requiredAmount: BigInt('1000000000000000000'),
         destinationChainName: 'Base Sepolia',
+        positionLabel: '1 Raffle Ticket',
         config: {
           protocol: 'raffles',
           action: 'buyTicket',

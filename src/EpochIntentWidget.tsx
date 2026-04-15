@@ -32,11 +32,23 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     onIntentSent,
     onIntentComplete,
     onError,
-    title = 'Pay',
-    submitButtonText = 'Pay',
+    title: titleProp,
+    submitButtonText: submitButtonTextProp,
   } = props;
 
-  const { requiredToken, requiredAmount, config: intentConfig, destinationChainName } = intent;
+  const {
+    requiredToken,
+    requiredAmount,
+    config: intentConfig,
+    destinationChainName,
+    positionLabel,
+  } = intent;
+
+  // `positionLabel` gives both the header and the CTA a sensible default so
+  // integrators only need to pass it once (e.g. "1 Raffle Ticket").
+  const title = titleProp ?? (positionLabel ? `Buy ${positionLabel}` : 'Pay');
+  const submitButtonText =
+    submitButtonTextProp ?? (positionLabel ? `Buy ${positionLabel}` : 'Pay');
   const { baseUrl: apiBaseUrl, rpcUrls } = api;
 
   // ---- Local state ----------------------------------------------------------
@@ -92,6 +104,21 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
   // Pill display: use selection or fall back to the first available token/chain
   const pillToken = selectedToken ?? allTokens[0] ?? null;
   const pillChain = selectedChain ?? availableChains[0] ?? null;
+
+  // Seed the source chain+token on first open so the pill shows a real
+  // selection from the start and the quote-fetch effect below fires without
+  // the user having to tap the picker. Without this, `selectedChainId` stays
+  // `null` until the user interacts — so a fixed-output quote is never
+  // requested on the initial view.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (selectedChainId !== null) return;
+    const first = allTokens[0];
+    if (!first) return;
+    setSelectedChainId(first.chain.id);
+    setSelectedTokenAddress(first.address);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, allTokens]);
 
   // Auto-select first token when chain changes
   useEffect(() => {
@@ -195,11 +222,12 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     return submitButtonText;
   })();
 
+  // Only return a fully-formed balance string — loading and "not-yet-fetched"
+  // states are represented as `undefined` so IntentSummary can decide how to
+  // render them (shimmer vs. placeholder) without causing layout shifts.
   const balanceStr = (() => {
-    if (!selectedToken) return null;
-    if (isBalanceLoading) return 'Loading balance…';
-    if (balance !== null) return `Balance: ${formatAmount(balance, selectedToken.decimals)} ${selectedToken.symbol}`;
-    return null;
+    if (!selectedToken || balance === null) return undefined;
+    return `Balance: ${formatAmount(balance, selectedToken.decimals)} ${selectedToken.symbol}`;
   })();
 
   // ---- Destination (read-only) pill ---------------------------------------
@@ -322,12 +350,15 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
           amount: requiredAmountStr,
           symbol: requiredToken.symbol,
           subtitle: destinationChainName,
+          positionLabel,
         }}
         isQuoting={flow.isQuoting}
         tokenSelectorTrigger={floatingPill}
         destinationPill={destinationPill}
-        balanceStr={isConnected ? (balanceStr ?? undefined) : undefined}
+        balanceStr={isConnected ? balanceStr : undefined}
         balanceError={insufficientBalance}
+        isBalanceLoading={isConnected && !!selectedToken && isBalanceLoading}
+        walletConnected={isConnected}
         walletAddress={isConnected ? address : undefined}
         walletIcon={isConnected ? connector?.icon : undefined}
         classNames={cn}
