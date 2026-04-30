@@ -13,6 +13,11 @@ interface ModalProps {
   classNames?: EpochClassNames;
   children: ReactNode;
   footer?: ReactNode;
+  /**
+   * Optional control rendered in the header row, between the title and the
+   * close button. Use for settings / network-toggle style affordances.
+   */
+  headerAction?: ReactNode;
 }
 
 /**
@@ -27,6 +32,7 @@ export function Modal({
   classNames: cn,
   children,
   footer,
+  headerAction,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +89,9 @@ export function Modal({
           <h2 id="epoch-widget-title" style={s.headerTitle}>
             {title}
           </h2>
-          <button
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {headerAction}
+            <button
             type="button"
             aria-label="Close"
             onClick={onClose}
@@ -97,8 +105,9 @@ export function Modal({
               e.currentTarget.style.color = 'var(--epoch-color-text-muted)';
             }}
           >
-            <CloseIcon />
-          </button>
+              <CloseIcon />
+            </button>
+          </div>
         </div>
 
         {/* Body (scrollable) */}

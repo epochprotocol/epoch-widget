@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useWalletClient, useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { getEpochChainById, getEpochChains, getEpochTokensByChainEnv } from './epoch-config';
 import { useTokenBalance } from './use-token-balance';
@@ -171,7 +171,15 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, network]);
 
-  // Auto-fetch quote for fixed-output intents
+  // Keep a ref to the latest fetchQuote so the effect below never captures a
+  // stale version — fetchQuote recreates whenever walletClient/buildTaskParams
+  // change, but those aren't in the effect deps.
+  const fetchQuoteRef = useRef(flow.fetchQuote);
+  fetchQuoteRef.current = flow.fetchQuote;
+
+  // Auto-fetch quote for fixed-output intents.
+  // isWrongNetwork and !!walletClient are in deps so the fetch fires when the
+  // user switches to the correct network or when the wallet client first loads.
   useEffect(() => {
     if (
       intentConfig.fixedOutput &&
@@ -181,10 +189,10 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
       address &&
       !isWrongNetwork
     ) {
-      flow.fetchQuote({ sourceChainId: selectedChainId, sourceToken: selectedToken });
+      fetchQuoteRef.current({ sourceChainId: selectedChainId, sourceToken: selectedToken });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChainId, selectedTokenAddress, intentConfig.fixedOutput, address]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChainId, selectedTokenAddress, intentConfig.fixedOutput, address, chainId, isWrongNetwork, !!walletClient]);
 
   // ---- Derived UI ----------------------------------------------------------
 
@@ -198,7 +206,8 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     !!selectedToken &&
     !isWrongNetwork &&
     !insufficientBalance &&
-    !isBusy;
+    !isBusy &&
+    !(intentConfig.fixedOutput && flow.isQuoting);
 
   const requiredAmountStr = formatAmount(requiredAmount, requiredToken.decimals);
 
@@ -212,6 +221,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
   })();
 
   const buttonLabel = (() => {
+    if (intentConfig.fixedOutput && flow.isQuoting) return 'Fetching quote…';
     if (flow.status === 'submitting') {
       if (flow.activeStep === 1) return 'Preparing…';
       if (flow.activeStep === 2) return 'Signing…';
@@ -308,26 +318,34 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         if (canSubmit && !cn?.button) e.currentTarget.style.backgroundColor = t.primary;
       }}
     >
-      {isBusy && <span style={{ ...s.spinner, color: '#ffffff' }} />}
+      {(isBusy || (intentConfig.fixedOutput && flow.isQuoting)) && (
+        <span style={{ ...s.spinner, color: '#ffffff' }} />
+      )}
       {buttonLabel}
     </button>
   );
 
+  const headerAction = allowNetworkToggle ? (
+    <NetworkToggle
+      isTestnet={isTestnet}
+      onChange={(checked) => {
+        setIsTestnet(checked);
+        setSelectedChainId(null);
+        setSelectedTokenAddress('');
+      }}
+    />
+  ) : undefined;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} theme={theme} classNames={cn} footer={footer}>
-
-      {/* Network toggle */}
-      {allowNetworkToggle && (
-        <NetworkToggle
-          isTestnet={isTestnet}
-          onChange={(checked) => {
-            setIsTestnet(checked);
-            setSelectedChainId(null);
-            setSelectedTokenAddress('');
-          }}
-        />
-      )}
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      theme={theme}
+      classNames={cn}
+      footer={footer}
+      headerAction={headerAction}
+    >
       {/* Wallet not connected */}
       {!isConnected && (
         <Banner variant="info" className={cn?.banner}>

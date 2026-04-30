@@ -105,6 +105,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const [quotedPayRaw, setQuotedPayRaw] = useState<string | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const pendingQuoteRef = useRef<{ taskTypeString: string; intentData: unknown; quoteResult: unknown } | null>(null);
+  // Incremented on every fetchQuote call; checked after awaits to discard superseded results.
+  const quoteCallIdRef = useRef(0);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressBarRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -263,6 +265,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       if (!walletClient || !address) return;
       if (!intentConfig.fixedOutput) return; // quotes only needed for fixed-output
 
+      const callId = ++quoteCallIdRef.current;
+
       setIsQuoting(true);
       setQuoteError(null);
       setQuotedPayAmount(null);
@@ -300,6 +304,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
           isNative: false,
         });
 
+        // Discard if a newer fetchQuote call has started since this one.
+        if (callId !== quoteCallIdRef.current) return;
         if (!mountedRef.current) return;
 
         if (quoteResult?.success && quoteResult.tokenIn) {
@@ -314,14 +320,15 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
           );
         }
       } catch (err) {
+        if (callId !== quoteCallIdRef.current) return;
         if (mountedRef.current) {
           setQuoteError(err instanceof Error ? err.message : String(err));
         }
       } finally {
-        if (mountedRef.current) setIsQuoting(false);
+        if (callId === quoteCallIdRef.current && mountedRef.current) setIsQuoting(false);
       }
     },
-    [walletClient, address, apiBaseUrl, buildTaskParams, requiredToken],
+    [walletClient, address, apiBaseUrl, buildTaskParams, intentConfig, requiredToken],
   );
 
   // ---- submit ------------------------------------------------------------
