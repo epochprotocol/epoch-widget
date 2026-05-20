@@ -40,6 +40,7 @@ function tokenLogo(symbol: string): string | undefined {
 // ---------------------------------------------------------------------------
 
 export const EPOCH_SUPPORTED_CHAINS: EpochChain[] = [
+  { id: 1, name: 'Ethereum', network: 'mainnet', logoURI: chainLogo(1) },
   { id: 137, name: 'Polygon', network: 'polygon', logoURI: chainLogo(137) },
   { id: 10, name: 'Optimism', network: 'optimism', logoURI: chainLogo(10) },
   { id: 8453, name: 'Base', network: 'base', logoURI: chainLogo(8453) },
@@ -57,6 +58,11 @@ export const EPOCH_TESTNET_CHAINS: EpochChain[] = [
 // ---------------------------------------------------------------------------
 
 export const EPOCH_SUPPORTED_TOKENS: EpochToken[] = [
+  // Ethereum
+  { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', name: 'USD Coin', decimals: 6, chainId: 1, logoURI: tokenLogo('USDC') },
+  { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', symbol: 'USDT', name: 'Tether USD', decimals: 6, chainId: 1, logoURI: tokenLogo('USDT') },
+  { address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 1, logoURI: tokenLogo('DAI') },
+  { address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18, chainId: 1, logoURI: tokenLogo('WETH') },
   // Base
   { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', name: 'USD Coin', decimals: 6, chainId: 8453, logoURI: tokenLogo('USDC') },
   { address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 8453, logoURI: tokenLogo('DAI') },

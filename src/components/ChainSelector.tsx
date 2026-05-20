@@ -3,7 +3,7 @@ import { s } from '../styles';
 import { t } from '../theme';
 import type { EpochChain } from '../types';
 import { Avatar } from './Avatar';
-import { SearchIcon } from './Icons';
+import { CheckIcon, ChevronLeftIcon, SearchIcon } from './Icons';
 
 interface ChainSelectorProps {
   chains: EpochChain[];
@@ -54,9 +54,7 @@ export function ChainSelector({ chains, selectedChainId, onSelect, onBack }: Cha
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.surface; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
         >
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ChevronLeftIcon width={18} height={18} />
         </button>
         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: t.text }}>
           Select Chain
@@ -134,9 +132,7 @@ export function ChainSelector({ chains, selectedChainId, onSelect, onBack }: Cha
                   </div>
                 </div>
                 {isSelected && (
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8.5l3 3 7-7" stroke={t.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <CheckIcon width={18} height={18} color={t.primary} />
                 )}
               </button>
             );

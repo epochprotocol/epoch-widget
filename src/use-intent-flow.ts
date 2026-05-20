@@ -7,6 +7,11 @@ import type {
   IntentSentPayload,
   IntentCompletePayload,
   EpochToken,
+  OnStartCtx,
+  OnSignCtx,
+  OnSuccessCtx,
+  OnErrorCtx,
+  WidgetFlow,
 } from './types';
 
 export type IntentFlowStatus =
@@ -25,11 +30,22 @@ interface UseIntentFlowParams {
   requiredAmount: bigint;
   intentConfig: IntentConfig;
   isTestnet: boolean;
+  /** Session ID — bundled into ctx callbacks. */
+  sessionId: string;
+  /** Mode for the current widget activation (passed to onStart). */
+  mode: WidgetFlow;
+  /** Optional receiver override (defaults to wallet address). */
+  receiver?: `0x${string}`;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
   onError?: (error: Error) => void;
   /** Fired ~2s after `onIntentComplete` — a hint for the consumer to close the modal. */
   onRequestClose?: () => void;
+  // ---- New ctx callbacks --------------------------------------------------
+  onStart?: (ctx: OnStartCtx) => void;
+  onSign?: (ctx: OnSignCtx) => void;
+  onSuccess?: (ctx: OnSuccessCtx) => void;
+  onErrorCtx?: (ctx: OnErrorCtx) => void;
 }
 
 interface SubmitInput {
@@ -87,11 +103,38 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     requiredAmount,
     intentConfig,
     isTestnet,
+    sessionId,
+    mode,
+    receiver,
     onIntentSent,
     onIntentComplete,
     onError,
     onRequestClose,
+    onStart,
+    onSign,
+    onSuccess,
+    onErrorCtx,
   } = params;
+
+  // Keep latest callbacks without listing them on useCallback deps — inline
+  // handlers from hosts would otherwise recreate submit/fetchQuote every render
+  // and retrigger effects that depend on those functions (e.g. auto quote).
+  const onIntentSentRef = useRef(onIntentSent);
+  onIntentSentRef.current = onIntentSent;
+  const onIntentCompleteRef = useRef(onIntentComplete);
+  onIntentCompleteRef.current = onIntentComplete;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const onRequestCloseRef = useRef(onRequestClose);
+  onRequestCloseRef.current = onRequestClose;
+  const onStartRef = useRef(onStart);
+  onStartRef.current = onStart;
+  const onSignRef = useRef(onSign);
+  onSignRef.current = onSign;
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  const onErrorCtxRef = useRef(onErrorCtx);
+  onErrorCtxRef.current = onErrorCtx;
 
   const [status, setStatus] = useState<IntentFlowStatus>('idle');
   const [activeStep, setActiveStep] = useState(0);
@@ -184,9 +227,10 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
             pollingRef.current = null;
           }
           setStatus('complete');
-          onIntentComplete?.({ nonce: nonceStr, status: statusList });
+          onIntentCompleteRef.current?.({ nonce: nonceStr, status: statusList });
+          onSuccessRef.current?.({ sessionId, nonce: nonceStr, status: statusList });
           setTimeout(() => {
-            if (mountedRef.current) onRequestClose?.();
+            if (mountedRef.current) onRequestCloseRef.current?.();
           }, AUTO_CLOSE_DELAY_MS);
         } else {
           // Drop the bar back to 0 so the next tick animates forward again.
@@ -204,7 +248,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
         isCheckingRef.current = false;
       }
     },
-    [address, onIntentComplete, onRequestClose],
+    [address, sessionId],
   );
 
   // Build the SDK-ready task data and extra data from the current intent config.
@@ -291,7 +335,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
             minTokenOut: parseUnits(params.outputAmountStr, requiredToken.decimals).toString(),
             destinationChainId: params.destChainId.toString(),
             protocolHashIdentifier: params.protocolHash,
-            recipient: address,
+            recipient: receiver ?? address,
           },
           extraDataTypestring: params.extraDataTypestring,
           extraData: params.extraData,
@@ -328,7 +372,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
         if (callId === quoteCallIdRef.current && mountedRef.current) setIsQuoting(false);
       }
     },
-    [walletClient, address, apiBaseUrl, buildTaskParams, intentConfig, requiredToken],
+    [walletClient, address, apiBaseUrl, buildTaskParams, intentConfig, requiredToken, receiver],
   );
 
   // ---- submit ------------------------------------------------------------
@@ -340,6 +384,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       setError(null);
       setStatus('submitting');
       setActiveStep(1);
+      onStartRef.current?.({ sessionId, mode });
 
       try {
         const sdk = new EpochIntentSDK({
@@ -396,6 +441,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
         }
 
         setActiveStep(2);
+        onSignRef.current?.({ sessionId });
 
         const data = await sdk.solveIntent({
           isNative: false,
@@ -418,7 +464,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
         if (responseNonce) {
           const nonceStr = responseNonce.toString();
           setNonce(nonceStr);
-          onIntentSent?.({ nonce: nonceStr });
+          onIntentSentRef.current?.({ nonce: nonceStr });
           setStatus('polling');
           setActiveStep(4);
 
@@ -429,7 +475,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
           );
         } else {
           setStatus('complete');
-          onIntentComplete?.({ nonce: '', status: data });
+          onIntentCompleteRef.current?.({ nonce: '', status: data });
+          onSuccessRef.current?.({ sessionId, nonce: '', status: data });
         }
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
@@ -438,7 +485,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
           setStatus('error');
           setActiveStep(0);
         }
-        onError?.(e);
+        onErrorRef.current?.(e);
+        onErrorCtxRef.current?.({ sessionId, error: e });
       }
     },
     [
@@ -448,9 +496,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       intentConfig,
       buildTaskParams,
       requiredToken,
-      onIntentSent,
-      onIntentComplete,
-      onError,
+      sessionId,
+      mode,
       checkIntentStatus,
     ],
   );

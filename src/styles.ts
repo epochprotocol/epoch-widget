@@ -29,7 +29,8 @@ export const s = {
   container: {
     backgroundColor: t.bg,
     borderRadius: t.radiusLg,
-    boxShadow: '0 24px 48px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05)',
+    boxShadow: t.shadowLg,
+    border: `1px solid ${t.border}`,
     width: '100%',
     maxWidth: '420px',
     maxHeight: '90vh',
@@ -89,8 +90,9 @@ export const s = {
 
   receiveCard: {
     padding: '24px',
-    borderRadius: t.radiusSm,
+    borderRadius: t.radiusMd,
     backgroundColor: t.surface,
+    border: `1px solid ${t.border}`,
     textAlign: 'center',
   } satisfies CSSProperties,
 
@@ -113,9 +115,10 @@ export const s = {
 
   payCard: {
     padding: '16px 20px',
-    borderRadius: t.radiusSm,
+    borderRadius: t.radiusMd,
     border: `1px solid ${t.border}`,
     backgroundColor: t.bg,
+    boxShadow: t.shadowSm,
   } satisfies CSSProperties,
 
   payHeader: {
@@ -167,9 +170,10 @@ export const s = {
     padding: '8px 12px',
     borderRadius: '999px',
     border: `1px solid ${t.border}`,
-    backgroundColor: t.surface,
+    backgroundColor: t.surfaceRaised,
+    boxShadow: t.shadowSm,
     cursor: 'pointer',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
+    transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
     fontSize: '14px',
     fontWeight: 600,
     color: t.text,
@@ -199,14 +203,15 @@ export const s = {
     color: '#ffffff',
     border: 'none',
     borderRadius: t.radiusSm,
-    fontSize: '16px',
-    fontWeight: 600,
+    fontSize: '15px',
+    fontWeight: 650,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    transition: 'background-color 0.15s, transform 0.1s',
+    boxShadow: t.shadowMd,
+    transition: 'background-color 0.15s, box-shadow 0.15s, transform 0.1s',
     fontFamily: 'inherit',
     letterSpacing: '-0.005em',
   } satisfies CSSProperties,

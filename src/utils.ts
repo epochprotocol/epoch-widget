@@ -53,6 +53,26 @@ export function truncateAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars + 2)}…${address.slice(-chars)}`;
 }
 
+/** Strip trailing zeros for human-editable amount strings built from bigint. */
+export function trimAmountInput(s: string): string {
+  if (!s.includes('.')) return s;
+  return s.replace(/\.?0+$/, '') || '0';
+}
+
+/**
+ * Format a fraction of an on-chain balance for a deposit input (e.g. 20% / 50% / Max).
+ */
+export function formatBalancePortionForInput(
+  balance: bigint,
+  numerator: number,
+  denominator: number,
+  decimals: number,
+): string {
+  if (denominator <= 0) return '0';
+  const part = (balance * BigInt(numerator)) / BigInt(denominator);
+  return trimAmountInput(formatAmount(part, decimals, Math.min(18, decimals)));
+}
+
 // ---------------------------------------------------------------------------
 // Keyframe injection (once per page)
 // ---------------------------------------------------------------------------

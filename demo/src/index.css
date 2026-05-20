@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-demo-bg: #f8fafc;
+  --color-demo-surface: #ffffff;
+  --color-demo-border: #e2e8f0;
+  --color-demo-border-active: #3b82f6;
+  --color-demo-ring: rgba(59, 130, 246, 0.15);
+  --color-demo-text: #0f172a;
+  --color-demo-text-muted: #64748b;
+  --color-demo-text-faint: #94a3b8;
+  --color-demo-accent: #0f172a;
+  --color-demo-accent-hover: #1e293b;
+  --color-demo-badge-bg: #f1f5f9;
+  --color-demo-badge-text: #475569;
+  --color-demo-badge-amber-bg: #fef3c7;
+  --color-demo-badge-amber-text: #92400e;
+  --color-demo-badge-violet-bg: #ede9fe;
+  --color-demo-badge-violet-text: #5b21b6;
+  --color-demo-log-bg: #0f172a;
+  --color-demo-log-slate: #cbd5e1;
+  --color-demo-log-muted: #64748b;
+  --color-demo-log-ok: #6ee7b7;
+  --color-demo-log-err: #fca5a5;
+  --color-demo-code-bg: #e2e8f0;
+  --color-demo-slate-600: #475569;
+  --color-demo-slate-700: #334155;
+  --color-demo-amber-600: #d97706;
+  --color-demo-amber-700: #b45309;
+  --color-demo-amber-800: #92400e;
+  --color-demo-amber-900: #7c2d12;
+  --color-demo-red-700: #b91c1c;
+  --color-demo-red-800: #991b1b;
+  --color-demo-green-600: #047857;
+  --color-demo-green-700: #065f46;
+  --color-demo-green-800: #166534;
+  --font-demo: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-demo);
+  }
+}

@@ -4,7 +4,7 @@ import { t } from '../theme';
 import type { EpochClassNames } from '../types';
 import { Shimmer } from './Shimmer';
 import { Avatar } from './Avatar';
-import { WalletIcon } from './Icons';
+import { ArrowDownIcon, ArrowDownUpIcon, WalletIcon } from './Icons';
 import { truncateAddress } from '../utils';
 
 interface CardData {
@@ -34,6 +34,11 @@ interface IntentSummaryProps {
    */
   tokenSelectorTrigger?: ReactNode;
   /**
+   * When true, only the receive summary card is shown (pay UI is inlined elsewhere,
+   * e.g. Earn deposit).
+   */
+  hidePayCard?: boolean;
+  /**
    * Read-only pill shown inside the receive card displaying the desired
    * destination token + chain. Not interactive — intentionally fixed.
    */
@@ -51,6 +56,8 @@ interface IntentSummaryProps {
   /** Optional connector icon (e.g. MetaMask fox) shown next to the address. */
   walletIcon?: string;
   classNames?: EpochClassNames;
+  /** Visual variant — `pay` (default), `swap`, or `earn`. Controls colour + connector glyph. */
+  variant?: 'pay' | 'swap' | 'earn';
 }
 
 // Reserve a stable height for the meta row under each card's amount. This is
@@ -75,6 +82,7 @@ export function IntentSummary({
   receive,
   isQuoting,
   tokenSelectorTrigger,
+  hidePayCard = false,
   destinationPill,
   balanceStr,
   balanceError,
@@ -83,7 +91,18 @@ export function IntentSummary({
   walletAddress,
   walletIcon,
   classNames: cn,
+  variant = 'pay',
 }: IntentSummaryProps) {
+  const accent =
+    variant === 'swap' ? '#0ea5a4' : variant === 'earn' ? (t.success as string) : (t.primary as string);
+
+  const receiveTint =
+    variant === 'swap'
+      ? 'rgba(14,165,164,0.06)'
+      : variant === 'earn'
+      ? 'rgba(22,163,74,0.05)'
+      : (t.surface as string);
+
   const cardStyle: React.CSSProperties = {
     ...s.payCard,
     padding: '18px 20px',
@@ -98,10 +117,12 @@ export function IntentSummary({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: hidePayCard ? '0' : '6px',
         position: 'relative',
       }}
     >
+      {!hidePayCard && (
+        <>
       {/* ── Pay card (top) ─────────────────────────────────── */}
       <div
         className={cn?.payCard}
@@ -222,12 +243,7 @@ export function IntentSummary({
         </div>
       </div>
 
-      {/* ── Arrow separator ────────────────────────────────────
-          Zero-height flex child sitting exactly in the 6px gap between the
-          two cards. The circle is absolutely positioned at the midpoint, so
-          its centre lines up with the pay→receive boundary regardless of
-          either card's height. Combined with the reserved-height balance row
-          above, this keeps the circle rock-steady during async updates. */}
+      {/* ── Separator: arrow (pay/earn) or swap-flip (swap) ──── */}
       <div
         aria-hidden="true"
         style={{
@@ -248,29 +264,24 @@ export function IntentSummary({
             height: '36px',
             borderRadius: '50%',
             backgroundColor: t.bg,
-            border: `1px solid ${t.border}`,
+            border: `1px solid ${variant === 'swap' ? accent : t.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: t.primary,
-            // Thick background-coloured ring so the circle looks like it's
-            // punching a clean hole through the gap. The outer drop shadow
-            // gives it a subtle lift.
+            color: accent,
             boxShadow:
               '0 0 0 4px var(--epoch-color-bg), 0 2px 8px rgba(15, 23, 42, 0.08)',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M8 3.25v9.5M4 8.75l4 4 4-4"
-              stroke="currentColor"
-              strokeWidth="1.85"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          {variant === 'swap' ? (
+            <ArrowDownUpIcon width={16} height={16} />
+          ) : (
+            <ArrowDownIcon width={16} height={16} />
+          )}
         </div>
       </div>
+        </>
+      )}
 
       {/* ── Receive card (bottom) ───────────────────────────── */}
       <div
@@ -282,8 +293,9 @@ export function IntentSummary({
                 ...s.receiveCard,
                 textAlign: 'left',
                 padding: '18px 20px',
-                backgroundColor: t.surface,
-                border: `1px solid ${t.border}`,
+                backgroundColor: receiveTint,
+                border: `1px solid ${variant === 'swap' ? 'rgba(14,165,164,0.35)' : t.border}`,
+                borderTop: variant === 'swap' ? `2px solid ${accent}` : `1px solid ${t.border}`,
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
               }
         }

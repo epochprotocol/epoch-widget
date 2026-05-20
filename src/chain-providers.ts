@@ -1,17 +1,12 @@
-import {
-  createPublicClient,
-  http,
-  erc20Abi,
-  type PublicClient,
-} from 'viem';
+import { createPublicClient, http, erc20Abi, type PublicClient } from "viem";
 
 const DEFAULT_RPC_URLS: Record<number, string> = {
-  137: 'https://polygon.lava.build',
-  10: 'https://mainnet.optimism.io',
-  8453: 'https://api.zan.top/base-mainnet',
-  42161: 'https://arb1.arbitrum.io/rpc',
-  84532: 'https://sepolia.base.org',
-  11155111: 'https://eth-sepolia-testnet.api.pocket.network',
+  137: "https://polygon.lava.build",
+  10: "https://mainnet.optimism.io",
+  8453: "https://mainnet.base.org",
+  42161: "https://arb1.arbitrum.io/rpc",
+  84532: "https://sepolia.base.org",
+  11155111: "https://eth-sepolia-testnet.api.pocket.network",
 };
 
 // Cache key is `chainId:rpcUrl` so custom RPCs get their own client instances
@@ -36,7 +31,7 @@ export function getChainPublicClient(
       id: chainId,
       name: `Chain ${chainId}`,
       network: `chain-${chainId}`,
-      nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+      nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
       rpcUrls: { default: { http: [rpcUrl] } },
     } as any,
     transport: http(rpcUrl),
@@ -59,7 +54,7 @@ export async function fetchTokenBalanceOnChain(
     const balance = await client.readContract({
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi,
-      functionName: 'balanceOf',
+      functionName: "balanceOf",
       args: [userAddress as `0x${string}`],
     });
     return balance as bigint;
@@ -69,6 +64,9 @@ export async function fetchTokenBalanceOnChain(
 }
 
 /** Merge default RPC URLs with consumer-supplied overrides */
-export function resolveRpcUrl(chainId: number, customRpcUrls?: Record<number, string>): string | undefined {
+export function resolveRpcUrl(
+  chainId: number,
+  customRpcUrls?: Record<number, string>,
+): string | undefined {
   return customRpcUrls?.[chainId] ?? DEFAULT_RPC_URLS[chainId];
 }

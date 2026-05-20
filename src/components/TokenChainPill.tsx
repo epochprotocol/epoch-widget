@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { t } from '../theme';
 import { Avatar } from './Avatar';
+import { ChevronRightIcon, LockIcon } from './Icons';
 
 interface TokenChainPillProps {
   tokenSymbol: string;
@@ -105,27 +106,7 @@ export function TokenChainPill({
         }}
         aria-hidden="true"
       >
-        {readOnly ? (
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6H4z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M6 4l4 4-4 4"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
+        {readOnly ? <LockIcon /> : <ChevronRightIcon width={11} height={11} />}
       </div>
     </>
   );
