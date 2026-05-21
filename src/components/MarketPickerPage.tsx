@@ -1,5 +1,5 @@
-import { useMemo, useState, type CSSProperties } from 'react';
-import { t } from '../theme';
+import { useMemo, useState } from 'react';
+import { cn } from '../lib/cn';
 import type { EpochEarnMarket, OneDeltaConfig, OneDeltaMarketRow } from '../types';
 import { toEpochEarnMarket } from '../earn/onedelta-adapter';
 import { MarketRowCard } from './earn/MarketRowCard';
@@ -49,7 +49,6 @@ function flatten(configs: OneDeltaConfig[], side: SideTab): FlatRow[] {
       out.push({ config: cfg, row, market: toEpochEarnMarket(row, cfg, side) });
     }
   }
-  // dedupe by market.id (same underlying may appear in multiple configs)
   const seen = new Set<string>();
   return out.filter((x) => (seen.has(x.market.id) ? false : (seen.add(x.market.id), true)));
 }
@@ -63,77 +62,22 @@ function rowMatches(item: FlatRow, query: string): boolean {
     .includes(q);
 }
 
-function sortByRate(
-  items: FlatRow[],
-  side: SideTab,
-  sourceChainId?: number | null,
-): FlatRow[] {
+function sortByRate(items: FlatRow[], side: SideTab, sourceChainId?: number | null): FlatRow[] {
   const key = side === 'lend' ? 'depositRate' : 'variableBorrowRate';
   return [...items].sort((a, b) => {
-    // Primary: same-chain markets first (so users always see what they can
-    // deposit into without a bridge).
     if (sourceChainId != null) {
       const aSame = a.market.chainId === sourceChainId ? 0 : 1;
       const bSame = b.market.chainId === sourceChainId ? 0 : 1;
       if (aSame !== bSame) return aSame - bSame;
     }
-    // Secondary: best APR first.
     return b.row[key] - a.row[key];
   });
 }
 
-const sectionLabel: CSSProperties = {
-  fontSize: '11px',
-  fontWeight: 600,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: t.textMuted,
-  margin: '14px 0 4px',
-};
-
-const filterChipBase: CSSProperties = {
-  all: 'unset',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '8px 12px',
-  borderRadius: '999px',
-  border: `1px solid ${t.border}`,
-  backgroundColor: t.bg,
-  cursor: 'pointer',
-  fontSize: '13px',
-  fontWeight: 600,
-  color: t.text,
-  boxShadow: t.shadowSm,
-  fontFamily: 'inherit',
-};
-
-const dropdownStyle: CSSProperties = {
-  position: 'absolute',
-  top: 'calc(100% + 6px)',
-  left: 0,
-  zIndex: 10,
-  background: t.bg,
-  border: `1px solid ${t.border}`,
-  borderRadius: t.radiusSm,
-  boxShadow: t.shadowLg,
-  padding: 6,
-  minWidth: 180,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-};
-
-const dropdownItem = (active: boolean): CSSProperties => ({
-  all: 'unset',
-  cursor: 'pointer',
-  padding: '8px 10px',
-  borderRadius: t.radiusXs,
-  fontSize: '13px',
-  fontWeight: 500,
-  color: active ? t.primary : t.text,
-  backgroundColor: active ? t.accentSoft : 'transparent',
-});
+const FILTER_CHIP =
+  'inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-canvas px-3 py-2 text-[13px] font-semibold text-fg shadow-sm';
+const DROPDOWN_ITEM_BASE =
+  'cursor-pointer rounded-xs px-2.5 py-2 text-[13px] font-medium';
 
 export function MarketPickerPage({
   configs,
@@ -162,7 +106,8 @@ export function MarketPickerPage({
     return sortByRate(
       all.filter(
         (item) =>
-          rowMatches(item, query) && (lenderKey === ALL_LENDERS || item.config.lenderKey === lenderKey),
+          rowMatches(item, query) &&
+          (lenderKey === ALL_LENDERS || item.config.lenderKey === lenderKey),
       ),
       side,
       sourceChainId,
@@ -174,11 +119,11 @@ export function MarketPickerPage({
   const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   if (error) {
-    return <p style={{ color: t.error, fontSize: '13px', margin: 0 }}>Failed to load markets: {error.message}</p>;
+    return <p className="m-0 text-[13px] text-error">Failed to load markets: {error.message}</p>;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div className="flex flex-col gap-3">
       <SearchInput
         value={query}
         onChange={(v) => {
@@ -190,34 +135,36 @@ export function MarketPickerPage({
         ariaLabel="Filter markets"
       />
 
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative' }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
           <button
             type="button"
-            style={filterChipBase}
+            className={FILTER_CHIP}
             onClick={() => setLenderOpen((o) => !o)}
             aria-haspopup="listbox"
             aria-expanded={lenderOpen}
           >
             <span
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)',
-                display: 'inline-block',
-                flexShrink: 0,
-              }}
+              className="inline-block h-4.5 w-4.5 shrink-0 rounded-full"
+              style={{ background: 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)' }}
               aria-hidden
             />
             {lenderKey === ALL_LENDERS ? 'All lenders' : lenderLabel(lenderKey)}
             <ChevronDownIcon />
           </button>
           {lenderOpen && (
-            <div style={dropdownStyle} role="listbox">
+            <div
+              role="listbox"
+              className="absolute left-0 top-[calc(100%+6px)] z-10 flex min-w-[180px] flex-col gap-0.5 rounded-sm border border-line bg-canvas p-1.5 shadow-lg"
+            >
               <button
                 type="button"
-                style={dropdownItem(lenderKey === ALL_LENDERS)}
+                className={cn(
+                  DROPDOWN_ITEM_BASE,
+                  lenderKey === ALL_LENDERS
+                    ? 'bg-accent-soft text-primary'
+                    : 'bg-transparent text-fg',
+                )}
                 onClick={() => {
                   setLenderKey(ALL_LENDERS);
                   setLenderOpen(false);
@@ -230,7 +177,12 @@ export function MarketPickerPage({
                 <button
                   key={k}
                   type="button"
-                  style={dropdownItem(lenderKey === k)}
+                  className={cn(
+                    DROPDOWN_ITEM_BASE,
+                    lenderKey === k
+                      ? 'bg-accent-soft text-primary'
+                      : 'bg-transparent text-fg',
+                  )}
                   onClick={() => {
                     setLenderKey(k);
                     setLenderOpen(false);
@@ -244,7 +196,7 @@ export function MarketPickerPage({
           )}
         </div>
 
-        <div style={{ marginLeft: 'auto', minWidth: 168 }}>
+        <div className="ml-auto min-w-[168px]">
           <SegmentedTabs<SideTab>
             tabs={[
               { value: 'lend', label: 'Lend' },
@@ -259,18 +211,20 @@ export function MarketPickerPage({
         </div>
       </div>
 
-      <div style={sectionLabel}>Available markets</div>
+      <div className="mt-3.5 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
+        Available markets
+      </div>
 
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Skeleton width="100%" height={72} radius={t.radiusSm as string} />
-          <Skeleton width="100%" height={72} radius={t.radiusSm as string} />
-          <Skeleton width="100%" height={72} radius={t.radiusSm as string} />
+        <div className="flex flex-col gap-2">
+          <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
+          <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
+          <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
         </div>
       ) : filtered.length === 0 ? (
-        <p style={{ color: t.textMuted, fontSize: '13px', margin: '12px 0' }}>No markets match your search.</p>
+        <p className="my-3 text-[13px] text-fg-muted">No markets match your search.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 460, overflowY: 'auto' }}>
+        <div className="flex max-h-[460px] flex-col overflow-y-auto">
           {pageItems.map((item) => (
             <MarketRowCard
               key={item.market.id}
@@ -285,31 +239,17 @@ export function MarketPickerPage({
       )}
 
       {!isLoading && filtered.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderTop: `1px solid ${t.border}`,
-            paddingTop: 12,
-            marginTop: 4,
-            fontSize: '12.5px',
-            color: t.textMuted,
-          }}
-        >
+        <div className="mt-1 flex items-center justify-between border-t border-line pt-3 text-[12.5px] text-fg-muted">
           <span>
             Showing {filtered.length} market{filtered.length === 1 ? '' : 's'} · Page {currentPage + 1} of {totalPages}
           </span>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="flex gap-3">
             <button
               type="button"
-              style={{
-                all: 'unset',
-                cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
-                color: currentPage === 0 ? t.textMuted : t.text,
-                fontWeight: 600,
-                opacity: currentPage === 0 ? 0.5 : 1,
-              }}
+              className={cn(
+                'border-0 bg-transparent p-0 font-semibold',
+                currentPage === 0 ? 'cursor-not-allowed text-fg-muted opacity-50' : 'cursor-pointer text-fg',
+              )}
               disabled={currentPage === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
@@ -317,13 +257,12 @@ export function MarketPickerPage({
             </button>
             <button
               type="button"
-              style={{
-                all: 'unset',
-                cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
-                color: currentPage >= totalPages - 1 ? t.textMuted : t.text,
-                fontWeight: 600,
-                opacity: currentPage >= totalPages - 1 ? 0.5 : 1,
-              }}
+              className={cn(
+                'border-0 bg-transparent p-0 font-semibold',
+                currentPage >= totalPages - 1
+                  ? 'cursor-not-allowed text-fg-muted opacity-50'
+                  : 'cursor-pointer text-fg',
+              )}
               disabled={currentPage >= totalPages - 1}
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             >

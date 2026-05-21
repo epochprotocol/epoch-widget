@@ -1,1 +1,1 @@
-export type DemoSurface = 'pay' | 'earn' | 'swap';
+export type DemoSurface = 'pay' | 'earn' | 'swap' | 'advanced';

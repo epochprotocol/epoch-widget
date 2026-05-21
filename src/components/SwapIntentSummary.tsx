@@ -1,48 +1,42 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { t } from '../theme';
+import type { ReactNode } from 'react';
+import { cn } from '../lib/cn';
 import type { EpochClassNames } from '../types';
 import { ArrowDownIcon, ChevronRightIcon, WalletIcon } from './Icons';
 import { Avatar } from './Avatar';
 import { Shimmer } from './Shimmer';
 import { truncateAddress, formatBalancePortionForInput } from '../utils';
 
-const NUMERIC: CSSProperties = {
-  fontVariantNumeric: 'tabular-nums',
-  fontFeatureSettings: '"tnum"',
-};
-
 interface SwapIntentSummaryProps {
-  /** Amount the user sells. */
   sellAmount: string;
   sellSymbol: string;
-  /** Token+chain pill on the Sell card (interactive). */
   sellTokenPill?: ReactNode;
-  /** Amount the user buys (post-quote). */
   buyAmount: string;
   buySymbol: string;
-  /** Token+chain pill on the Buy card (read-only destination). */
   buyTokenPill?: ReactNode;
-  /** Connected wallet — same address on both sides. */
   walletAddress?: string;
   walletIcon?: string;
   walletConnected?: boolean;
   isQuoting?: boolean;
-  /** Source balance string. */
   balanceStr?: string;
   balanceError?: boolean;
   isBalanceLoading?: boolean;
-  /** Raw source balance for the 20% / 50% / Max quick fills. */
   sellBalanceRaw?: bigint | null;
   sellDecimals?: number;
-  /** Called when the user picks 20% / 50% / Max. Pass null to ignore. */
   onAmountChange?: ((amount: string) => void) | null;
   classNames?: EpochClassNames;
 }
 
+const CARD_BASE = 'rounded-md border border-line px-5 py-4.5 shadow-sm';
+const SECTION_LABEL = 'text-[13px] font-semibold text-fg';
+const AMOUNT_CLASSES =
+  'm-0 overflow-hidden text-ellipsis whitespace-nowrap text-[34px] font-bold leading-[1.05] -tracking-[0.025em] tabular-nums text-fg';
+const PCT_BTN =
+  'cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-fg-secondary';
+
 /**
  * Swap-flavoured intent summary — two stacked cards (Sell / Buy) with a small
  * down-arrow chip between them. Buy card has a muted background so the two
- * sides are visually distinct. Fork freely without touching PayIntentSummary.
+ * sides are visually distinct.
  */
 export function SwapIntentSummary({
   sellAmount,
@@ -61,50 +55,8 @@ export function SwapIntentSummary({
   sellBalanceRaw,
   sellDecimals = 18,
   onAmountChange,
-  classNames: cn,
+  classNames: cs,
 }: SwapIntentSummaryProps) {
-  const cardBase: CSSProperties = {
-    borderRadius: t.radiusMd,
-    border: `1px solid ${t.border}`,
-    boxShadow: t.shadowSm,
-    padding: '18px 20px',
-    boxSizing: 'border-box',
-  };
-
-  const sellCard: CSSProperties = { ...cardBase, backgroundColor: t.bg };
-  const buyCard: CSSProperties = { ...cardBase, backgroundColor: t.surface };
-
-  const sectionLabel: CSSProperties = {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: t.text,
-  };
-
-  const amount: CSSProperties = {
-    margin: 0,
-    fontSize: '34px',
-    fontWeight: 700,
-    letterSpacing: '-0.025em',
-    color: t.text,
-    lineHeight: 1.05,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    ...NUMERIC,
-  };
-
-  const pctBtn: CSSProperties = {
-    all: 'unset',
-    cursor: 'pointer',
-    fontSize: '11px',
-    fontWeight: 600,
-    padding: '4px 10px',
-    borderRadius: 999,
-    color: t.textSecondary,
-    backgroundColor: t.surface,
-    border: `1px solid ${t.border}`,
-  };
-
   const applyPortion = (num: number, den: number) => {
     if (!onAmountChange || !sellBalanceRaw || sellBalanceRaw === 0n) return;
     onAmountChange(formatBalancePortionForInput(sellBalanceRaw, num, den, sellDecimals));
@@ -112,76 +64,51 @@ export function SwapIntentSummary({
 
   const walletBadge = walletAddress ? (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: '12.5px',
-        fontWeight: 700,
-        color: t.primary,
-        padding: '3px 0',
-        ...NUMERIC,
-      }}
+      className="flex items-center gap-1.5 py-0.75 text-[12.5px] font-bold tabular-nums text-primary"
       title={walletAddress}
     >
       {walletIcon ? <Avatar src={walletIcon} label="Wallet" size={18} /> : <WalletIcon width={14} height={14} />}
       <span>{truncateAddress(walletAddress, 4)}</span>
-      <span style={{ color: t.primary, opacity: 0.85, display: 'inline-flex' }}>
+      <span className="inline-flex text-primary/85">
         <ChevronRightIcon width={12} height={12} />
       </span>
     </div>
   ) : (
-    <span style={{ fontSize: '12.5px', color: t.textMuted }}>Connect wallet</span>
+    <span className="text-[12.5px] text-fg-muted">Connect wallet</span>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <div className={cn?.payCard} style={cn?.payCard ? undefined : sellCard}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-          <span style={sectionLabel}>Sell</span>
+    <div className="relative flex flex-col">
+      <div className={cn(CARD_BASE, 'bg-canvas', cs?.payCard)}>
+        <div className="mb-2.5 flex items-center justify-between gap-2.5">
+          <span className={SECTION_LABEL}>Sell</span>
           {walletBadge}
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {isQuoting ? <Shimmer width="120px" height="34px" radius="8px" /> : <p style={amount}>{sellAmount || '0'}</p>}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {isQuoting ? <Shimmer width="120px" height="34px" radius="8px" /> : <p className={AMOUNT_CLASSES}>{sellAmount || '0'}</p>}
           </div>
           {sellTokenPill}
         </div>
-
-        <div
-          style={{
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 8,
-            fontSize: '12.5px',
-            color: t.textMuted,
-            ...NUMERIC,
-          }}
-        >
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 text-[12.5px] tabular-nums text-fg-muted">
           <span>≈ $—</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-2">
             {isBalanceLoading ? (
               <Shimmer width="100px" height="12px" radius="4px" />
             ) : (
-              <span style={{ color: balanceError ? t.error : t.textSecondary, fontWeight: balanceError ? 600 : 500 }}>
+              <span
+                className={cn(
+                  balanceError ? 'font-semibold text-error' : 'font-medium text-fg-secondary',
+                )}
+              >
                 {balanceStr ?? (walletConnected ? `Balance: 0 ${sellSymbol}` : 'Balance: —')}
               </span>
             )}
             {onAmountChange && sellBalanceRaw ? (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button type="button" style={pctBtn} onClick={() => applyPortion(20, 100)}>
-                  20%
-                </button>
-                <button type="button" style={pctBtn} onClick={() => applyPortion(50, 100)}>
-                  50%
-                </button>
-                <button type="button" style={pctBtn} onClick={() => applyPortion(1, 1)}>
-                  Max
-                </button>
+              <div className="flex gap-1.5">
+                <button type="button" className={PCT_BTN} onClick={() => applyPortion(20, 100)}>20%</button>
+                <button type="button" className={PCT_BTN} onClick={() => applyPortion(50, 100)}>50%</button>
+                <button type="button" className={PCT_BTN} onClick={() => applyPortion(1, 1)}>Max</button>
               </div>
             ) : null}
           </div>
@@ -190,60 +117,25 @@ export function SwapIntentSummary({
 
       <div
         aria-hidden="true"
-        style={{
-          height: 0,
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
+        className="pointer-events-none relative z-[2] flex h-0 justify-center"
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            transform: 'translateY(-50%)',
-            width: '34px',
-            height: '34px',
-            borderRadius: '50%',
-            backgroundColor: t.bg,
-            border: `1px solid ${t.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: t.textSecondary,
-            boxShadow: '0 0 0 4px var(--epoch-color-bg)',
-          }}
-        >
+        <div className="absolute top-0 -translate-y-1/2 flex h-8.5 w-8.5 items-center justify-center rounded-full border border-line bg-canvas text-fg-secondary shadow-[0_0_0_4px_var(--epoch-color-bg)]">
           <ArrowDownIcon width={14} height={14} />
         </div>
       </div>
 
-      <div className={cn?.receiveCard} style={cn?.receiveCard ? undefined : { ...buyCard, marginTop: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-          <span style={sectionLabel}>Buy</span>
+      <div className={cn(CARD_BASE, 'mt-2 bg-surface', cs?.receiveCard)}>
+        <div className="mb-2.5 flex items-center justify-between gap-2.5">
+          <span className={SECTION_LABEL}>Buy</span>
           {walletBadge}
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {isQuoting ? <Shimmer width="120px" height="34px" radius="8px" /> : <p style={amount}>{buyAmount || '0'}</p>}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {isQuoting ? <Shimmer width="120px" height="34px" radius="8px" /> : <p className={AMOUNT_CLASSES}>{buyAmount || '0'}</p>}
           </div>
           {buyTokenPill}
         </div>
-
-        <div
-          style={{
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            fontSize: '12.5px',
-            color: t.textMuted,
-            ...NUMERIC,
-          }}
-        >
+        <div className="mt-3.5 flex items-center justify-end text-[12.5px] tabular-nums text-fg-muted">
           <span>Balance: 0 {buySymbol}</span>
         </div>
       </div>

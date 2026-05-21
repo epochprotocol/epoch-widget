@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
 const toneClass = {
-  slate: 'bg-demo-badge-bg text-demo-badge-text',
-  amber: 'bg-demo-badge-amber-bg text-demo-badge-amber-text',
-  violet: 'bg-demo-badge-violet-bg text-demo-badge-violet-text',
+  slate:  'bg-surface-muted  text-fg-secondary',
+  amber:  'bg-warning-soft   text-warning',
+  violet: 'bg-accent-soft    text-primary',
 } as const;
 
 export function Badge({
@@ -16,7 +16,7 @@ export function Badge({
   return (
     <span
       className={[
-        'inline-flex items-center rounded-md px-[0.4375rem] py-0.5 font-mono text-[0.6875rem] font-medium',
+        'inline-flex items-center rounded-md px-[7px] py-0.5 font-mono text-[11px] font-medium',
         toneClass[tone],
       ].join(' ')}
     >

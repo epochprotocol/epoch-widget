@@ -1,6 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { s } from '../styles';
-import { t } from '../theme';
+import type { ReactNode } from 'react';
+import { cn } from '../lib/cn';
 import { AlertIcon, InfoIcon } from './Icons';
 
 type BannerVariant = 'info' | 'error' | 'warning' | 'success';
@@ -12,49 +11,28 @@ interface BannerProps {
   className?: string;
 }
 
-const PALETTE: Record<BannerVariant, { bg: string; border: string; color: string }> = {
-  info: {
-    bg: 'rgba(59, 130, 246, 0.08)',
-    border: 'rgba(59, 130, 246, 0.25)',
-    color: t.info,
-  },
-  error: {
-    bg: 'rgba(220, 38, 38, 0.06)',
-    border: 'rgba(220, 38, 38, 0.2)',
-    color: t.error,
-  },
-  warning: {
-    bg: 'rgba(217, 119, 6, 0.08)',
-    border: 'rgba(217, 119, 6, 0.22)',
-    color: t.warning,
-  },
-  success: {
-    bg: 'rgba(22, 163, 74, 0.08)',
-    border: 'rgba(22, 163, 74, 0.22)',
-    color: t.success,
-  },
+const VARIANT_CLASSES: Record<BannerVariant, string> = {
+  info:    'bg-accent-soft  text-info    border-info/25',
+  error:   'bg-error-soft   text-error   border-error/25',
+  warning: 'bg-warning-soft text-warning border-warning/25',
+  success: 'bg-success-soft text-success border-success/25',
 };
 
 export function Banner({ variant = 'info', children, action, className }: BannerProps) {
-  const palette = PALETTE[variant];
-  const style: CSSProperties = className
-    ? {}
-    : {
-        ...s.banner,
-        backgroundColor: palette.bg,
-        border: `1px solid ${palette.border}`,
-        color: palette.color,
-      };
-
   const Icon = variant === 'info' || variant === 'success' ? InfoIcon : AlertIcon;
-
   return (
-    <div className={className} style={style}>
-      <span style={{ display: 'flex', marginTop: '1px' }}>
+    <div
+      className={cn(
+        'flex items-start gap-2 rounded-sm border px-3.5 py-3 text-[13px] leading-snug',
+        VARIANT_CLASSES[variant],
+        className,
+      )}
+    >
+      <span className="mt-px flex">
         <Icon />
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
-      {action && <div style={{ flexShrink: 0 }}>{action}</div>}
+      <div className="min-w-0 flex-1">{children}</div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

@@ -12,23 +12,23 @@ export function ScenarioCard({ scenario, active, onSelect }: Props) {
   return (
     <button
       type="button"
-      className={[
-        'block w-full cursor-pointer rounded-[0.875rem] border bg-demo-surface p-4 text-left transition-[border-color,box-shadow]',
-        active
-          ? 'border-demo-border-active shadow-[0_0_0_3px_rgba(59,130,246,0.15),0_1px_2px_rgba(15,23,42,0.04)]'
-          : 'border-demo-border shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
-      ].join(' ')}
       onClick={onSelect}
+      className={[
+        'block w-full cursor-pointer rounded-md border bg-surface p-4 text-left shadow-sm transition-[border-color,box-shadow]',
+        active
+          ? 'border-primary shadow-[0_0_0_3px_var(--epoch-color-accent-soft),0_1px_2px_rgba(15,23,42,0.04)]'
+          : 'border-line hover:border-line-strong',
+      ].join(' ')}
     >
       <Row className="items-start justify-between">
-        <div className="text-[0.9375rem] font-semibold">{scenario.name}</div>
+        <div className="text-[15px] font-semibold text-fg">{scenario.name}</div>
         {active && (
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-blue-700">
+          <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
             Active
           </span>
         )}
       </Row>
-      <div className="mt-1 text-xs leading-normal text-demo-text-muted">{scenario.tagline}</div>
+      <div className="mt-1 text-xs leading-normal text-fg-muted">{scenario.tagline}</div>
       <Row className="mt-3 flex-wrap gap-1.5">
         {scenario.props.intent ? (
           <>

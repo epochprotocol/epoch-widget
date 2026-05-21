@@ -1,6 +1,4 @@
-import type { CSSProperties } from 'react';
-import { s } from '../styles';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import { CheckIcon } from './Icons';
 
 export const PROGRESS_STEPS = [
@@ -20,84 +18,66 @@ interface ProgressStepperProps {
 
 export function ProgressStepper({ activeStep, statusProgress, className }: ProgressStepperProps) {
   return (
-    <div className={className} style={className ? undefined : s.progressContainer}>
-      <p style={s.progressTitle}>Transaction progress</p>
+    <div
+      className={cn(
+        'rounded-sm border border-line bg-surface p-4',
+        className,
+      )}
+    >
+      <p className="m-0 mb-3 text-[13px] font-semibold text-fg">Transaction progress</p>
       {PROGRESS_STEPS.map((label, i) => {
         const stepNum = i + 1;
         const isComplete = activeStep > stepNum;
         const isActive = activeStep === stepNum;
         const isLast = stepNum === PROGRESS_STEPS.length;
 
-        const iconStyle: CSSProperties = {
-          width: '20px',
-          minWidth: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: '1px',
-        };
-
         let iconContent;
         if (isComplete) {
-          iconContent = <CheckIcon style={{ color: t.success }} />;
+          iconContent = <CheckIcon style={{ color: 'var(--epoch-color-success)' }} />;
         } else if (isActive) {
           iconContent = (
-            <span
-              style={{
-                display: 'inline-block',
-                width: '14px',
-                height: '14px',
-                border: `2px solid ${t.primary}`,
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                animation: 'epoch-spin 0.8s linear infinite',
-              }}
-            />
+            <span className="inline-block h-3.5 w-3.5 animate-spin-epoch rounded-full border-2 border-primary border-t-transparent" />
           );
         } else {
           iconContent = (
-            <span
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                border: `2px solid ${t.border}`,
-                display: 'inline-block',
-              }}
-            />
+            <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-line" />
           );
         }
 
-        const textStyle: CSSProperties = {
-          fontSize: '13px',
-          lineHeight: 1.4,
-          color: isActive ? t.text : isComplete ? t.textSecondary : t.textMuted,
-          fontWeight: isActive ? 600 : 400,
-        };
+        const textClasses = cn(
+          'text-[13px] leading-snug',
+          isActive
+            ? 'font-semibold text-fg'
+            : isComplete
+              ? 'text-fg-secondary'
+              : 'text-fg-muted',
+        );
 
         return (
           <div key={stepNum}>
-            <div style={s.progressStep}>
-              <div style={iconStyle}>{iconContent}</div>
-              <div style={{ flex: 1 }}>
-                <span style={textStyle}>{label}</span>
+            <div className="flex items-start gap-2.5">
+              <div className="mt-px flex w-5 min-w-[20px] items-center justify-center">
+                {iconContent}
+              </div>
+              <div className="flex-1">
+                <span className={textClasses}>{label}</span>
                 {stepNum === 4 && isActive && (
-                  <div style={s.progressBar}>
+                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-line">
                     <div
-                      style={{
-                        height: '100%',
-                        backgroundColor: t.primary,
-                        borderRadius: '999px',
-                        width: `${statusProgress}%`,
-                        transition: 'width 0.15s ease',
-                      }}
+                      className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+                      style={{ width: `${statusProgress}%` }}
                     />
                   </div>
                 )}
               </div>
             </div>
             {!isLast && (
-              <div style={isComplete ? s.progressConnectorActive : s.progressConnector} />
+              <div
+                className={cn(
+                  'ml-2.5 h-3 w-0.5',
+                  isComplete ? 'bg-success' : 'bg-line',
+                )}
+              />
             )}
           </div>
         );

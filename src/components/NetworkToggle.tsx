@@ -1,10 +1,12 @@
-import type { CSSProperties } from 'react';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 
 interface NetworkToggleProps {
   isTestnet: boolean;
   onChange: (isTestnet: boolean) => void;
 }
+
+const SEGMENT_BASE =
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full border-0 px-2.5 py-1.25 transition-[background-color,color,box-shadow] duration-150';
 
 /**
  * Compact segmented control for flipping between mainnet and testnet. Designed
@@ -13,40 +15,19 @@ interface NetworkToggleProps {
  * conventions.
  */
 export function NetworkToggle({ isTestnet, onChange }: NetworkToggleProps) {
-  const trackStyle: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '3px',
-    borderRadius: '999px',
-    backgroundColor: t.surface,
-    border: `1px solid ${t.border}`,
-    fontSize: '11px',
-    fontWeight: 600,
-    letterSpacing: '0.01em',
-    lineHeight: 1,
-    userSelect: 'none',
-  };
-
-  const segment = (active: boolean): CSSProperties => ({
-    all: 'unset',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '5px 10px',
-    borderRadius: '999px',
-    cursor: active ? 'default' : 'pointer',
-    color: active ? '#ffffff' : t.textMuted,
-    backgroundColor: active ? t.primary : 'transparent',
-    boxShadow: active ? '0 1px 2px rgba(15, 23, 42, 0.12)' : 'none',
-    transition: 'background-color 0.15s, color 0.15s, box-shadow 0.15s',
-    whiteSpace: 'nowrap',
-  });
+  const segmentClasses = (active: boolean) =>
+    cn(
+      SEGMENT_BASE,
+      active
+        ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
+        : 'cursor-pointer bg-transparent text-fg-muted',
+    );
 
   return (
     <div
       role="tablist"
       aria-label="Network"
-      style={trackStyle}
+      className="inline-flex select-none items-center rounded-full border border-line bg-surface p-0.75 text-[11px] font-semibold leading-none tracking-[0.01em]"
     >
       <button
         type="button"
@@ -54,7 +35,7 @@ export function NetworkToggle({ isTestnet, onChange }: NetworkToggleProps) {
         aria-selected={!isTestnet}
         tabIndex={!isTestnet ? 0 : -1}
         onClick={() => isTestnet && onChange(false)}
-        style={segment(!isTestnet)}
+        className={segmentClasses(!isTestnet)}
       >
         Mainnet
       </button>
@@ -64,7 +45,7 @@ export function NetworkToggle({ isTestnet, onChange }: NetworkToggleProps) {
         aria-selected={isTestnet}
         tabIndex={isTestnet ? 0 : -1}
         onClick={() => !isTestnet && onChange(true)}
-        style={segment(isTestnet)}
+        className={segmentClasses(isTestnet)}
       >
         Testnet
       </button>

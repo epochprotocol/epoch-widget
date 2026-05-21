@@ -14,6 +14,7 @@ import {
   CircleArrowRight,
   Search,
   Settings,
+  Sparkles,
   TrendingUp,
   Wallet,
   X,
@@ -52,3 +53,4 @@ export const WalletIcon = icon(Wallet, 16);
 export const PoweredIcon = icon(CircleArrowRight, 12);
 export const TrendingUpIcon = icon(TrendingUp, 14);
 export const ArrowDownUpIcon = icon(ArrowDownUp, 16);
+export const SparklesIcon = icon(Sparkles, 16);

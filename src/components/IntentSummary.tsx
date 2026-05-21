@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { s } from '../styles';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import type { EpochClassNames } from '../types';
 import { Shimmer } from './Shimmer';
 import { Avatar } from './Avatar';
@@ -60,17 +59,17 @@ interface IntentSummaryProps {
   variant?: 'pay' | 'swap' | 'earn';
 }
 
-// Reserve a stable height for the meta row under each card's amount. This is
-// the whole reason the separator stays put — if this row collapsed when the
-// balance was absent, the pay card would shrink and the separator would jump.
-const META_ROW_HEIGHT = 18;
+// Card padding + border shared by both pay and receive cards. Soft inner
+// shadow keeps the cards visually grounded against the modal canvas.
+const CARD_BASE =
+  'relative rounded-md border border-line bg-surface px-5 py-4.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]';
 
-// Numeric displays use tabular figures so digits don't shift as values change
-// (e.g. while streaming a quote or balance update).
-const NUMERIC: React.CSSProperties = {
-  fontVariantNumeric: 'tabular-nums',
-  fontFeatureSettings: '"tnum"',
-};
+const LABEL_CLASSES = 'text-[13px] font-medium text-fg-muted';
+
+const AMOUNT_CLASSES =
+  'm-0 text-2xl font-bold leading-tight tabular-nums -tracking-[0.02em] text-fg';
+
+const META_ROW_CLASSES = 'mt-3 flex min-h-[18px] items-center text-xs leading-[18px] tabular-nums';
 
 /**
  * Two-card summary: pay on top (with floating token pill), receive on bottom.
@@ -90,301 +89,137 @@ export function IntentSummary({
   walletConnected,
   walletAddress,
   walletIcon,
-  classNames: cn,
+  classNames: cs,
   variant = 'pay',
 }: IntentSummaryProps) {
-  const accent =
-    variant === 'swap' ? '#0ea5a4' : variant === 'earn' ? (t.success as string) : (t.primary as string);
-
-  const receiveTint =
+  // Variant-specific accent colour for the separator + swap-card top edge.
+  const accentColor =
     variant === 'swap'
-      ? 'rgba(14,165,164,0.06)'
+      ? '#0ea5a4'
       : variant === 'earn'
-      ? 'rgba(22,163,74,0.05)'
-      : (t.surface as string);
+        ? 'var(--epoch-color-success)'
+        : 'var(--epoch-color-primary)';
 
-  const cardStyle: React.CSSProperties = {
-    ...s.payCard,
-    padding: '18px 20px',
-    position: 'relative',
-    backgroundColor: t.surface,
-    border: `1px solid ${t.border}`,
-    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-  };
+  const receiveCardClasses = cn(
+    CARD_BASE,
+    'text-left',
+    variant === 'swap'
+      ? 'border-[rgba(14,165,164,0.35)] bg-[rgba(14,165,164,0.06)] border-t-2'
+      : variant === 'earn'
+        ? 'bg-[rgba(22,163,74,0.05)]'
+        : '',
+  );
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: hidePayCard ? '0' : '6px',
-        position: 'relative',
-      }}
+      className={cn(
+        'relative flex flex-col',
+        hidePayCard ? 'gap-0' : 'gap-1.5',
+      )}
     >
       {!hidePayCard && (
         <>
-      {/* ── Pay card (top) ─────────────────────────────────── */}
-      <div
-        className={cn?.payCard}
-        style={cn?.payCard ? undefined : cardStyle}
-      >
-        {/* Label row — "You pay" on the left, wallet badge on the right */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            marginBottom: '10px',
-            minHeight: '20px',
-          }}
-        >
-          <span
-            className={cn?.payLabel}
-            style={cn?.payLabel ? undefined : s.payLabel}
-          >
-            {pay.label}
-          </span>
-
-          {walletAddress && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: t.textSecondary,
-                lineHeight: 1,
-                padding: '4px 8px 4px 4px',
-                borderRadius: '999px',
-                backgroundColor: t.bg,
-                border: `1px solid ${t.border}`,
-              }}
-              title={walletAddress}
-            >
-              {walletIcon ? (
-                <Avatar src={walletIcon} label="Wallet" size={16} />
-              ) : (
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: t.textMuted,
-                  }}
+          {/* ── Pay card (top) ─────────────────────────────────── */}
+          <div className={cn(CARD_BASE, cs?.payCard)}>
+            <div className="mb-2.5 flex min-h-5 items-center justify-between gap-3">
+              <span className={cn(LABEL_CLASSES, cs?.payLabel)}>{pay.label}</span>
+              {walletAddress && (
+                <div
+                  className="flex items-center gap-1.5 rounded-full border border-line bg-canvas py-1 pl-1 pr-2 text-xs font-semibold leading-none text-fg-secondary"
+                  title={walletAddress}
                 >
-                  <WalletIcon width={14} height={14} />
-                </span>
+                  {walletIcon ? (
+                    <Avatar src={walletIcon} label="Wallet" size={16} />
+                  ) : (
+                    <span className="flex items-center text-fg-muted">
+                      <WalletIcon width={14} height={14} />
+                    </span>
+                  )}
+                  <span className="tabular-nums">{truncateAddress(walletAddress, 4)}</span>
+                </div>
               )}
-              <span style={NUMERIC}>{truncateAddress(walletAddress, 4)}</span>
             </div>
-          )}
-        </div>
-
-        {/* Amount row — amount on left, floating pill vertically centered on right */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            minHeight: '44px',
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {isQuoting ? (
-              <Shimmer width="140px" height="36px" radius="8px" />
-            ) : (
-              <p
-                className={cn?.payAmount}
-                style={
-                  cn?.payAmount
-                    ? undefined
-                    : { ...s.payAmount, ...NUMERIC, margin: 0 }
-                }
-              >
-                {pay.amount}
-              </p>
-            )}
+            <div className="flex min-h-11 items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                {isQuoting ? (
+                  <Shimmer width="140px" height="36px" radius="8px" />
+                ) : (
+                  <p className={cn(AMOUNT_CLASSES, cs?.payAmount)}>{pay.amount}</p>
+                )}
+              </div>
+              <div className="flex items-center">{tokenSelectorTrigger}</div>
+            </div>
+            <div
+              className={cn(
+                META_ROW_CLASSES,
+                balanceError ? 'font-semibold text-error' : 'font-medium text-fg-muted',
+              )}
+            >
+              {isBalanceLoading ? (
+                <Shimmer width="150px" height="12px" radius="4px" />
+              ) : balanceStr ? (
+                <span>{balanceStr}</span>
+              ) : !walletConnected ? (
+                <span className="opacity-75">Connect your wallet to see balance</span>
+              ) : (
+                <span className="opacity-55">—</span>
+              )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {tokenSelectorTrigger}
+          {/* ── Separator: arrow (pay/earn) or swap-flip (swap) ──── */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none relative z-[2] flex h-0 justify-center"
+          >
+            <div
+              className="absolute top-0 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border bg-canvas shadow-[0_0_0_4px_var(--epoch-color-bg),0_2px_8px_rgba(15,23,42,0.08)]"
+              style={{
+                color: accentColor,
+                borderColor: variant === 'swap' ? accentColor : 'var(--epoch-color-border)',
+              }}
+            >
+              {variant === 'swap' ? (
+                <ArrowDownUpIcon width={16} height={16} />
+              ) : (
+                <ArrowDownIcon width={16} height={16} />
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Balance row — always rendered at a fixed height so the pay card
-            never resizes when the balance resolves. This is what prevents the
-            separator circle from jumping. */}
-        <div
-          style={{
-            marginTop: '12px',
-            minHeight: `${META_ROW_HEIGHT}px`,
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: '12px',
-            lineHeight: `${META_ROW_HEIGHT}px`,
-            color: balanceError ? t.error : t.textMuted,
-            fontWeight: balanceError ? 600 : 500,
-            ...NUMERIC,
-          }}
-        >
-          {isBalanceLoading ? (
-            <Shimmer width="150px" height="12px" radius="4px" />
-          ) : balanceStr ? (
-            <span>{balanceStr}</span>
-          ) : !walletConnected ? (
-            <span style={{ opacity: 0.75 }}>
-              Connect your wallet to see balance
-            </span>
-          ) : (
-            <span style={{ opacity: 0.55 }}>—</span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Separator: arrow (pay/earn) or swap-flip (swap) ──── */}
-      <div
-        aria-hidden="true"
-        style={{
-          height: 0,
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            transform: 'translateY(-50%)',
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: t.bg,
-            border: `1px solid ${variant === 'swap' ? accent : t.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: accent,
-            boxShadow:
-              '0 0 0 4px var(--epoch-color-bg), 0 2px 8px rgba(15, 23, 42, 0.08)',
-          }}
-        >
-          {variant === 'swap' ? (
-            <ArrowDownUpIcon width={16} height={16} />
-          ) : (
-            <ArrowDownIcon width={16} height={16} />
-          )}
-        </div>
-      </div>
         </>
       )}
 
       {/* ── Receive card (bottom) ───────────────────────────── */}
       <div
-        className={cn?.receiveCard}
-        style={
-          cn?.receiveCard
-            ? undefined
-            : {
-                ...s.receiveCard,
-                textAlign: 'left',
-                padding: '18px 20px',
-                backgroundColor: receiveTint,
-                border: `1px solid ${variant === 'swap' ? 'rgba(14,165,164,0.35)' : t.border}`,
-                borderTop: variant === 'swap' ? `2px solid ${accent}` : `1px solid ${t.border}`,
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-              }
-        }
+        className={cn(receiveCardClasses, cs?.receiveCard)}
+        style={variant === 'swap' ? { borderTopColor: accentColor } : undefined}
       >
-        {/* Label row — "You receive" on the left */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            marginBottom: '10px',
-            minHeight: '20px',
-          }}
-        >
-          <span
-            className={cn?.receiveLabel}
-            style={
-              cn?.receiveLabel
-                ? undefined
-                : {
-                    ...s.receiveLabel,
-                    marginTop: 0,
-                    textAlign: 'left',
-                  }
-            }
-          >
-            {receive.label}
-          </span>
+        <div className="mb-2.5 flex min-h-5 items-center justify-between gap-3">
+          <span className={cn(LABEL_CLASSES, cs?.receiveLabel)}>{receive.label}</span>
         </div>
-
-        {/* Amount row — position label or amount on left, destination pill on right */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            minHeight: '44px',
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex min-h-11 items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <p
-              className={cn?.receiveAmount}
-              style={
-                cn?.receiveAmount
-                  ? undefined
-                  : {
-                      ...s.receiveAmount,
-                      ...NUMERIC,
-                      textAlign: 'left',
-                      margin: 0,
-                      fontSize: receive.positionLabel
-                        ? '22px'
-                        : s.receiveAmount.fontSize,
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: receive.positionLabel ? 'normal' : 'nowrap',
-                      wordBreak: 'break-word',
-                    }
-              }
+              className={cn(
+                'm-0 overflow-hidden text-ellipsis font-bold leading-tight tabular-nums -tracking-[0.02em] text-fg',
+                receive.positionLabel
+                  ? 'whitespace-normal break-words text-[22px]'
+                  : 'whitespace-nowrap text-[32px]',
+                cs?.receiveAmount,
+              )}
             >
               {receive.positionLabel ?? receive.amount}
             </p>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {destinationPill}
-          </div>
+          <div className="flex items-center">{destinationPill}</div>
         </div>
-
-        {/* Meta row — reserves the same footprint as the pay card's balance
-            row so both cards visually balance around the separator. */}
         <div
-          style={{
-            marginTop: '12px',
-            minHeight: `${META_ROW_HEIGHT}px`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            fontSize: '12px',
-            lineHeight: `${META_ROW_HEIGHT}px`,
-            color: t.textMuted,
-            fontWeight: 500,
-          }}
+          className={cn(
+            META_ROW_CLASSES,
+            'justify-between gap-2 font-medium text-fg-muted',
+          )}
         >
-          <span style={{ opacity: 0.75 }}>
+          <span className="opacity-75">
             {receive.subtitle ? `Settles on ${receive.subtitle}` : 'Settled instantly'}
           </span>
         </div>

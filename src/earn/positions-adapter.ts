@@ -204,6 +204,13 @@ export function oneDeltaPositionsToEpoch(
       }
     }
   }
+  // Sort by USD value desc so the biggest holdings render at the top. Rows
+  // missing USD fall to the end but keep their relative order.
+  out.sort((a, b) => {
+    const av = a.underlyingUsdValue ?? -Infinity;
+    const bv = b.underlyingUsdValue ?? -Infinity;
+    return bv - av;
+  });
   return out;
 }
 

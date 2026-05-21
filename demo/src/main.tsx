@@ -5,6 +5,7 @@ import { arbitrum, base, baseSepolia, optimism, polygon, sepolia } from 'wagmi/c
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import './index.css';
+import 'epoch-intent-widget/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import 'sonner/dist/styles.css';
 import { Toaster } from 'sonner';
@@ -13,7 +14,21 @@ import {
   WalletAdapterNetwork,
 } from '@miden-sdk/miden-wallet-adapter-base';
 import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
+import { themeToCssVars, LIGHT_THEME } from 'epoch-intent-widget';
 import App from './app/App';
+
+// Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
+// utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
+// resolve everywhere — including portalled modals rendered into
+// `document.body`. We write to `document.documentElement.style` instead of a
+// wrapper `<div style={...}>` because portal children sit outside the React
+// tree and can't inherit from a JSX ancestor.
+{
+  const vars = themeToCssVars(LIGHT_THEME) as Record<string, string>;
+  for (const [key, value] of Object.entries(vars)) {
+    document.documentElement.style.setProperty(key, value);
+  }
+}
 
 const config = getDefaultConfig({
   appName: 'EpochIntentWidget Demo',

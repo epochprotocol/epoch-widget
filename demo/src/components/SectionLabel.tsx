@@ -4,7 +4,7 @@ export function SectionLabel({ children, className }: { children: ReactNode; cla
   return (
     <h2
       className={[
-        'm-0 mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-demo-text-faint',
+        'm-0 mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-fg-muted',
         className,
       ]
         .filter(Boolean)

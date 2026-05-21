@@ -37,7 +37,8 @@ export type {
   OnStatusCtx,
   WidgetLifecycleStatus,
 } from './types';
-export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme } from './theme';
+export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
+export { cn } from './lib/cn';
 export { useEarnMarkets, useUserPositions, useEarnConfigs } from './earn/api';
 export { HARDCODED_ONEDELTA_CONFIGS, chainLabelFor } from './earn/onedelta-markets';
 export { toEpochEarnMarket, flattenConfigsToMarkets } from './earn/onedelta-adapter';

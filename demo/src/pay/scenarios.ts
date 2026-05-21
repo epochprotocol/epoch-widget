@@ -12,8 +12,8 @@ export interface Scenario {
 export const PAY_SCENARIOS: Scenario[] = [
   {
     id: 'flat-pay',
-    name: 'Flat pay (Trails-style)',
-    tagline: 'toAddress / toAmount / toToken / toChainId — no nested intent',
+    name: 'Flat pay',
+    tagline: 'Send a fixed USDC amount to a wallet — the simplest prop shape, no nested intent.',
     props: {
       mode: 'pay',
       title: 'Send USDC',
@@ -27,7 +27,7 @@ export const PAY_SCENARIOS: Scenario[] = [
   {
     id: 'raffle-mainnet',
     name: 'Raffle Ticket',
-    tagline: 'Fixed-output intent on Base mainnet',
+    tagline: 'Fixed-output mainnet purchase. The user pays whatever it costs in their token to receive exactly 5 USDC worth on Base.',
     props: {
       title: 'Buy Raffle Ticket',
       submitButtonText: 'Buy Ticket',
@@ -57,7 +57,7 @@ export const PAY_SCENARIOS: Scenario[] = [
   {
     id: 'vault-deposit',
     name: 'Vault Deposit',
-    tagline: 'Variable-input swap into a vault',
+    tagline: 'Variable-input deposit. The user picks how much to put in; the widget routes it to a vault on Base.',
     props: {
       title: 'Deposit to Vault',
       submitButtonText: 'Deposit',
@@ -84,7 +84,7 @@ export const PAY_SCENARIOS: Scenario[] = [
   {
     id: 'testnet-locked',
     name: 'Testnet (locked)',
-    tagline: 'Forced testnet, hide toggle',
+    tagline: 'Same raffle flow on Base Sepolia. The network toggle is hidden — useful for staging environments.',
     props: {
       title: 'Testnet Raffle',
       submitButtonText: 'Buy Ticket',
@@ -116,7 +116,7 @@ export const PAY_SCENARIOS: Scenario[] = [
   {
     id: 'testnet-toggle',
     name: 'Testnet (toggleable)',
-    tagline: 'Starts on testnet, user can switch',
+    tagline: 'Starts on testnet but lets the user flip to mainnet — handy when you want a "try with fake funds" affordance.',
     props: {
       title: 'Raffle (toggleable)',
       submitButtonText: 'Buy Ticket',
@@ -147,8 +147,8 @@ export const PAY_SCENARIOS: Scenario[] = [
   },
   {
     id: 'evm-swap-quote',
-    name: 'EVM swap (quoted pay-in)',
-    tagline: 'Pick source token, see quoted input, fixed USDC out — like Miden quote UX, EVM-only',
+    name: 'Quoted pay-in',
+    tagline: 'Pick a source token, see a live quote, get a fixed USDC amount out.',
     props: {
       title: 'Swap into USDC',
       submitButtonText: 'Confirm swap',
@@ -183,8 +183,8 @@ export const PAY_SCENARIOS: Scenario[] = [
 export const SWAP_SCENARIOS: Scenario[] = [
   {
     id: 'swap-quoted-usdc',
-    name: 'Swap (quoted pay-in)',
-    tagline: 'Same fixed-output quote flow as EVM swap scenario — with mode="swap"',
+    name: 'Swap into USDC',
+    tagline: 'Pick a source token, see a quote, receive a fixed USDC amount on the destination chain.',
     props: {
       mode: 'swap',
       title: 'Swap into USDC',

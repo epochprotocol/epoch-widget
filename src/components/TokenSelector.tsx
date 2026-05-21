@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import type { EpochChain, EpochToken } from '../types';
 import { Avatar } from './Avatar';
 import { CheckIcon, ChevronLeftIcon, CloseIcon, SearchIcon } from './Icons';
@@ -9,11 +9,9 @@ export interface TokenWithChain extends EpochToken {
 }
 
 interface TokenSelectorProps {
-  /** All tokens across all available chains. */
   tokens: TokenWithChain[];
   selectedTokenAddress: string;
   selectedChainId: number | null;
-  /** Called with picked token address + its chain id. */
   onSelect: (address: string, chainId: number) => void;
   onBack: () => void;
 }
@@ -33,7 +31,6 @@ export function TokenSelector({
     inputRef.current?.focus();
   }, []);
 
-  // Unique chains present in the token list for filter chips
   const chains = useMemo(() => {
     const seen = new Map<number, EpochChain>();
     tokens.forEach((tk) => {
@@ -58,48 +55,20 @@ export function TokenSelector({
   }, [tokens, query, chainFilter]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '440px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+    <div className="flex h-[440px] flex-col">
+      <div className="mb-3.5 flex items-center gap-2.5">
         <button
           type="button"
           onClick={onBack}
           aria-label="Back"
-          style={{
-            all: 'unset',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '30px',
-            height: '30px',
-            borderRadius: '50%',
-            color: t.text,
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.surface; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+          className="flex h-7.5 w-7.5 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg hover:bg-surface"
         >
           <ChevronLeftIcon width={18} height={18} />
         </button>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: t.text }}>
-          Select Token
-        </h3>
+        <h3 className="m-0 text-base font-semibold text-fg">Select Token</h3>
       </div>
 
-      {/* Search bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 14px',
-          borderRadius: t.radiusSm,
-          border: `1.5px solid ${t.border}`,
-          backgroundColor: t.bg,
-          marginBottom: '10px',
-        }}
-      >
+      <div className="mb-2.5 flex items-center gap-2.5 rounded-sm border-[1.5px] border-line bg-canvas px-3.5 py-2.5">
         <SearchIcon />
         <input
           ref={inputRef}
@@ -107,38 +76,21 @@ export function TokenSelector({
           placeholder="Search tokens, symbol, address..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{
-            all: 'unset',
-            flex: 1,
-            fontSize: '14px',
-            color: t.text,
-            fontFamily: 'inherit',
-          }}
+          className="flex-1 bg-transparent text-sm text-fg outline-none border-0 p-0"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
-            style={{ all: 'unset', cursor: 'pointer', color: t.textMuted, lineHeight: 1, fontSize: '16px' }}
+            className="cursor-pointer border-0 bg-transparent p-0 leading-none text-fg-muted"
           >
             <CloseIcon width={14} height={14} />
           </button>
         )}
       </div>
 
-      {/* Chain filter chips — reserve vertical space even with a single chain
-          so the modal height stays stable regardless of the token catalog. */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-          marginBottom: '10px',
-          minHeight: '22px',
-          flexShrink: 0,
-        }}
-      >
+      {/* Chain filter chips — reserve vertical space so modal height stays stable. */}
+      <div className="mb-2.5 flex min-h-[22px] shrink-0 flex-nowrap gap-1 overflow-x-auto">
         {chains.length > 1 && (
           <>
             <ChainChip
@@ -159,12 +111,9 @@ export function TokenSelector({
         )}
       </div>
 
-      {/* Token list */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {filtered.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: t.textMuted, fontSize: '13px' }}>
-            No tokens found
-          </div>
+          <div className="p-8 text-center text-[13px] text-fg-muted">No tokens found</div>
         ) : (
           filtered.map((tk) => {
             const isSelected = tk.address === selectedTokenAddress && tk.chain.id === selectedChainId;
@@ -173,56 +122,24 @@ export function TokenSelector({
                 key={`${tk.chain.id}-${tk.address}`}
                 type="button"
                 onClick={() => onSelect(tk.address, tk.chain.id)}
-                style={{
-                  all: 'unset',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '10px 12px',
-                  borderRadius: t.radiusSm,
-                  backgroundColor: isSelected ? t.surface : 'transparent',
-                  border: isSelected ? `1.5px solid ${t.primary}` : '1.5px solid transparent',
-                  transition: 'background 0.12s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.backgroundColor = t.surface;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                className={cn(
+                  'flex cursor-pointer items-center gap-3 rounded-sm border-[1.5px] px-3 py-2.5 text-left transition-colors duration-100',
+                  isSelected
+                    ? 'border-primary bg-surface'
+                    : 'border-transparent bg-transparent hover:bg-surface',
+                )}
               >
-                {/* Token logo with chain badge */}
-                <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
+                <div className="relative h-9 w-9 shrink-0">
                   <Avatar src={tk.logoURI} label={tk.symbol} size={36} />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '-2px',
-                      right: '-4px',
-                      borderRadius: '50%',
-                      border: `2px solid ${t.bg}`,
-                      lineHeight: 0,
-                    }}
-                  >
+                  <div className="absolute -bottom-0.5 -right-1 rounded-full border-2 border-canvas leading-none">
                     <Avatar src={tk.chain.logoURI} label={tk.chain.name} size={14} />
                   </div>
                 </div>
-
-                {/* Name + chain */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: t.text, lineHeight: 1.3 }}>
-                    {tk.symbol}
-                  </div>
-                  <div style={{ fontSize: '12px', color: t.textMuted, lineHeight: 1.3 }}>
-                    {tk.chain.name}
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold leading-snug text-fg">{tk.symbol}</div>
+                  <div className="text-xs leading-snug text-fg-muted">{tk.chain.name}</div>
                 </div>
-
-                {/* Checkmark */}
-                {isSelected && (
-                  <CheckIcon width={16} height={16} color={t.primary} />
-                )}
+                {isSelected && <CheckIcon width={16} height={16} color="var(--epoch-color-primary)" />}
               </button>
             );
           })
@@ -231,10 +148,6 @@ export function TokenSelector({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Chain filter chip
-// ---------------------------------------------------------------------------
 
 function ChainChip({
   label,
@@ -251,23 +164,12 @@ function ChainChip({
     <button
       type="button"
       onClick={onClick}
-      style={{
-        all: 'unset',
-        cursor: 'pointer',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '2px 8px',
-        height: '22px',
-        borderRadius: '999px',
-        fontSize: '11px',
-        fontWeight: 500,
-        lineHeight: 1,
-        border: active ? `1px solid ${t.primary}` : `1px solid ${t.border}`,
-        backgroundColor: active ? `${t.primary}12` : t.surface,
-        color: active ? t.primary : t.textMuted,
-        transition: 'all 0.12s',
-      }}
+      className={cn(
+        'inline-flex h-[22px] cursor-pointer items-center gap-1 rounded-full border px-2 text-[11px] font-medium leading-none transition-colors duration-100',
+        active
+          ? 'border-primary bg-[color-mix(in_srgb,var(--epoch-color-primary)_12%,transparent)] text-primary'
+          : 'border-line bg-surface text-fg-muted',
+      )}
     >
       {logoURI && <Avatar src={logoURI} label={label} size={12} />}
       {label}

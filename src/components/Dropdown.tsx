@@ -7,12 +7,14 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import { ChevronDownIcon, CheckIcon, SearchIcon } from './Icons';
 
-// CSS custom property names the dropdown depends on. We resolve these from
-// the trigger's computedStyle and re-apply them to the portalled menu so the
-// menu matches whatever theme is active — default, custom, or dark-mode.
+// CSS custom property names the dropdown depends on. We resolve these from the
+// trigger's computedStyle and re-apply them to the portalled menu so the menu
+// matches whatever theme is active — default, custom, or dark mode. The menu
+// renders into `document.body`, outside the modal's `--epoch-*` scope, so the
+// Tailwind utilities on it would otherwise fall back to root-level defaults.
 const CSS_VARS_TO_MIRROR = [
   '--epoch-color-primary',
   '--epoch-color-primary-hover',
@@ -28,19 +30,17 @@ const CSS_VARS_TO_MIRROR = [
   '--epoch-font',
 ] as const;
 
-// ---------------------------------------------------------------------------
-// Dropdown
-//
-// A lightweight, dependency-free select replacement. Native <select> is
-// inconsistent across platforms and cannot show token logos or rich content,
-// so the widget ships its own dropdown with:
-//   - keyboard nav (↑/↓/Enter/Escape)
-//   - click-outside to close
-//   - optional search filter for long lists
-//   - icon + title + subtitle rows
-//   - theme-aware colours via CSS variables
-// ---------------------------------------------------------------------------
-
+/**
+ * Lightweight, dependency-free select replacement.
+ *
+ * Native `<select>` is inconsistent across platforms and cannot show token
+ * logos or rich content, so the widget ships its own dropdown with:
+ *   - keyboard nav (↑/↓/Enter/Escape)
+ *   - click-outside to close
+ *   - optional search filter for long lists
+ *   - icon + title + subtitle rows
+ *   - theme-aware colours via mirrored CSS variables
+ */
 export interface DropdownOption {
   value: string;
   label: string;
@@ -97,19 +97,11 @@ export function Dropdown({
       )
     : options;
 
-  // Click-outside & ESC to close. The menu is portalled to <body>, so we need
-  // to treat both the trigger and the menu as "inside" the dropdown.
   useEffect(() => {
     if (!open) return;
-
     const onDocClick = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (
-        containerRef.current?.contains(target) ||
-        menuRef.current?.contains(target)
-      ) {
-        return;
-      }
+      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -126,22 +118,18 @@ export function Dropdown({
     };
   }, [open]);
 
-  // Track trigger position so the portalled menu stays anchored to it as the
-  // page scrolls or resizes. We flip the menu above the trigger when there
-  // isn't enough room below.
   useLayoutEffect(() => {
     if (!open) {
       setMenuRect(null);
       return;
     }
-
     const update = () => {
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const estimatedMenuHeight = 240 + 6; // maxHeight + gap
+      const estimatedMenuHeight = 240 + 6;
       const placement: 'bottom' | 'top' =
         spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow ? 'top' : 'bottom';
       setMenuRect({
@@ -151,7 +139,6 @@ export function Dropdown({
         placement,
       });
     };
-
     update();
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
@@ -161,14 +148,12 @@ export function Dropdown({
     };
   }, [open]);
 
-  // Reset highlight / focus search when the list opens.
   useEffect(() => {
     if (open) {
       const idx = options.findIndex((o) => o.value === value);
       setHighlight(idx >= 0 ? idx : 0);
       setQuery('');
       if (searchable) {
-        // Focus on next frame so the input is mounted.
         requestAnimationFrame(() => searchRef.current?.focus());
       }
     }
@@ -201,81 +186,10 @@ export function Dropdown({
     }
   };
 
-  // ---- Styles ------------------------------------------------------------
-
-  const triggerStyle: React.CSSProperties = {
-    all: 'unset',
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '0.625rem',
-    width: '100%',
-    padding: '0.75rem 0.875rem',
-    border: `1px solid ${open ? t.primary : t.border}`,
-    borderRadius: t.radiusSm,
-    backgroundColor: t.bg,
-    fontSize: '0.875rem',
-    color: t.text,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    fontFamily: 'inherit',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-    boxShadow: open ? `0 0 0 3px ${t.primary}20` : 'none',
-    opacity: disabled ? 0.55 : 1,
-  };
-
-  // Inherit CSS variables from the modal root via a data attribute, then pin
-  // the menu with `position: fixed` so it escapes any `overflow: hidden` or
-  // `overflow: auto` ancestors (like the modal's scroll area).
-  const menuStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: menuRect?.top ?? 0,
-    left: menuRect?.left ?? 0,
-    width: menuRect?.width ?? 0,
-    transform: menuRect?.placement === 'top' ? 'translateY(-100%)' : undefined,
-    zIndex: 10000,
-    backgroundColor: t.bg,
-    border: `1px solid ${t.border}`,
-    borderRadius: t.radiusSm,
-    boxShadow:
-      '0 16px 40px -8px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.04)',
-    maxHeight: '15rem',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    animation: 'epoch-dropdown-in 0.12s ease-out',
-    fontFamily: t.font,
-  };
-
-  const listStyle: React.CSSProperties = {
-    overflowY: 'auto',
-    padding: '0.25rem',
-    flex: 1,
-  };
-
-  const searchBoxStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.625rem 0.75rem',
-    borderBottom: `1px solid ${t.border}`,
-    color: t.textMuted,
-  };
-
-  const searchInputStyle: React.CSSProperties = {
-    all: 'unset',
-    flex: 1,
-    fontSize: '0.8125rem',
-    color: t.text,
-    fontFamily: 'inherit',
-  };
-
-  // The portal target (document.body) sits outside the modal's CSS-variable
-  // scope, so copy the trigger's resolved vars onto the menu root. This keeps
-  // the menu visually identical to the modal regardless of which theme the
-  // consumer passed — custom, default, or any future dark mode.
+  // Mirror the trigger's resolved CSS variables onto the portalled menu so the
+  // Tailwind utilities on it resolve the same colours.
   const menuCssVars: CSSProperties = (() => {
-    if (!triggerRef.current) return {};
+    if (typeof window === 'undefined' || !triggerRef.current) return {};
     const computed = window.getComputedStyle(triggerRef.current);
     const out: Record<string, string> = {};
     for (const name of CSS_VARS_TO_MIRROR) {
@@ -285,70 +199,53 @@ export function Dropdown({
     return out as CSSProperties;
   })();
 
+  const menuPositionStyle: CSSProperties = {
+    top: menuRect?.top ?? 0,
+    left: menuRect?.left ?? 0,
+    width: menuRect?.width ?? 0,
+    transform: menuRect?.placement === 'top' ? 'translateY(-100%)' : undefined,
+  };
+
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={containerRef} className="relative w-full">
       <button
         ref={triggerRef}
         type="button"
-        style={triggerStyle}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onTriggerKey}
+        className={cn(
+          'box-border flex w-full items-center justify-between gap-2.5 rounded-sm border bg-canvas px-3.5 py-3 text-sm text-fg transition-[border-color,box-shadow] duration-150',
+          open ? 'border-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--epoch-color-primary)_20%,transparent)]' : 'border-line shadow-none',
+          disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer',
+        )}
       >
-        <span
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.625rem',
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
+        <span className="flex min-w-0 flex-1 items-center gap-2.5">
           {selected?.leading}
-          <span
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              lineHeight: 1.25,
-            }}
-          >
+          <span className="flex min-w-0 flex-col leading-tight">
             <span
-              style={{
-                fontWeight: selected ? 600 : 400,
-                color: selected ? t.text : t.textMuted,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
+              className={cn(
+                'overflow-hidden text-ellipsis whitespace-nowrap',
+                selected ? 'font-semibold text-fg' : 'font-normal text-fg-muted',
+              )}
             >
               {selected?.label ?? placeholder}
             </span>
             {selected?.sublabel && (
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  color: t.textMuted,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-fg-muted">
                 {selected.sublabel}
               </span>
             )}
           </span>
         </span>
         <span
-          style={{
-            color: t.textMuted,
-            display: 'flex',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.15s',
-          }}
+          className={cn(
+            'flex text-fg-muted transition-transform duration-150',
+            open ? 'rotate-180' : 'rotate-0',
+          )}
         >
           <ChevronDownIcon />
         </span>
@@ -357,122 +254,75 @@ export function Dropdown({
       {open &&
         menuRect &&
         createPortal(
-        <div
-          ref={menuRef}
-          style={{ ...menuCssVars, ...menuStyle }}
-          role="listbox"
-          onKeyDown={onListKey}
-          tabIndex={-1}
-        >
-          {searchable && (
-            <div style={searchBoxStyle}>
-              <SearchIcon />
-              <input
-                ref={searchRef}
-                style={searchInputStyle}
-                placeholder="Search…"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setHighlight(0);
-                }}
-                onKeyDown={onListKey}
-              />
-            </div>
-          )}
-          <div style={listStyle}>
-            {filtered.length === 0 ? (
-              <div
-                style={{
-                  padding: '1rem 0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.8125rem',
-                  color: t.textMuted,
-                }}
-              >
-                {emptyLabel}
+          <div
+            ref={menuRef}
+            style={{ ...menuCssVars, ...menuPositionStyle }}
+            role="listbox"
+            onKeyDown={onListKey}
+            tabIndex={-1}
+            className="fixed z-[10000] flex max-h-60 flex-col overflow-hidden rounded-sm border border-line bg-canvas font-sans shadow-[0_16px_40px_-8px_rgba(15,23,42,0.22),0_0_0_1px_rgba(15,23,42,0.04)] animate-dropdown-in"
+          >
+            {searchable && (
+              <div className="flex items-center gap-2 border-b border-line px-3 py-2.5 text-fg-muted">
+                <SearchIcon />
+                <input
+                  ref={searchRef}
+                  className="flex-1 border-0 bg-transparent p-0 text-[13px] text-fg outline-none"
+                  placeholder="Search…"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setHighlight(0);
+                  }}
+                  onKeyDown={onListKey}
+                />
               </div>
-            ) : (
-              filtered.map((opt, i) => {
-                const isSelected = opt.value === value;
-                const isHighlight = i === highlight;
-                return (
-                  <div
-                    key={opt.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    onMouseEnter={() => setHighlight(i)}
-                    onClick={() => commit(opt.value)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.625rem',
-                      padding: '0.5rem 0.625rem',
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      backgroundColor: isHighlight
-                        ? t.surface
-                        : 'transparent',
-                      transition: 'background-color 0.1s',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.625rem',
-                        minWidth: 0,
-                      }}
-                    >
-                      {opt.leading}
-                      <div style={{ minWidth: 0, lineHeight: 1.25 }}>
-                        <div
-                          style={{
-                            fontSize: '0.875rem',
-                            fontWeight: 500,
-                            color: t.text,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {opt.label}
-                        </div>
-                        {opt.sublabel && (
-                          <div
-                            style={{
-                              fontSize: '0.75rem',
-                              color: t.textMuted,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            {opt.sublabel}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <span
-                        style={{
-                          color: t.primary,
-                          display: 'flex',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <CheckIcon />
-                      </span>
-                    )}
-                  </div>
-                );
-              })
             )}
-          </div>
-        </div>,
-        document.body,
-      )}
+            <div className="flex-1 overflow-y-auto p-1">
+              {filtered.length === 0 ? (
+                <div className="p-3 text-center text-[13px] text-fg-muted">{emptyLabel}</div>
+              ) : (
+                filtered.map((opt, i) => {
+                  const isSelected = opt.value === value;
+                  const isHighlight = i === highlight;
+                  return (
+                    <div
+                      key={opt.value}
+                      role="option"
+                      aria-selected={isSelected}
+                      onMouseEnter={() => setHighlight(i)}
+                      onClick={() => commit(opt.value)}
+                      className={cn(
+                        'flex cursor-pointer items-center justify-between gap-2.5 rounded-md px-2.5 py-2 transition-colors duration-100',
+                        isHighlight ? 'bg-surface' : 'bg-transparent',
+                      )}
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        {opt.leading}
+                        <div className="min-w-0 leading-tight">
+                          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-fg">
+                            {opt.label}
+                          </div>
+                          {opt.sublabel && (
+                            <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-fg-muted">
+                              {opt.sublabel}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="flex shrink-0 text-primary">
+                          <CheckIcon />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

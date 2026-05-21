@@ -1,4 +1,4 @@
-import { t } from '../theme';
+import type { CSSProperties } from 'react';
 
 interface AvatarProps {
   /** Image URL — when provided, rendered as an <img>. */
@@ -8,29 +8,21 @@ interface AvatarProps {
   size?: number;
 }
 
+const BASE_CLASSES =
+  'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-surface font-semibold leading-none -tracking-[0.02em] text-fg-secondary';
+
 /**
  * Small round avatar for chains/tokens. Falls back to a coloured circle with
  * the first 1–2 letters of the label.
+ *
+ * Width / height / font-size scale with `size`, so we keep those as inline
+ * styles — Tailwind utilities cover the rest.
  */
 export function Avatar({ src, label, size = 24 }: AvatarProps) {
-  const initial = label.slice(0, 2).toUpperCase();
-
-  const base: React.CSSProperties = {
+  const sizeStyle: CSSProperties = {
     width: size,
     height: size,
-    borderRadius: '999px',
-    flexShrink: 0,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     fontSize: `${Math.round(size * 0.42)}px`,
-    fontWeight: 600,
-    backgroundColor: t.surface,
-    color: t.textSecondary,
-    border: `1px solid ${t.border}`,
-    overflow: 'hidden',
-    lineHeight: 1,
-    letterSpacing: '-0.02em',
   };
 
   if (src) {
@@ -38,13 +30,17 @@ export function Avatar({ src, label, size = 24 }: AvatarProps) {
       <img
         src={src}
         alt=""
-        style={{ ...base, objectFit: 'cover' }}
+        className={`${BASE_CLASSES} object-cover`}
+        style={sizeStyle}
         onError={(e) => {
           (e.currentTarget as HTMLImageElement).style.display = 'none';
         }}
       />
     );
   }
-
-  return <span style={base}>{initial}</span>;
+  return (
+    <span className={BASE_CLASSES} style={sizeStyle}>
+      {label.slice(0, 2).toUpperCase()}
+    </span>
+  );
 }

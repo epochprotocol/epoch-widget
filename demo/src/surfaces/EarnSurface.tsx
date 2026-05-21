@@ -1,3 +1,4 @@
+import { RowAccordion } from 'epoch-intent-widget';
 import type { ScenarioProps } from '../pay/scenarios';
 import { EARN_DEPOSIT_PROPS, EARN_WITHDRAW_PROPS } from '../earn/earnMarkets';
 import { Code } from '../components/Code';
@@ -9,33 +10,63 @@ interface Props {
 
 export function EarnSurface({ apiBaseUrl, onOpenWidget }: Props) {
   return (
-    <>
-      <div className="mb-8">
-        <h1 className="m-0 text-3xl font-[650] tracking-tight">Earn</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-demo-text-muted">
-          Deposit + withdraw flows live in <Code>EpochIntentWidget</Code> with <Code>mode=&quot;earn&quot;</Code>.
-          Markets come from <Code>HARDCODED_ONEDELTA_CONFIGS</Code> in the widget bundle and are passed in via{' '}
-          <Code>earnMarketsSource</Code>. Quotes target a sibling{' '}
-          <Code>1delta-solver</Code> service (<Code>/solver-type</Code>, <Code>/quote</Code>). API: <Code>{apiBaseUrl}</Code>
+    <div className="flex flex-col gap-8">
+      <header>
+        <h1 className="m-0 text-3xl font-[650] -tracking-tight text-fg">Earn</h1>
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-fg-secondary">
+          Deposit into yield markets, withdraw on demand.
         </p>
-      </div>
+        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg-muted">
+          Show a list of lending and yield markets right inside your app. Users deposit with any
+          token they hold; withdrawals come back to the same wallet. No new accounts to open, no
+          separate UI to maintain.
+        </p>
+        <div className="mt-4 max-w-2xl">
+          <RowAccordion
+            header={
+              <span className="text-[12.5px] font-semibold text-fg-muted">For developers</span>
+            }
+          >
+            <p className="m-0 text-[13px] leading-relaxed text-fg-secondary">
+              <Code>{'mode="earn"'}</Code> with{' '}
+              <Code>{'earnDefaultTab="deposit" | "withdraw"'}</Code>. Pass your own market list via{' '}
+              <Code>earnMarketsSource</Code>, or import <Code>HARDCODED_ONEDELTA_CONFIGS</Code> from
+              the package. Quotes hit a sibling solver at{' '}
+              <Code>VITE_EARN_SOLVER_URL</Code> (defaults to <Code>localhost:3011</Code>). Allocator:{' '}
+              <Code>{apiBaseUrl}</Code>.
+            </p>
+          </RowAccordion>
+        </div>
+      </header>
 
-      <div>
-        <button
-          type="button"
-          className="mb-2 mr-2 inline-flex cursor-pointer items-center justify-center rounded-lg border-none bg-demo-accent px-4 py-2.5 text-sm font-semibold text-white"
-          onClick={() => onOpenWidget(EARN_DEPOSIT_PROPS, 'Earn deposit')}
-        >
-          Open earn deposit
-        </button>
-        <button
-          type="button"
-          className="mb-2 mr-2 inline-flex cursor-pointer items-center justify-center rounded-lg border border-demo-border bg-transparent px-4 py-2.5 text-sm font-semibold text-demo-text"
-          onClick={() => onOpenWidget(EARN_WITHDRAW_PROPS, 'Earn withdraw')}
-        >
-          Open earn withdraw
-        </button>
-      </div>
-    </>
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-md border border-line bg-surface p-5 shadow-sm">
+          <div className="mb-2 text-base font-semibold text-fg">Deposit</div>
+          <p className="mb-4 text-[13px] text-fg-muted">
+            Pick a lending market and deposit any token. The widget routes and converts as needed.
+          </p>
+          <button
+            type="button"
+            onClick={() => onOpenWidget(EARN_DEPOSIT_PROPS, 'Earn deposit')}
+            className="cursor-pointer rounded-md border-0 bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover"
+          >
+            Open deposit flow →
+          </button>
+        </div>
+        <div className="rounded-md border border-line bg-surface p-5 shadow-sm">
+          <div className="mb-2 text-base font-semibold text-fg">Withdraw</div>
+          <p className="mb-4 text-[13px] text-fg-muted">
+            See your open positions and withdraw any amount — partial or max — back to your wallet.
+          </p>
+          <button
+            type="button"
+            onClick={() => onOpenWidget(EARN_WITHDRAW_PROPS, 'Earn withdraw')}
+            className="cursor-pointer rounded-md border border-line bg-canvas px-4 py-2.5 text-sm font-semibold text-fg shadow-sm transition-colors hover:border-line-strong"
+          >
+            Open withdraw flow →
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
