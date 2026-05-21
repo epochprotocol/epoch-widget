@@ -50,6 +50,13 @@ interface EarnQuoteInput {
   /** Withdraw-only. When true, signals the 1delta API to use protocol-level max-withdraw
    *  mechanisms (maxUint256 / share-based redemption) where supported. */
   isAll?: boolean;
+  /** Withdraw-only. When true, the intent declares a cross-token / cross-chain
+   *  delivery: SIO chains 1delta withdraw on the position chain with a
+   *  swap/bridge step that converts the underlying to {@link smartDestTokenAddress}
+   *  on {@link smartDestChainId} before delivering to the user. */
+  smartWithdraw?: boolean;
+  smartDestChainId?: number | null;
+  smartDestTokenAddress?: string;
 }
 
 interface EarnSubmitInput extends EarnQuoteInput {
@@ -153,9 +160,17 @@ export function useEarnIntentFlow({
   }, []);
 
   // Build the params an Epoch intent needs for an earn (lending) deposit/withdraw.
-  // tokenIn = user-selected source token. tokenOut = market underlying (real
-  // address, like raffles). SIO + solvers bridge/swap as needed before handing
-  // the underlying off to 1delta-solver.
+  //
+  // Deposit:  tokenIn = user-selected source token, tokenOut = market underlying.
+  //           SIO chains bridge/swap before 1delta if source ≠ destination.
+  // Withdraw: tokenIn = market underlying on the position chain (post-withdraw
+  //           equivalent). When Smart Withdraw is OFF, tokenOut = underlying on
+  //           the same chain — single-leg flow. When Smart Withdraw is ON,
+  //           tokenOut = user-picked destination token on destination chain;
+  //           SIO is expected to chain a bridge/swap leg AFTER the 1delta
+  //           withdraw runs on the position chain. The action's chain is
+  //           surfaced via `extraData.actionChainId` so the SIO path-finder
+  //           can pin the withdraw to the source rather than the destination.
   const buildParams = useCallback(
     (input: EarnQuoteInput) => {
       const market = input.market ?? input.position?.market;
@@ -201,28 +216,46 @@ export function useEarnIntentFlow({
         sourceToken.decimals,
       ).toString();
 
-      const destinationChainId =
-        market.chainId != null
-          ? String(market.chainId)
-          : muidChain ?? '1';
+      const isWithdraw = input.tab === 'withdraw';
+      const isSmartWithdraw =
+        isWithdraw &&
+        input.smartWithdraw === true &&
+        input.smartDestChainId != null &&
+        !!input.smartDestTokenAddress;
 
       const protocolHashIdentifier = keccak256(toBytes(ONEDELTA_PROTOCOL_NAME));
-
-      // SIO chains the swap/bridge step before 1delta, so 1delta always receives
-      // the underlying. payAsset is the underlying. Solver forces direct path
-      // internally — no `mode` field needed on the wire.
-      const isSameChain = input.sourceChainId === Number(destinationChainId);
       const underlyingAddress = market.token.address as string;
+      const actionChainId =
+        market.chainId != null ? String(market.chainId) : muidChain ?? '1';
+
+      // For deposit + plain withdraw, destinationChainId == position chain.
+      // For Smart Withdraw, destinationChainId is where the user wants the
+      // proceeds delivered, distinct from the action chain.
+      const destinationChainId = isSmartWithdraw
+        ? String(input.smartDestChainId)
+        : actionChainId;
+
+      const tokenOutAddress = isSmartWithdraw
+        ? (input.smartDestTokenAddress as `0x${string}`)
+        : (underlyingAddress as `0x${string}`);
+
+      // SIO chains the swap/bridge step before 1delta on deposit, so 1delta
+      // always receives the underlying. `payAsset` is the underlying. Solver
+      // forces direct path internally — no `mode` field needed on the wire.
+      const isSameChain = input.sourceChainId === Number(destinationChainId);
       const payAsset = underlyingAddress;
 
       // For withdrawals, surface `isAll` + `simulate` so the 1delta API can use
       // protocol-level max-withdraw mechanisms (e.g. maxUint256 / share redemption)
-      // and return projected post-trade metrics. Deposit path keeps the legacy
-      // 3-field shape — no behavior change on that flow.
-      const isWithdraw = input.tab === 'withdraw';
-      const extraDataTypestring = isWithdraw
-        ? 'string marketUid,string action,string payAsset,bool isAll,bool simulate'
-        : 'string marketUid,string action,string payAsset';
+      // and return projected post-trade metrics. Smart Withdraw adds
+      // `actionChainId` + `actionOutputToken` so the SIO path-finder knows
+      // the protocol-interaction leg lives on the position chain and produces
+      // the underlying, which feeds the subsequent bridge/swap leg.
+      const extraDataFields = ['string marketUid', 'string action', 'string payAsset'];
+      if (isWithdraw) extraDataFields.push('bool isAll', 'bool simulate');
+      if (isSmartWithdraw) extraDataFields.push('string actionChainId', 'string actionOutputToken');
+      const extraDataTypestring = extraDataFields.join(',');
+
       const extraData: Record<string, string | boolean> = {
         marketUid,
         action: input.tab,
@@ -232,13 +265,17 @@ export function useEarnIntentFlow({
         extraData.isAll = input.isAll === true;
         extraData.simulate = true;
       }
+      if (isSmartWithdraw) {
+        extraData.actionChainId = actionChainId;
+        extraData.actionOutputToken = underlyingAddress;
+      }
 
       return {
         tokenInAmount,
         destinationChainId,
         protocolHashIdentifier,
         tokenInAddress: sourceToken.address as `0x${string}`,
-        tokenOutAddress: underlyingAddress as `0x${string}`,
+        tokenOutAddress,
         recipient: (address ?? '0x0000000000000000000000000000000000000000') as `0x${string}`,
         extraDataTypestring,
         extraData,

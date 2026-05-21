@@ -335,11 +335,14 @@ export function EarnIntentWidget({
         sourceToken: effectiveSourceToken,
         network: 'mainnet',
         isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
+        smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
+        smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
+        smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
       });
     }, 250);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll]);
+  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress]);
 
 
   const isWrongNetwork =
@@ -417,6 +420,9 @@ export function EarnIntentWidget({
       network: 'mainnet',
       quote: earnFlow.quote,
       isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
+      smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
+      smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
+      smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
     });
   };
 
