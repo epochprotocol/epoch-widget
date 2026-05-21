@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import { Avatar } from './Avatar';
 import { ChevronRightIcon, LockIcon } from './Icons';
 
@@ -13,6 +12,9 @@ interface TokenChainPillProps {
   /** Optional aria-label for interactive mode. */
   ariaLabel?: string;
 }
+
+const BASE_PILL =
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-canvas py-0.75 pl-0.75 pr-2.25 text-[13px] font-semibold leading-none whitespace-nowrap text-fg shadow-sm border transition-[border-color,box-shadow] duration-150';
 
 /**
  * Compact token+chain pill used inside the pay/receive cards.
@@ -31,79 +33,26 @@ export function TokenChainPill({
 }: TokenChainPillProps) {
   const readOnly = !onClick;
 
-  const baseStyle: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '3px 9px 3px 3px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: t.text,
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
-    lineHeight: 1,
-    backgroundColor: t.bg,
-    border: `1px solid ${readOnly ? `${t.primary}33` : t.border}`,
-    boxShadow: readOnly
-      ? `0 0 0 2px ${t.primary}14`
-      : '0 1px 3px rgba(0,0,0,0.06)',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-    cursor: readOnly ? 'default' : 'pointer',
-  };
-
   const content = (
     <>
       {/* Token logo with chain badge overlay */}
-      <div style={{ position: 'relative', width: '22px', height: '22px', flexShrink: 0 }}>
+      <div className="relative h-[22px] w-[22px] shrink-0">
         <Avatar src={tokenLogoURI} label={tokenSymbol} size={22} />
         {chainName && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-2px',
-              right: '-3px',
-              borderRadius: '50%',
-              border: `1.5px solid ${t.bg}`,
-              lineHeight: 0,
-            }}
-          >
+          <div className="absolute -bottom-0.5 -right-[3px] rounded-full border-[1.5px] border-canvas leading-none">
             <Avatar src={chainLogoURI} label={chainName} size={11} />
           </div>
         )}
       </div>
-
-      {/* Symbol + chain text — flex-grow so the trailing icon pins to the edge */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: '1px',
-          flex: '1 1 auto',
-          minWidth: 0,
-        }}
-      >
-        <span style={{ fontSize: '13px', fontWeight: 700, color: t.text, lineHeight: 1 }}>
-          {tokenSymbol}
-        </span>
-        <span style={{ fontSize: '10px', color: t.textMuted, lineHeight: 1, fontWeight: 500 }}>
-          {chainName}
-        </span>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-px">
+        <span className="text-[13px] font-bold leading-none text-fg">{tokenSymbol}</span>
+        <span className="text-[10px] font-medium leading-none text-fg-muted">{chainName}</span>
       </div>
-
-      {/* Trailing icon slot — fixed-size box keeps the glyph locked to the same spot
-          across chevron/lock modes and regardless of text width changes. */}
       <div
-        style={{
-          width: '14px',
-          height: '14px',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: readOnly ? t.primary : t.textMuted,
-        }}
+        className={cn(
+          'flex h-3.5 w-3.5 shrink-0 items-center justify-center',
+          readOnly ? 'text-primary' : 'text-fg-muted',
+        )}
         aria-hidden="true"
       >
         {readOnly ? <LockIcon /> : <ChevronRightIcon width={11} height={11} />}
@@ -114,7 +63,7 @@ export function TokenChainPill({
   if (readOnly) {
     return (
       <div
-        style={baseStyle}
+        className={cn(BASE_PILL, 'border-primary/20 cursor-default shadow-[0_0_0_2px_var(--epoch-color-accent-soft)]')}
         role="img"
         aria-label={`${tokenSymbol} on ${chainName} (destination, not changeable)`}
         title={`${tokenSymbol} on ${chainName} — destination`}
@@ -129,15 +78,10 @@ export function TokenChainPill({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      style={baseStyle}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = t.primary;
-        e.currentTarget.style.boxShadow = `0 0 0 3px ${t.primary}20`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = t.border;
-        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
-      }}
+      className={cn(
+        BASE_PILL,
+        'border-line cursor-pointer hover:border-primary hover:shadow-[0_0_0_3px_var(--epoch-color-accent-soft)]',
+      )}
     >
       {content}
     </button>

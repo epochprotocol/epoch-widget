@@ -1,5 +1,4 @@
 import { useState, type CSSProperties } from 'react';
-import { t } from '../../theme';
 
 interface Props {
   src?: string | null;
@@ -22,57 +21,37 @@ function colorFor(seed: string): string {
 export function TokenAvatar({ src, symbol, size = 32, chainSrc, chainAlt, style }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = !!src && !imgFailed;
-  const bg = colorFor(symbol);
+  const fallbackBg = colorFor(symbol);
 
-  const root: CSSProperties = {
-    position: 'relative',
+  const avatarStyle: CSSProperties = {
     width: size,
     height: size,
-    flexShrink: 0,
-    ...style,
-  };
-
-  const avatar: CSSProperties = {
-    width: size,
-    height: size,
-    borderRadius: '50%',
-    background: showImg ? t.surfaceRaised : bg,
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     fontSize: Math.max(10, Math.round(size * 0.36)),
-    fontWeight: 700,
-    letterSpacing: '0.01em',
-    overflow: 'hidden',
-    border: `1px solid ${t.border}`,
-    boxSizing: 'border-box',
+    background: showImg ? 'var(--epoch-color-surface-raised)' : fallbackBg,
   };
 
   const badgeSize = Math.max(12, Math.round(size * 0.4));
-  const badge: CSSProperties = {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
+  const badgeStyle: CSSProperties = {
     width: badgeSize,
     height: badgeSize,
-    borderRadius: '50%',
-    background: t.bg,
-    border: `1.5px solid ${t.bg}`,
-    overflow: 'hidden',
-    boxShadow: '0 0 0 1px var(--epoch-color-border)',
   };
 
   return (
-    <span style={root}>
-      <span style={avatar}>
+    <span
+      className="relative inline-block shrink-0"
+      style={{ width: size, height: size, ...style }}
+    >
+      <span
+        className="box-border flex items-center justify-center overflow-hidden rounded-full border border-line font-bold tracking-[0.01em] text-white"
+        style={avatarStyle}
+      >
         {showImg ? (
           <img
             src={src as string}
             alt={symbol}
             width={size}
             height={size}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            className="block h-full w-full object-cover"
             onError={() => setImgFailed(true)}
           />
         ) : (
@@ -80,8 +59,17 @@ export function TokenAvatar({ src, symbol, size = 32, chainSrc, chainAlt, style 
         )}
       </span>
       {chainSrc ? (
-        <span style={badge}>
-          <img src={chainSrc} alt={chainAlt ?? 'chain'} width={badgeSize} height={badgeSize} style={{ display: 'block' }} />
+        <span
+          className="absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border-[1.5px] border-canvas bg-canvas shadow-[0_0_0_1px_var(--epoch-color-border)]"
+          style={badgeStyle}
+        >
+          <img
+            src={chainSrc}
+            alt={chainAlt ?? 'chain'}
+            width={badgeSize}
+            height={badgeSize}
+            className="block"
+          />
         </span>
       ) : null}
     </span>

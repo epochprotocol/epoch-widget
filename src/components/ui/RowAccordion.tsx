@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { t } from '../../theme';
+import { cn } from '../../lib/cn';
 import { ChevronDownIcon } from '../Icons';
 
 interface Props {
@@ -12,7 +12,14 @@ interface Props {
   style?: CSSProperties;
 }
 
-export function RowAccordion({ header, children, defaultOpen = false, open, onOpenChange, style }: Props) {
+export function RowAccordion({
+  header,
+  children,
+  defaultOpen = false,
+  open,
+  onOpenChange,
+  style,
+}: Props) {
   const [internal, setInternal] = useState(defaultOpen);
   const isOpen = open ?? internal;
   const toggle = () => {
@@ -21,52 +28,32 @@ export function RowAccordion({ header, children, defaultOpen = false, open, onOp
     if (open === undefined) setInternal(next);
   };
 
-  const root: CSSProperties = {
-    borderRadius: t.radiusMd,
-    border: `1px solid ${isOpen ? t.borderStrong : t.border}`,
-    backgroundColor: t.bg,
-    overflow: 'hidden',
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-    boxShadow: isOpen ? t.shadowMd : 'none',
-    ...style,
-  };
-
-  const headerStyle: CSSProperties = {
-    all: 'unset',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    padding: '12px 14px',
-    boxSizing: 'border-box',
-    gap: '12px',
-  };
-
-  const chevronStyle: CSSProperties = {
-    transition: 'transform 0.18s ease',
-    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-    color: t.textMuted,
-    flexShrink: 0,
-    marginLeft: 'auto',
-    display: 'inline-flex',
-  };
-
   return (
-    <div style={root}>
-      <button type="button" style={headerStyle} onClick={toggle} aria-expanded={isOpen}>
-        <div style={{ flex: 1, minWidth: 0 }}>{header}</div>
-        <span style={chevronStyle}>
+    <div
+      className={cn(
+        'overflow-hidden rounded-md border bg-canvas transition-[border-color,box-shadow] duration-150',
+        isOpen ? 'border-line-strong shadow-md' : 'border-line shadow-none',
+      )}
+      style={style}
+    >
+      <button
+        type="button"
+        className="box-border flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent p-0 px-3.5 py-3"
+        onClick={toggle}
+        aria-expanded={isOpen}
+      >
+        <div className="min-w-0 flex-1">{header}</div>
+        <span
+          className={cn(
+            'ml-auto inline-flex shrink-0 text-fg-muted transition-transform duration-200',
+            isOpen ? 'rotate-180' : 'rotate-0',
+          )}
+        >
           <ChevronDownIcon />
         </span>
       </button>
       {isOpen && (
-        <div
-          style={{
-            padding: '4px 14px 14px',
-            borderTop: `1px solid ${t.border}`,
-            backgroundColor: t.surfaceMuted,
-          }}
-        >
+        <div className="border-t border-line bg-surface-muted px-3.5 pb-3.5 pt-1">
           {children}
         </div>
       )}

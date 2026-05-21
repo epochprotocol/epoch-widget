@@ -1,6 +1,6 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { s } from '../styles';
+import { cn } from '../lib/cn';
 import { themeToCssVars, type EpochTheme } from '../theme';
 import type { EpochClassNames } from '../types';
 import { ChevronLeftIcon, CloseIcon, PoweredIcon } from './Icons';
@@ -27,6 +27,27 @@ interface ModalProps {
   renderInline?: boolean;
 }
 
+const OVERLAY_CLASSES =
+  'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-overlay backdrop-blur-md animate-overlay-in';
+
+const CONTAINER_CLASSES =
+  'flex w-full max-w-[420px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
+
+const HEADER_CLASSES = 'flex items-center justify-between px-6 pt-5 pb-3';
+
+const HEADER_TITLE_CLASSES = 'm-0 text-lg font-semibold text-fg -tracking-[0.01em]';
+
+const ICON_BUTTON_CLASSES =
+  'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg-muted transition-colors hover:bg-line hover:text-fg';
+
+const BODY_CLASSES =
+  'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 pt-1 pb-5';
+
+const FOOTER_CLASSES = 'px-6 pt-4 pb-5';
+
+const POWERED_CLASSES =
+  'mt-2.5 flex items-center justify-center gap-1.5 text-[11px] tracking-[0.01em] text-fg-muted opacity-60';
+
 /**
  * Minimal modal shell: overlay → container → header → body → footer.
  * Supports full className overrides for every slot.
@@ -36,7 +57,7 @@ export function Modal({
   onClose,
   title,
   theme,
-  classNames: cn,
+  classNames: cs,
   children,
   footer,
   headerAction,
@@ -45,7 +66,6 @@ export function Modal({
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape (modal only)
   useEffect(() => {
     if (!isOpen || renderInline) return;
     const onKey = (e: KeyboardEvent) => {
@@ -55,7 +75,6 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose, renderInline]);
 
-  // Lock body scroll (modal only)
   useEffect(() => {
     if (!isOpen || renderInline) return;
     const prev = document.body.style.overflow;
@@ -65,7 +84,6 @@ export function Modal({
     };
   }, [isOpen, renderInline]);
 
-  // Autofocus container (modal only)
   useEffect(() => {
     if (isOpen && !renderInline) containerRef.current?.focus();
   }, [isOpen, renderInline]);
@@ -75,45 +93,29 @@ export function Modal({
   const cssVars = themeToCssVars(theme);
 
   const headerEl = (
-    <div className={cn?.header} style={cn?.header ? undefined : s.header}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className={cn(HEADER_CLASSES, cs?.header)}>
+      <div className="flex items-center gap-2">
         {onBack && (
           <button
             type="button"
             aria-label="Back"
             onClick={onBack}
-            style={s.closeBtn}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--epoch-color-border)';
-              e.currentTarget.style.color = 'var(--epoch-color-text)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--epoch-color-text-muted)';
-            }}
+            className={ICON_BUTTON_CLASSES}
           >
             <ChevronLeftIcon />
           </button>
         )}
-        <h2 id="epoch-widget-title" style={s.headerTitle}>
+        <h2 id="epoch-widget-title" className={HEADER_TITLE_CLASSES}>
           {title}
         </h2>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="flex items-center gap-2">
         {headerAction}
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          style={s.closeBtn}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--epoch-color-border)';
-            e.currentTarget.style.color = 'var(--epoch-color-text)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = 'var(--epoch-color-text-muted)';
-          }}
+          className={ICON_BUTTON_CLASSES}
         >
           <CloseIcon />
         </button>
@@ -121,16 +123,12 @@ export function Modal({
     </div>
   );
 
-  const bodyEl = (
-    <div className={cn?.body} style={cn?.body ? undefined : s.body}>
-      {children}
-    </div>
-  );
+  const bodyEl = <div className={cn(BODY_CLASSES, cs?.body)}>{children}</div>;
 
   const footerEl = footer && (
-    <div className={cn?.footer} style={cn?.footer ? undefined : s.footer}>
+    <div className={cn(FOOTER_CLASSES, cs?.footer)}>
       {footer}
-      <div style={s.powered}>
+      <div className={POWERED_CLASSES}>
         <PoweredIcon />
         Powered by Epoch Protocol
       </div>
@@ -140,8 +138,8 @@ export function Modal({
   if (renderInline) {
     return (
       <div
-        className={cn?.container}
-        style={cn?.container ? cssVars : { ...s.container, ...cssVars, position: 'relative', maxWidth: '100%' }}
+        className={cn(CONTAINER_CLASSES, 'relative max-w-full', cs?.container)}
+        style={cssVars}
         role="region"
         aria-labelledby="epoch-widget-title"
       >
@@ -154,8 +152,8 @@ export function Modal({
 
   const modal = (
     <div
-      className={cn?.overlay}
-      style={cn?.overlay ? cssVars : { ...s.overlay, ...cssVars }}
+      className={cn(OVERLAY_CLASSES, cs?.overlay)}
+      style={cssVars}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -164,8 +162,7 @@ export function Modal({
       <div
         ref={containerRef}
         tabIndex={-1}
-        className={cn?.container}
-        style={cn?.container ? undefined : s.container}
+        className={cn(CONTAINER_CLASSES, cs?.container)}
         onClick={(e) => e.stopPropagation()}
       >
         {headerEl}

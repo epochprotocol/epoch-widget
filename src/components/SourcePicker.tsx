@@ -1,5 +1,4 @@
-import { s } from '../styles';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import type { EpochChain, EpochToken, EpochClassNames } from '../types';
 import { Dropdown, type DropdownOption } from './Dropdown';
 import { Avatar } from './Avatar';
@@ -33,7 +32,6 @@ export function SourcePicker({
   isBalanceLoading,
   insufficientBalance,
   formatAmount,
-  classNames: cn,
 }: SourcePickerProps) {
   const selectedToken = tokens.find((tok) => tok.address === selectedTokenAddress);
 
@@ -52,15 +50,17 @@ export function SourcePicker({
   }));
 
   return (
-    <div style={s.pickerGroup}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={s.pickerLabel}>From</span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-semibold uppercase tracking-[0.05em] text-fg-muted">
+          From
+        </span>
         {selectedChainId !== null && selectedTokenAddress && selectedToken && (
           <span
-            style={{
-              ...s.balanceText,
-              color: insufficientBalance ? t.error : t.textMuted,
-            }}
+            className={cn(
+              'text-xs font-medium',
+              insufficientBalance ? 'text-error' : 'text-fg-muted',
+            )}
           >
             {isBalanceLoading
               ? 'Loading…'
@@ -72,16 +72,10 @@ export function SourcePicker({
       </div>
 
       <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          padding: '12px',
-          borderRadius: t.radiusSm,
-          border: `1px solid ${insufficientBalance ? t.error : t.border}`,
-          backgroundColor: t.surface,
-          transition: 'border-color 0.15s',
-        }}
+        className={cn(
+          'flex flex-col gap-2 rounded-sm border bg-surface p-3 transition-colors duration-150',
+          insufficientBalance ? 'border-error' : 'border-line',
+        )}
       >
         <Dropdown
           options={chainOptions}

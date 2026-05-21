@@ -1,5 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
-import { t } from '../../theme';
+import type { CSSProperties, ReactNode } from 'react';
+import { cn } from '../../lib/cn';
 import { SearchIcon } from '../Icons';
 
 interface Props {
@@ -12,64 +12,38 @@ interface Props {
   ariaLabel?: string;
 }
 
-export function SearchInput({ value, onChange, placeholder, autoFocus, trailing, style, ariaLabel }: Props) {
-  const [focused, setFocused] = useState(false);
-  const wrap: CSSProperties = {
-    position: 'relative',
-    width: '100%',
-    ...style,
-  };
-  const input: CSSProperties = {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '12px 14px 12px 40px',
-    paddingRight: trailing ? '70px' : '14px',
-    borderRadius: t.radiusSm,
-    border: `1.5px solid ${focused ? t.primary : t.border}`,
-    boxShadow: focused
-      ? `0 0 0 3px color-mix(in srgb, ${t.primary} 22%, transparent)`
-      : t.shadowSm,
-    fontSize: '14px',
-    fontFamily: 'inherit',
-    color: t.text,
-    backgroundColor: t.bg,
-    outline: 'none',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-  };
-  const iconWrap: CSSProperties = {
-    position: 'absolute',
-    top: '50%',
-    left: '14px',
-    transform: 'translateY(-50%)',
-    color: t.textMuted,
-    pointerEvents: 'none',
-  };
-  const trailingWrap: CSSProperties = {
-    position: 'absolute',
-    top: '50%',
-    right: '10px',
-    transform: 'translateY(-50%)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-  };
+export function SearchInput({
+  value,
+  onChange,
+  placeholder,
+  autoFocus,
+  trailing,
+  style,
+  ariaLabel,
+}: Props) {
   return (
-    <div style={wrap}>
-      <span style={iconWrap}>
+    <div className="relative w-full" style={style}>
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted">
         <SearchIcon />
       </span>
       <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         placeholder={placeholder}
         autoFocus={autoFocus}
         aria-label={ariaLabel ?? placeholder}
-        style={input}
+        className={cn(
+          'box-border w-full rounded-sm border-[1.5px] border-line bg-canvas py-3 pl-10 text-sm text-fg shadow-sm outline-none transition-[border-color,box-shadow] duration-150',
+          'focus:border-primary focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--epoch-color-primary)_22%,transparent)]',
+          trailing ? 'pr-[70px]' : 'pr-3.5',
+        )}
       />
-      {trailing && <span style={trailingWrap}>{trailing}</span>}
+      {trailing && (
+        <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+          {trailing}
+        </span>
+      )}
     </div>
   );
 }

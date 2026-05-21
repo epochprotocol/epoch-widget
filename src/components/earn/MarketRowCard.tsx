@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { t } from '../../theme';
+import { cn } from '../../lib/cn';
 import type { OneDeltaConfig, OneDeltaMarketRow } from '../../types';
 import { TrendingUpIcon } from '../Icons';
 import { TokenAvatar } from '../ui/TokenAvatar';
@@ -44,87 +43,43 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
   const rate = kind === 'lend' ? row.depositRate : row.variableBorrowRate;
   const tvlUsd = kind === 'lend' ? row.totalDepositsUsd : row.borrowLiquidityUsd;
   const lender = lenderShort(config.lenderKey);
-  const dotColor = LENDER_DOT[config.lenderKey] ?? (t.primary as string);
+  const dotColor = LENDER_DOT[config.lenderKey] ?? 'var(--epoch-color-primary)';
   const title = `${lender} v3 ${asset.symbol} ${kind === 'lend' ? 'Lending' : 'Borrowing'}`;
-
-  const base: CSSProperties = {
-    all: 'unset',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '14px',
-    width: '100%',
-    padding: '14px 4px',
-    boxSizing: 'border-box',
-    borderTop: `1px solid ${t.border}`,
-    transition: 'background-color 0.12s ease',
-    backgroundColor: selected ? t.accentSoft : 'transparent',
-    fontFamily: 'inherit',
-  };
 
   return (
     <button
       type="button"
-      style={base}
       onClick={onClick}
-      onMouseEnter={(e) => {
-        if (!selected) e.currentTarget.style.backgroundColor = t.surfaceMuted as string;
-      }}
-      onMouseLeave={(e) => {
-        if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
-      }}
       aria-label={`Select ${title}`}
+      className={cn(
+        'box-border flex w-full cursor-pointer items-center gap-3.5 border-0 border-t border-line bg-transparent px-1 py-3.5 text-left transition-colors duration-100 hover:bg-surface-muted',
+        selected && 'bg-accent-soft hover:bg-accent-soft',
+      )}
     >
       <TokenAvatar src={asset.logoURI} symbol={asset.symbol} size={44} />
 
-      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span
-          style={{
-            fontSize: '15px',
-            fontWeight: 600,
-            color: t.text,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.25,
-          }}
-        >
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold leading-tight text-fg">
           {title}
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span className="inline-flex items-center gap-1.5">
           <span
+            className="inline-block h-3.5 w-3.5 shrink-0 rounded-full"
             style={{
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
               background: `radial-gradient(circle at 30% 30%, ${dotColor}cc 0%, ${dotColor} 60%, ${dotColor}80 100%)`,
-              display: 'inline-block',
-              flexShrink: 0,
             }}
             aria-hidden
           />
-          <span style={{ fontSize: '12.5px', color: t.textMuted, fontWeight: 500 }}>{lender}</span>
+          <span className="text-[12.5px] font-medium text-fg-muted">{lender}</span>
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            color: t.success,
-            fontSize: '15px',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className="inline-flex items-center gap-1.5 text-[15px] font-bold tabular-nums text-success">
           <TrendingUpIcon />
           {rate.toFixed(rate >= 10 ? 1 : 2)}% APY
         </span>
-        <span style={{ fontSize: '12px', color: t.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-          TVL: {fmtUsd(tvlUsd)}
-        </span>
+        <span className="text-xs tabular-nums text-fg-muted">TVL: {fmtUsd(tvlUsd)}</span>
       </div>
     </button>
   );

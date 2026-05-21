@@ -1,29 +1,10 @@
-import type { CSSProperties } from 'react';
-import { t } from '../theme';
 import { HistoryToolbarIcon, SettingsToolbarIcon, SwapToolbarIcon } from './Icons';
 
-const iconSlot: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '34px',
-  height: '34px',
-  borderRadius: '10px',
-  color: t.textMuted,
-};
+const ICON_SLOT =
+  'flex h-8.5 w-8.5 items-center justify-center rounded-[10px] text-fg-muted';
 
-const swapLabel: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '5px',
-  height: '34px',
-  padding: '0 10px',
-  borderRadius: '10px',
-  fontSize: '11px',
-  fontWeight: 700,
-  letterSpacing: '0.02em',
-  color: t.textSecondary,
-};
+const SWAP_LABEL =
+  'inline-flex h-8.5 items-center gap-1.25 rounded-[10px] px-2.5 text-[11px] font-bold tracking-[0.02em] text-fg-secondary';
 
 /**
  * Decorative header actions for Earn mode (visual parity with common earn UIs).
@@ -31,15 +12,15 @@ const swapLabel: CSSProperties = {
  */
 export function EarnToolbarIcons() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} aria-hidden="true">
-      <span title="Swap" style={swapLabel}>
+    <div className="flex items-center gap-0.5" aria-hidden="true">
+      <span title="Swap" className={SWAP_LABEL}>
         <SwapToolbarIcon width={15} height={15} />
         Swap
       </span>
-      <span title="Activity" style={iconSlot}>
+      <span title="Activity" className={ICON_SLOT}>
         <HistoryToolbarIcon />
       </span>
-      <span title="Settings" style={iconSlot}>
+      <span title="Settings" className={ICON_SLOT}>
         <SettingsToolbarIcon />
       </span>
     </div>

@@ -1,50 +1,40 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { t } from '../theme';
+import type { ReactNode } from 'react';
+import { cn } from '../lib/cn';
 import type { EpochClassNames } from '../types';
 import { Avatar } from './Avatar';
 import { Shimmer } from './Shimmer';
 import { ChevronRightIcon, WalletIcon } from './Icons';
 import { truncateAddress } from '../utils';
 
-const NUMERIC: CSSProperties = {
-  fontVariantNumeric: 'tabular-nums',
-  fontFeatureSettings: '"tnum"',
-};
-
 interface PayIntentSummaryProps {
-  /** Big numeric value shown in the hero card (e.g. "0.15" or position label). */
   receiveAmount: string;
-  /** Symbol shown next to the hero amount. */
   receiveSymbol: string;
-  /** Optional human-readable position label (replaces the bare amount + symbol when set). */
   positionLabel?: string;
-  /** Destination chain name shown under the hero, e.g. "Settles on Base". */
   destinationChainName?: string;
-  /** Recipient address shown under the hero amount. */
   recipientAddress?: string;
-  /** Amount the user pays in the source token. */
   payAmount: string;
-  /** Source token symbol — used only for the balance line. */
   paySymbol: string;
-  /** Source token + chain pill (interactive — opens picker). */
   tokenSelectorTrigger?: ReactNode;
-  /** Connected wallet address, shown as a badge inside the Pay-with card. */
   walletAddress?: string;
   walletIcon?: string;
   walletConnected?: boolean;
   isQuoting?: boolean;
-  /** Balance string ("Balance: 1.23 USDC") shown on the right of the meta row. */
   balanceStr?: string;
   balanceError?: boolean;
   isBalanceLoading?: boolean;
   classNames?: EpochClassNames;
 }
 
+const HERO_CARD =
+  'rounded-lg border border-line bg-surface px-5.5 pt-7 pb-5.5 text-center shadow-sm';
+const PAY_CARD =
+  'relative rounded-md border border-line bg-canvas px-5 pt-4.5 pb-4 shadow-sm';
+const SECTION_LABEL = 'text-[13px] font-medium text-fg-muted';
+
 /**
  * Pay-flavoured intent summary — hero "you receive" card on top with the
  * recipient inline, plus a "Pay with" source card beneath. Distinct from
- * Swap (which uses a stacked from/to layout). Fork freely without touching
- * SwapIntentSummary.
+ * Swap (which uses a stacked from/to layout).
  */
 export function PayIntentSummary({
   receiveAmount,
@@ -62,148 +52,69 @@ export function PayIntentSummary({
   balanceStr,
   balanceError,
   isBalanceLoading,
-  classNames: cn,
+  classNames: cs,
 }: PayIntentSummaryProps) {
-  const heroCard: CSSProperties = {
-    backgroundColor: t.surface,
-    border: `1px solid ${t.border}`,
-    borderRadius: t.radiusLg,
-    padding: '28px 22px 22px',
-    textAlign: 'center',
-    boxShadow: t.shadowSm,
-  };
-
-  const payCard: CSSProperties = {
-    backgroundColor: t.bg,
-    border: `1px solid ${t.border}`,
-    borderRadius: t.radiusMd,
-    padding: '18px 20px 16px',
-    boxShadow: t.shadowSm,
-    position: 'relative',
-  };
-
-  const sectionLabel: CSSProperties = {
-    fontSize: '13px',
-    fontWeight: 500,
-    color: t.textMuted,
-  };
-
-  const heroAmount: CSSProperties = {
-    margin: 0,
-    fontSize: positionLabel ? '24px' : '46px',
-    fontWeight: 700,
-    letterSpacing: '-0.025em',
-    color: t.text,
-    lineHeight: 1.1,
-    ...NUMERIC,
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div className={cn?.receiveCard} style={cn?.receiveCard ? undefined : heroCard}>
+    <div className="flex flex-col gap-2.5">
+      <div className={cn(HERO_CARD, cs?.receiveCard)}>
         {isQuoting ? (
           <Shimmer width="160px" height="44px" radius="10px" />
         ) : (
-          <p style={heroAmount}>
+          <p
+            className={cn(
+              'm-0 font-bold leading-tight -tracking-[0.025em] tabular-nums text-fg',
+              positionLabel ? 'text-2xl' : 'text-[46px]',
+            )}
+          >
             {positionLabel ?? (
               <>
                 {receiveAmount}
-                <span style={{ fontSize: '0.55em', color: t.textMuted, marginLeft: 8 }}>{receiveSymbol}</span>
+                <span className="ml-2 text-[0.55em] text-fg-muted">{receiveSymbol}</span>
               </>
             )}
           </p>
         )}
-
-        <div
-          style={{
-            marginTop: 14,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '14px',
-            color: t.textSecondary,
-            fontWeight: 500,
-          }}
-        >
+        <div className="mt-3.5 inline-flex items-center gap-2 text-sm font-medium text-fg-secondary">
           <span>{recipientAddress ? 'Recipient' : 'Destination'}</span>
           {recipientAddress ? (
             <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 700,
-                color: t.primary,
-              }}
+              className="inline-flex items-center gap-1.5 font-bold text-primary"
               title={recipientAddress}
             >
               {walletIcon ? <Avatar src={walletIcon} label="Wallet" size={18} /> : null}
-              <span style={NUMERIC}>{truncateAddress(recipientAddress, 4)}</span>
+              <span className="tabular-nums">{truncateAddress(recipientAddress, 4)}</span>
             </span>
           ) : (
-            <span style={{ fontWeight: 600, color: t.text }}>{destinationChainName ?? '—'}</span>
+            <span className="font-semibold text-fg">{destinationChainName ?? '—'}</span>
           )}
         </div>
       </div>
 
-      <div className={cn?.payCard} style={cn?.payCard ? undefined : payCard}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            marginBottom: 8,
-          }}
-        >
-          <span className={cn?.payLabel} style={cn?.payLabel ? undefined : sectionLabel}>
-            Pay with
-          </span>
+      <div className={cn(PAY_CARD, cs?.payCard)}>
+        <div className="mb-2 flex items-center justify-between gap-2.5">
+          <span className={cn(SECTION_LABEL, cs?.payLabel)}>Pay with</span>
           {walletAddress ? (
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '12.5px',
-                fontWeight: 700,
-                color: t.primary,
-                padding: '3px 8px 3px 3px',
-                borderRadius: 999,
-                ...NUMERIC,
-              }}
+              className="flex items-center gap-1.5 rounded-full py-0.75 pl-0.75 pr-2 text-[12.5px] font-bold tabular-nums text-primary"
               title={walletAddress}
             >
               {walletIcon ? <Avatar src={walletIcon} label="Wallet" size={18} /> : <WalletIcon width={14} height={14} />}
               <span>{truncateAddress(walletAddress, 4)}</span>
-              <span style={{ color: t.primary, opacity: 0.85, display: 'inline-flex' }}>
+              <span className="inline-flex text-primary/85">
                 <ChevronRightIcon width={12} height={12} />
               </span>
             </div>
           ) : (
-            <span style={sectionLabel}>Connect wallet</span>
+            <span className={SECTION_LABEL}>Connect wallet</span>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             {isQuoting ? (
               <Shimmer width="140px" height="36px" radius="8px" />
             ) : (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '32px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.025em',
-                  color: t.text,
-                  lineHeight: 1.1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  ...NUMERIC,
-                }}
-              >
+              <p className="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[32px] font-bold leading-tight -tracking-[0.025em] tabular-nums text-fg">
                 {payAmount}
               </p>
             )}
@@ -211,28 +122,22 @@ export function PayIntentSummary({
           {tokenSelectorTrigger}
         </div>
 
-        <div
-          style={{
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '12.5px',
-            color: t.textMuted,
-            ...NUMERIC,
-          }}
-        >
+        <div className="mt-3.5 flex items-center justify-between text-[12.5px] tabular-nums text-fg-muted">
           <span>≈ $—</span>
           {isBalanceLoading ? (
             <Shimmer width="120px" height="12px" radius="4px" />
           ) : balanceStr ? (
-            <span style={{ color: balanceError ? t.error : t.textSecondary, fontWeight: balanceError ? 600 : 500 }}>
+            <span
+              className={cn(
+                balanceError ? 'font-semibold text-error' : 'font-medium text-fg-secondary',
+              )}
+            >
               {balanceStr}
             </span>
           ) : !walletConnected ? (
-            <span style={{ opacity: 0.7 }}>Balance: —</span>
+            <span className="opacity-70">Balance: —</span>
           ) : (
-            <span style={{ opacity: 0.55 }}>Balance: 0 {paySymbol}</span>
+            <span className="opacity-55">Balance: 0 {paySymbol}</span>
           )}
         </div>
       </div>

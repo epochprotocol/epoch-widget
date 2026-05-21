@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { t } from '../../theme';
 
 interface Props {
   width?: number | string;
@@ -8,31 +7,19 @@ interface Props {
   style?: CSSProperties;
 }
 
-let _shimmerInjected = false;
-function ensureShimmerKeyframes() {
-  if (_shimmerInjected || typeof document === 'undefined') return;
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes epoch-shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-  `;
-  style.setAttribute('data-epoch-widget', 'shimmer');
-  document.head.appendChild(style);
-  _shimmerInjected = true;
-}
-
+/**
+ * Inline shimmer placeholder. The keyframe + utility class come from the
+ * bundled `epoch-intent-widget/styles.css` — no JS-side keyframe injection.
+ */
 export function Skeleton({ width = '100%', height = 12, radius, style }: Props) {
-  if (typeof window !== 'undefined') ensureShimmerKeyframes();
   const base: CSSProperties = {
     display: 'inline-block',
     width,
     height,
     borderRadius: radius ?? '8px',
-    background: `linear-gradient(90deg, ${t.surface} 25%, ${t.surfaceMuted} 50%, ${t.surface} 75%)`,
+    backgroundImage:
+      'linear-gradient(90deg, var(--epoch-color-surface) 25%, var(--epoch-color-surface-muted) 50%, var(--epoch-color-surface) 75%)',
     backgroundSize: '200% 100%',
-    animation: 'epoch-shimmer 1.4s ease-in-out infinite',
   };
-  return <span style={{ ...base, ...style }} aria-hidden="true" />;
+  return <span className="animate-shimmer" style={{ ...base, ...style }} aria-hidden="true" />;
 }

@@ -4,10 +4,8 @@ import { getEpochChainById, getEpochChains, getEpochTokensByChainEnv } from '../
 import { useTokenBalance } from '../use-token-balance';
 import { useIntentFlow, type IntentFlowStatus } from '../use-intent-flow';
 import { useSessionId } from '../session';
-import { s } from '../styles';
-import { t } from '../theme';
-import { formatAmount, injectKeyframes } from '../utils';
-import { injectShimmerKeyframes } from './Shimmer';
+import { cn as twcn } from '../lib/cn';
+import { formatAmount } from '../utils';
 import { Modal } from './Modal';
 import { ProgressStepper } from './ProgressStepper';
 import { NetworkToggle } from './NetworkToggle';
@@ -150,11 +148,6 @@ export function PaySwapIntentWidget({
   useEffect(() => {
     setIsTestnet(network === 'testnet');
   }, [network]);
-
-  useEffect(() => {
-    injectKeyframes();
-    injectShimmerKeyframes();
-  }, []);
 
   const availableChains = useMemo(() => getEpochChains(isTestnet), [isTestnet]);
 
@@ -324,8 +317,10 @@ export function PaySwapIntentWidget({
     return { action: 'submit', label: modalSubmitText };
   })();
   const ctaEnabled = ctaState.action === 'submit' || ctaState.action === 'switch';
-  const ctaBg = ctaState.tone === 'warning' ? t.warning : t.primary;
-  const ctaBgHover = ctaState.tone === 'warning' ? t.warning : t.primaryHover;
+  const ctaToneClasses =
+    ctaState.tone === 'warning'
+      ? 'bg-warning hover:bg-warning'
+      : 'bg-primary hover:bg-primary-hover';
 
   const balanceStr = (() => {
     if (!selectedToken || balance === null) return undefined;
@@ -406,39 +401,31 @@ export function PaySwapIntentWidget({
     intentFlow.submit({ sourceChainId: selectedChainId, sourceToken: selectedToken });
   };
 
+  const ctaDisabled = !ctaEnabled || (ctaState.action === 'submit' && !canSubmit);
+
   const footer = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {inlineError && (
         <div
           role="alert"
-          style={{
-            fontSize: '12.5px',
-            color: t.error,
-            backgroundColor: t.errorSoft,
-            border: `1px solid ${t.error}`,
-            borderRadius: t.radiusSm,
-            padding: '8px 12px',
-            lineHeight: 1.4,
-          }}
+          className="rounded-sm border border-error bg-error-soft px-3 py-2 text-[12.5px] leading-snug text-error"
         >
           {inlineError}
         </div>
       )}
       <button
         type="button"
-        className={cn?.button}
-        style={cn?.button ? undefined : { ...s.button, backgroundColor: ctaBg, ...(ctaEnabled && canSubmit ? {} : s.buttonDisabled) }}
-        disabled={!ctaEnabled || (ctaState.action === 'submit' && !canSubmit)}
+        className={twcn(
+          'flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 py-3.5 text-[15px] font-[650] -tracking-[0.005em] text-white shadow-md transition-[background-color,box-shadow,transform] duration-150',
+          ctaToneClasses,
+          ctaDisabled && 'cursor-not-allowed opacity-45',
+          cn?.button,
+        )}
+        disabled={ctaDisabled}
         onClick={handleCtaClick}
-        onMouseEnter={(e) => {
-          if (ctaEnabled && !cn?.button) e.currentTarget.style.backgroundColor = ctaBgHover as string;
-        }}
-        onMouseLeave={(e) => {
-          if (ctaEnabled && !cn?.button) e.currentTarget.style.backgroundColor = ctaBg as string;
-        }}
       >
         {(isBusy || (intentConfig.fixedOutput && intentFlow.isQuoting)) && (
-          <span style={{ ...s.spinner, color: '#ffffff' }} />
+          <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin-epoch rounded-full border-2 border-white border-t-transparent" />
         )}
         {ctaState.label}
       </button>
@@ -524,7 +511,7 @@ export function PaySwapIntentWidget({
 
       {intentFlow.status === 'complete' && (
         <Banner variant="success" className={cn?.banner}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="flex items-center gap-2">
             <CheckIcon />
             <span>{variant === 'swap' ? 'Swap completed successfully.' : 'Intent executed successfully.'}</span>
           </div>

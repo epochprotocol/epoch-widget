@@ -246,32 +246,32 @@ export function MidenBridgePanel() {
   return (
     <div className="flex flex-col gap-5">
       <header className="mb-1">
-        <h2 className="m-0 text-lg font-[650] text-demo-text">Miden → EVM bridge</h2>
-        <p className="mt-2 max-w-xl text-[0.8125rem] leading-relaxed text-demo-text-muted">
+        <h2 className="m-0 text-lg font-[650] text-fg">Miden → EVM bridge</h2>
+        <p className="mt-2 max-w-xl text-[0.8125rem] leading-relaxed text-fg-muted">
           Connect an Ethereum wallet and a Miden wallet. Pick a Miden asset and EVM output token, get a quote, then
           confirm to create the P2IDE note and submit the cross-chain intent (same flow as{' '}
-          <code className="rounded px-1 py-px text-xs bg-demo-code-bg">miden-integration-example</code>
+          <code className="rounded px-1 py-px text-xs bg-surface-muted">miden-integration-example</code>
           ).
         </p>
       </header>
 
-      <section className="rounded-[0.875rem] border border-demo-border bg-demo-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <div className="mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-demo-text-faint">Wallets</div>
+      <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-fg-muted">Wallets</div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-demo-border bg-demo-bg p-3">
-            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+          <div className="rounded-lg border border-line bg-canvas p-3">
+            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
               EVM (gas + recipient)
             </div>
             <ConnectButtonPlaceholder />
           </div>
-          <div className="rounded-lg border border-demo-border bg-demo-bg p-3">
-            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">Miden</div>
-            <div className="mb-2 break-all font-mono text-xs text-demo-slate-700">
+          <div className="rounded-lg border border-line bg-canvas p-3">
+            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">Miden</div>
+            <div className="mb-2 break-all font-mono text-xs text-fg-secondary">
               {midenWallet.connected ? midenWallet.accountId?.hex ?? 'connected' : 'Not connected'}
             </div>
             <button
               type="button"
-              className={`cursor-pointer rounded-lg border-none bg-demo-accent px-3 py-1.5 text-[0.8125rem] font-semibold text-white ${midenWallet.connected ? 'opacity-60' : ''}`}
+              className={`cursor-pointer rounded-lg border-none bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-white ${midenWallet.connected ? 'opacity-60' : ''}`}
               disabled={midenWallet.connected}
               onClick={() => void midenWallet.connect()}
             >
@@ -281,19 +281,19 @@ export function MidenBridgePanel() {
         </div>
       </section>
 
-      <section className="rounded-[0.875rem] border border-demo-border bg-demo-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <h3 className="m-0 text-base font-semibold text-demo-text">Intent details</h3>
-        <p className="mt-2 text-[0.8125rem] leading-snug text-demo-text-muted">
+      <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <h3 className="m-0 text-base font-semibold text-fg">Intent details</h3>
+        <p className="mt-2 text-[0.8125rem] leading-snug text-fg-muted">
           Set minimum EVM output (base units), then <strong>Get quote</strong> and <strong>Confirm &amp; sign</strong>.
         </p>
 
         <div className="mt-4 flex flex-col gap-3.5">
           <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
               Source asset (Miden)
             </label>
             <select
-              className="box-border w-full rounded-lg border border-demo-border px-2.5 py-2 font-sans text-sm"
+              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-sans text-sm"
               value={selectedAssetId}
               onChange={(e) => {
                 setSelectedAssetId(e.target.value);
@@ -308,18 +308,18 @@ export function MidenBridgePanel() {
                 </option>
               ))}
             </select>
-            <div className="mt-1 text-[0.6875rem] text-demo-text-muted">
+            <div className="mt-1 text-[0.6875rem] text-fg-muted">
               Balance: {selectedAsset?.amount?.toString() ?? '—'}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
                 Output token (Sepolia)
               </label>
               <select
-                className="box-border w-full rounded-lg border border-demo-border px-2.5 py-2 font-sans text-sm"
+                className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-sans text-sm"
                 value={outputToken}
                 onChange={(e) => {
                   setOutputToken(e.target.value);
@@ -334,11 +334,11 @@ export function MidenBridgePanel() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
                 Min output (wei)
               </label>
               <input
-                className="box-border w-full rounded-lg border border-demo-border px-2.5 py-2 font-mono text-sm"
+                className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
                 value={minTokenOut}
                 onChange={(e) => {
                   setMinTokenOut(e.target.value);
@@ -349,11 +349,11 @@ export function MidenBridgePanel() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
               Destination chain ID
             </label>
             <input
-              className="box-border w-full rounded-lg border border-demo-border px-2.5 py-2 font-mono text-sm"
+              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
               value={chainId}
               onChange={(e) => {
                 setChainId(e.target.value);
@@ -363,11 +363,11 @@ export function MidenBridgePanel() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-demo-text-faint">
+            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
               Destination EVM address
             </label>
             <input
-              className="box-border w-full rounded-lg border border-demo-border px-2.5 py-2 font-mono text-sm"
+              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
               value={evmAddress}
               onChange={(e) => {
                 setEvmAddress(e.target.value);
@@ -389,10 +389,10 @@ export function MidenBridgePanel() {
           {epoch.pendingQuote && (
             <div className="rounded-xl border border-blue-400/35 bg-blue-500/[0.06] p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-demo-text">Quote</span>
+                <span className="text-sm font-semibold text-fg">Quote</span>
                 <button
                   type="button"
-                  className="cursor-pointer border-none bg-transparent text-[0.6875rem] text-demo-text-muted underline"
+                  className="cursor-pointer border-none bg-transparent text-[0.6875rem] text-fg-muted underline"
                   onClick={() => epoch.clearQuote()}
                 >
                   Clear quote
@@ -400,7 +400,7 @@ export function MidenBridgePanel() {
               </div>
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
                 <div className="text-[0.625rem] font-semibold uppercase text-amber-900">Required Miden deposit</div>
-                <div className="mt-1 font-mono text-lg font-semibold text-demo-amber-900">
+                <div className="mt-1 font-mono text-lg font-semibold text-warning">
                   {(() => {
                     const qr = epoch.pendingQuote.quoteResult as Record<string, unknown>;
                     const tokenInRaw = qr.tokenIn as string | undefined;
@@ -417,7 +417,7 @@ export function MidenBridgePanel() {
             <button
               type="button"
               className={`mt-3 w-full rounded-lg border-none px-4 py-2.5 text-sm font-semibold text-white ${
-                !canFetch || epoch.isFetchingQuote ? 'cursor-not-allowed bg-demo-accent opacity-50' : 'cursor-pointer bg-demo-accent'
+                !canFetch || epoch.isFetchingQuote ? 'cursor-not-allowed bg-primary opacity-50' : 'cursor-pointer bg-primary'
               }`}
               disabled={epoch.isFetchingQuote || !canFetch}
               onClick={handleGetQuote}
@@ -428,7 +428,7 @@ export function MidenBridgePanel() {
             <button
               type="button"
               className={`mt-3 w-full rounded-lg border-none px-4 py-2.5 text-sm font-semibold text-white ${
-                epoch.isLoading ? 'cursor-not-allowed bg-demo-accent opacity-50' : 'cursor-pointer bg-demo-accent'
+                epoch.isLoading ? 'cursor-not-allowed bg-primary opacity-50' : 'cursor-pointer bg-primary'
               }`}
               disabled={epoch.isLoading}
               onClick={handleConfirm}
@@ -438,27 +438,27 @@ export function MidenBridgePanel() {
           )}
 
           {!epoch.isSDKReady && (
-            <p className="text-xs text-demo-amber-700">Epoch SDK not ready — connect your EVM wallet (RainbowKit header).</p>
+            <p className="text-xs text-warning">Epoch SDK not ready — connect your EVM wallet (RainbowKit header).</p>
           )}
-          {epoch.error && <p className="text-[0.8125rem] text-demo-red-700">{epoch.error}</p>}
+          {epoch.error && <p className="text-[0.8125rem] text-error">{epoch.error}</p>}
           {confirmStatus && (
             <p
-              className={`text-[0.8125rem] ${confirmStatus.startsWith('Error') ? 'text-demo-red-700' : 'text-demo-amber-800'}`}
+              className={`text-[0.8125rem] ${confirmStatus.startsWith('Error') ? 'text-error' : 'text-warning'}`}
             >
               {confirmStatus}
             </p>
           )}
 
           {localMidenNoteId && (
-            <div className="rounded-lg border border-demo-border bg-demo-bg text-[0.8125rem] p-3">
-              <strong className="text-[0.625rem] uppercase text-demo-text-muted">Miden note id</strong>
+            <div className="rounded-lg border border-line bg-canvas text-[0.8125rem] p-3">
+              <strong className="text-[0.625rem] uppercase text-fg-muted">Miden note id</strong>
               <div className="mt-1">
                 {midenNoteUrl ? (
                   <a
                     href={midenNoteUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="break-all font-mono text-xs text-demo-text"
+                    className="break-all font-mono text-xs text-fg"
                   >
                     {localMidenNoteId}
                   </a>
@@ -470,7 +470,7 @@ export function MidenBridgePanel() {
           )}
 
           {intentStatus.isPolling && !evmTransactionHash && effectiveIntentNonce && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[0.8125rem] text-demo-amber-800">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[0.8125rem] text-warning">
               Waiting for EVM execution…{' '}
               {latestStatusLabel ? `Status: ${latestStatusLabel}` : 'Polling every 5s'}
             </div>
@@ -478,13 +478,13 @@ export function MidenBridgePanel() {
 
           {evmTransactionHash && explorerUrl && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[0.8125rem]">
-              <strong className="text-demo-green-700">EVM tx</strong>
+              <strong className="text-success">EVM tx</strong>
               <div className="mt-1">
                 <a
                   href={explorerUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="break-all font-mono text-xs text-demo-green-600"
+                  className="break-all font-mono text-xs text-success"
                 >
                   {truncateHash(evmTransactionHash, 12, 10)}
                 </a>
@@ -495,9 +495,9 @@ export function MidenBridgePanel() {
       </section>
 
       {(result || epoch.error) && (
-        <section className="rounded-[0.875rem] border border-demo-border bg-demo-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <h3 className="m-0 text-base font-semibold text-demo-text">Execution status</h3>
-          {epoch.error && !result && <p className="text-sm text-demo-red-700">{epoch.error}</p>}
+        <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <h3 className="m-0 text-base font-semibold text-fg">Execution status</h3>
+          {epoch.error && !result && <p className="text-sm text-error">{epoch.error}</p>}
           {result && (
             <div className="mt-3 flex flex-col gap-2">
               {depositTxHash && (
@@ -517,8 +517,8 @@ export function MidenBridgePanel() {
 
 function StatusRow({ label: lb, value, href }: { label: string; value: string; href: string | null }) {
   return (
-    <div className="rounded-lg border border-demo-border bg-demo-bg px-3 py-2">
-      <div className="text-[0.625rem] font-bold uppercase text-demo-text-muted">{lb}</div>
+    <div className="rounded-lg border border-line bg-canvas px-3 py-2">
+      <div className="text-[0.625rem] font-bold uppercase text-fg-muted">{lb}</div>
       <div className="mt-1">
         {href ? (
           <a href={href} target="_blank" rel="noreferrer" className="font-mono text-xs">
@@ -535,7 +535,7 @@ function StatusRow({ label: lb, value, href }: { label: string; value: string; h
 /** RainbowKit lives in the app header — remind users to connect there. */
 function ConnectButtonPlaceholder() {
   return (
-    <p className="m-0 text-xs leading-normal text-demo-text-muted">
+    <p className="m-0 text-xs leading-normal text-fg-muted">
       Use <strong>Connect</strong> in the page header (RainbowKit). This wallet pays gas and receives status polls for{' '}
       <code className="font-mono text-[0.6875rem]">getIntentStatus</code>.
     </p>

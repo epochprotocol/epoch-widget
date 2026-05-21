@@ -73,35 +73,11 @@ export function formatBalancePortionForInput(
   return trimAmountInput(formatAmount(part, decimals, Math.min(18, decimals)));
 }
 
-// ---------------------------------------------------------------------------
-// Keyframe injection (once per page)
-// ---------------------------------------------------------------------------
-
-let _keyframesInjected = false;
-
 /**
- * Inject the widget's CSS keyframe animations into the document head.
- * Safe to call multiple times — will only inject once.
+ * @deprecated Keyframes now ship in `epoch-intent-widget/styles.css`. The
+ * export remains as a no-op for one release cycle to avoid breaking consumers
+ * that imported it directly.
  */
 export function injectKeyframes(): void {
-  if (_keyframesInjected || typeof document === 'undefined') return;
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes epoch-spin { to { transform: rotate(360deg); } }
-    @keyframes epoch-dropdown-in {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes epoch-modal-in {
-      from { opacity: 0; transform: translateY(8px) scale(0.98); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes epoch-overlay-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-  `;
-  style.setAttribute('data-epoch-widget', 'keyframes');
-  document.head.appendChild(style);
-  _keyframesInjected = true;
+  /* no-op: keyframes are in the bundled CSS */
 }

@@ -1,53 +1,17 @@
-import type { CSSProperties } from 'react';
-import { s } from '../styles';
-import { t } from '../theme';
+import { cn } from '../lib/cn';
 import type { EpochEarnMarket } from '../types';
 import { formatAmount, formatBalancePortionForInput, truncateAddress } from '../utils';
 import { Avatar } from './Avatar';
 import { MarketSelectButton } from './MarketSelectButton';
 import { TokenChainPill } from './TokenChainPill';
 
-const sectionLabel: CSSProperties = {
-  fontSize: '12px',
-  fontWeight: 600,
-  color: t.textMuted,
-  letterSpacing: '0.02em',
-};
-
-const payCard: CSSProperties = {
-  ...s.payCard,
-  padding: '16px 18px 14px',
-  borderRadius: t.radiusMd,
-  backgroundColor: t.bg,
-  border: `1px solid ${t.border}`,
-  boxShadow: t.shadowSm,
-  position: 'relative',
-};
-
-const amountInput: CSSProperties = {
-  all: 'unset',
-  flex: 1,
-  minWidth: 0,
-  fontSize: '32px',
-  fontWeight: 700,
-  letterSpacing: '-0.03em',
-  color: t.text,
-  fontVariantNumeric: 'tabular-nums',
-  lineHeight: 1.1,
-};
-
-const pctBtn: CSSProperties = {
-  all: 'unset',
-  fontSize: '11px',
-  fontWeight: 600,
-  padding: '5px 12px',
-  borderRadius: '999px',
-  cursor: 'pointer',
-  color: t.textSecondary,
-  backgroundColor: t.surface,
-  border: `1px solid ${t.border}`,
-  transition: 'background 0.12s, border-color 0.12s, color 0.12s',
-};
+const SECTION_LABEL = 'text-xs font-semibold tracking-[0.02em] text-fg-muted';
+const PAY_CARD =
+  'relative rounded-md border border-line bg-canvas px-4.5 pb-3.5 pt-4 shadow-sm';
+const AMOUNT_INPUT =
+  'flex-1 min-w-0 bg-transparent border-0 outline-0 p-0 text-[32px] font-bold leading-tight -tracking-[0.03em] tabular-nums text-fg placeholder:text-fg-muted';
+const PCT_BTN =
+  'cursor-pointer rounded-full border border-line bg-surface px-3 py-1.25 text-[11px] font-semibold text-fg-secondary transition-[background-color,border-color,color] duration-100 disabled:cursor-not-allowed disabled:opacity-50';
 
 interface Props {
   selected: EpochEarnMarket | null;
@@ -97,58 +61,42 @@ export function EarnFlowPanel({
     if (walletBalance === null || walletBalance === 0n) return;
     onAmountChange(formatBalancePortionForInput(walletBalance, num, den, sourceTokenDecimals));
   };
-
   const applyMax = () => {
     if (walletBalance === null) return;
     onAmountChange(formatBalancePortionForInput(walletBalance, 1, 1, sourceTokenDecimals));
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-      <div style={payCard}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px',
-            marginBottom: '12px',
-          }}
-        >
-          <span style={sectionLabel}>You pay with</span>
+    <div className="flex flex-col">
+      <div className={PAY_CARD}>
+        <div className="mb-3 flex items-center justify-between gap-2.5">
+          <span className={SECTION_LABEL}>You pay with</span>
           {walletConnected && walletAddress ? (
             <div
+              className="flex items-center gap-1.5 rounded-full border border-[rgba(124,58,237,0.22)] py-1 pl-1.25 pr-2.5 text-xs font-semibold text-[#5b21b6]"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                padding: '4px 10px 4px 5px',
-                borderRadius: '999px',
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.10) 100%)',
-                border: '1px solid rgba(124,58,237,0.22)',
-                color: '#5b21b6',
+                background:
+                  'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.10) 100%)',
               }}
               title={walletAddress}
             >
               {walletIcon ? <Avatar src={walletIcon} label="Wallet" size={16} /> : null}
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{truncateAddress(walletAddress, 4)}</span>
-              <span style={{ opacity: 0.65, marginLeft: '2px' }}>›</span>
+              <span className="tabular-nums">{truncateAddress(walletAddress, 4)}</span>
+              <span className="ml-0.5 opacity-65">›</span>
             </div>
           ) : (
-            <span style={{ ...sectionLabel, fontWeight: 500 }}>Connect wallet</span>
+            <span className={cn(SECTION_LABEL, 'font-medium')}>Connect wallet</span>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <div className="flex items-center justify-between gap-2.5">
           <input
             type="text"
             inputMode="decimal"
             placeholder="0"
             value={amount}
             onChange={(e) => onAmountChange(e.target.value)}
-            style={amountInput}
+            className={AMOUNT_INPUT}
             aria-label="Deposit amount"
           />
           <TokenChainPill
@@ -161,48 +109,33 @@ export function EarnFlowPanel({
           />
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginTop: '14px',
-          }}
-        >
-          <span style={{ fontSize: '12px', color: t.textMuted, fontVariantNumeric: 'tabular-nums' }}>≈ $—</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs tabular-nums text-fg-muted">≈ $—</span>
+          <div className="flex flex-wrap items-center gap-2">
             {balanceLoading ? (
-              <span style={{ fontSize: '12px', color: t.textMuted }}>Balance: …</span>
+              <span className="text-xs text-fg-muted">Balance: …</span>
             ) : balanceHuman != null ? (
-              <span style={{ fontSize: '12px', fontWeight: 600, color: t.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+              <span className="text-xs font-semibold tabular-nums text-fg-secondary">
                 Balance: {balanceHuman}
               </span>
             ) : (
-              <span style={{ fontSize: '12px', color: t.textMuted }}>Balance: —</span>
+              <span className="text-xs text-fg-muted">Balance: —</span>
             )}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button type="button" style={pctBtn} onClick={() => applyPortion(20, 100)} disabled={!walletBalance}>
-                20%
-              </button>
-              <button type="button" style={pctBtn} onClick={() => applyPortion(50, 100)} disabled={!walletBalance}>
-                50%
-              </button>
-              <button type="button" style={pctBtn} onClick={applyMax} disabled={!walletBalance}>
-                Max
-              </button>
+            <div className="flex gap-1.5">
+              <button type="button" className={PCT_BTN} onClick={() => applyPortion(20, 100)} disabled={!walletBalance}>20%</button>
+              <button type="button" className={PCT_BTN} onClick={() => applyPortion(50, 100)} disabled={!walletBalance}>50%</button>
+              <button type="button" className={PCT_BTN} onClick={applyMax} disabled={!walletBalance}>Max</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: '12px' }}>
+      <div className="mt-3">
         <MarketSelectButton selected={selected} onClick={onPickMarket} />
       </div>
 
       {buildError && (
-        <p style={{ marginTop: '12px', color: t.error, fontSize: '13px', marginBottom: 0 }}>{buildError}</p>
+        <p className="mt-3 mb-0 text-[13px] text-error">{buildError}</p>
       )}
     </div>
   );
