@@ -1,5 +1,4 @@
 import { cn } from '../lib/cn';
-import { formatAmount } from '../utils';
 import type { EpochEarnPosition, EpochEarnPositionsSummary } from '../types';
 import { Banner } from './Banner';
 import { PositionRow } from './PositionRow';
@@ -33,14 +32,9 @@ interface Props {
   isLoading: boolean;
   error: Error | null;
   walletConnected: boolean;
-  selectedPosition: EpochEarnPosition | null;
-  onSelectPosition: (p: EpochEarnPosition | null) => void;
-  withdrawAmount: string;
-  onAmountChange: (v: string) => void;
-  onMaxClick: (position: EpochEarnPosition, maxHuman: string) => void;
-  buildError: string | null;
-  isAll: boolean;
-  isQuoting: boolean;
+  selectedPositionId: string | null;
+  /** Per-row Withdraw click → caller swaps modal body to the detail view. */
+  onPickPosition: (p: EpochEarnPosition) => void;
   chainFilter: string;
   onChainFilterChange: (v: string) => void;
   lenderFilter: string;
@@ -54,9 +48,6 @@ const CHIP_CLASSES =
   'cursor-pointer appearance-none rounded-full border border-line bg-canvas py-1 pr-6 pl-2.5 text-xs font-medium text-fg';
 const CHIP_BG =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
-
-const PAY_CARD_CLASSES =
-  'rounded-md border border-line bg-canvas px-5 py-4 shadow-sm';
 
 function formatUsd(v: number): string {
   if (!Number.isFinite(v)) return '—';
@@ -75,59 +66,44 @@ function navDelta(summary: EpochEarnPositionsSummary): { pct: number; sign: '+' 
   return { pct: Math.abs(pct), sign };
 }
 
+/**
+ * Two-column portfolio summary card: Net Worth on the left (with optional 24h
+ * delta pill + Net APR line), Total Debt on the right. Mirrors the design
+ * pattern the user requested — fewer stats, clearer hierarchy.
+ */
 function PortfolioSummary({ summary }: { summary: EpochEarnPositionsSummary }) {
   const delta = navDelta(summary);
-  const deltaVariant = delta && delta.sign === '+' ? 'success' : delta && delta.sign === '-' ? 'danger' : 'neutral';
+  const deltaVariant =
+    delta && delta.sign === '+' ? 'success' : delta && delta.sign === '-' ? 'danger' : 'neutral';
   return (
-    <div className="mb-3 flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
+    <div className="mb-3 grid grid-cols-2 rounded-md border border-line bg-surface">
+      <div className="flex flex-col gap-1.5 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-[0.02em] text-fg-secondary">
             Net Worth
-          </div>
-          <div className="mt-1 text-[26px] font-bold leading-tight tabular-nums text-fg">
-            {formatUsd(summary.navUsd)}
-          </div>
-        </div>
-        <div className="flex flex-wrap justify-end gap-1.5">
+          </span>
           {delta && (
-            <Pill variant={deltaVariant} size="sm">
+            <Pill variant={deltaVariant} size="xs">
               24h {delta.sign}
               {delta.pct.toFixed(2)}%
             </Pill>
           )}
-          {summary.netAprDecimal > 0 && (
-            <Pill variant="success" size="sm">
-              Net APR {(summary.netAprDecimal * 100).toFixed(2)}%
-            </Pill>
-          )}
         </div>
+        <div className="text-[20px] font-bold leading-tight tabular-nums text-fg">
+          {formatUsd(summary.navUsd)}
+        </div>
+        {summary.netAprDecimal > 0 && (
+          <div className="text-[11px] font-medium text-success">
+            Net APR {(summary.netAprDecimal * 100).toFixed(2)}%
+          </div>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <div className="flex flex-col gap-0.5 rounded-sm border border-line bg-canvas px-2.5 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-            Deposits
-          </span>
-          <span className="text-sm font-bold tabular-nums text-fg">
-            {formatUsd(summary.depositsUsd)}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5 rounded-sm border border-line bg-canvas px-2.5 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-            Debt
-          </span>
-          <span className="text-sm font-bold tabular-nums text-fg">
-            {formatUsd(summary.debtUsd)}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5 rounded-sm border border-line bg-canvas px-2.5 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-            Footprint
-          </span>
-          <span className="text-sm font-bold tabular-nums text-fg">
-            {summary.activeChains} chain{summary.activeChains === 1 ? '' : 's'} · {summary.activeLenders} lender
-            {summary.activeLenders === 1 ? '' : 's'}
-          </span>
+      <div className="flex flex-col gap-1.5 border-l border-line px-4 py-3">
+        <span className="text-[11px] font-semibold tracking-[0.02em] text-fg-secondary">
+          Total Debt
+        </span>
+        <div className="text-[20px] font-bold leading-tight tabular-nums text-fg">
+          {formatUsd(summary.debtUsd)}
         </div>
       </div>
     </div>
@@ -140,14 +116,8 @@ export function WithdrawPanel({
   isLoading,
   error,
   walletConnected,
-  selectedPosition,
-  onSelectPosition,
-  withdrawAmount,
-  onAmountChange,
-  onMaxClick,
-  buildError,
-  isAll,
-  isQuoting,
+  selectedPositionId,
+  onPickPosition,
   chainFilter,
   onChainFilterChange,
   lenderFilter,
@@ -164,11 +134,9 @@ export function WithdrawPanel({
   const filterRow = (
     <div className="mb-3 flex items-center justify-between gap-2">
       <span className="text-[11px] font-medium text-fg-muted">
-        {isLoading
-          ? 'Loading positions…'
-          : positionsCount === 0
-            ? 'No positions'
-            : `${positionsCount} position${positionsCount === 1 ? '' : 's'}`}
+        {isLoading || positionsCount === 0
+          ? ''
+          : `${positionsCount} position${positionsCount === 1 ? '' : 's'}`}
       </span>
       <div className="flex gap-1.5">
         <select
@@ -218,10 +186,14 @@ export function WithdrawPanel({
     return (
       <>
         {filterRow}
+        <Shimmer width="100%" height="80px" radius="var(--epoch-radius-md)" />
+        <div className="mt-3 mb-2 text-[12px] font-semibold tracking-[0.02em] text-fg-secondary">
+          Your Portfolio
+        </div>
         <div className="flex flex-col gap-2">
-          <Shimmer width="100%" height="120px" radius="var(--epoch-radius-md)" />
-          <Shimmer width="100%" height="72px" radius="var(--epoch-radius-sm)" />
-          <Shimmer width="100%" height="72px" radius="var(--epoch-radius-sm)" />
+          <Shimmer width="100%" height="76px" radius="var(--epoch-radius-md)" />
+          <Shimmer width="100%" height="76px" radius="var(--epoch-radius-md)" />
+          <Shimmer width="100%" height="76px" radius="var(--epoch-radius-md)" />
         </div>
       </>
     );
@@ -231,7 +203,7 @@ export function WithdrawPanel({
       <>
         {filterRow}
         {summary && <PortfolioSummary summary={summary} />}
-        <div className={cn(PAY_CARD_CLASSES, 'text-[13px] leading-relaxed')}>
+        <div className={cn('rounded-md border border-line bg-canvas px-5 py-4 shadow-sm text-[13px] leading-relaxed')}>
           <p className="m-0 font-semibold text-fg">No active positions</p>
           <p className="mt-2 mb-0 text-fg-muted">
             Deposit into a market first and your withdrawable positions will show up here.
@@ -245,70 +217,18 @@ export function WithdrawPanel({
     <>
       {filterRow}
       {summary && <PortfolioSummary summary={summary} />}
+      <div className="mt-1 mb-2 text-[12px] font-semibold tracking-[0.02em] text-fg-secondary">
+        Your Portfolio
+      </div>
       <div className="flex flex-col gap-2">
-        {positions.map((p) => {
-          const isSelected = selectedPosition?.id === p.id;
-          const maxRaw = p.withdrawableRaw ?? p.underlyingBalanceRaw;
-          const maxHuman = (() => {
-            try {
-              return formatAmount(BigInt(maxRaw), p.market.token.decimals);
-            } catch {
-              return '0';
-            }
-          })();
-          return (
-            <div key={p.id}>
-              <PositionRow
-                position={p}
-                expanded={isSelected}
-                onWithdrawClick={() => onSelectPosition(isSelected ? null : p)}
-              />
-              {isSelected && (
-                <div className={cn(PAY_CARD_CLASSES, 'mt-2')}>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder={`0.00 ${p.market.token.symbol}`}
-                      value={withdrawAmount}
-                      onChange={(e) => onAmountChange(e.target.value)}
-                      className="w-full rounded-sm border border-line bg-canvas px-3 py-2.5 text-[15px] text-fg outline-none focus:border-primary"
-                      aria-label={`Withdraw amount in ${p.market.token.symbol}`}
-                    />
-                    <button
-                      type="button"
-                      className="cursor-pointer rounded-full border border-primary bg-transparent px-2.5 py-1 text-[11px] font-semibold text-primary"
-                      onClick={() => onMaxClick(p, maxHuman)}
-                    >
-                      MAX
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-fg-muted">
-                      Available: {maxHuman} {p.market.token.symbol}
-                      {p.underlyingUsdValue != null && (
-                        <span> · ≈ {formatUsd(p.underlyingUsdValue)}</span>
-                      )}
-                    </span>
-                    {isAll && (
-                      <Pill variant="info" size="xs">
-                        Max withdraw
-                      </Pill>
-                    )}
-                    {isQuoting && (
-                      <Pill variant="neutral" size="xs">
-                        Fetching quote…
-                      </Pill>
-                    )}
-                  </div>
-                  {buildError && (
-                    <p className="mt-2 mb-0 text-[13px] text-error">{buildError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {positions.map((p) => (
+          <PositionRow
+            key={p.id}
+            position={p}
+            expanded={selectedPositionId === p.id}
+            onWithdrawClick={() => onPickPosition(p)}
+          />
+        ))}
       </div>
     </>
   );

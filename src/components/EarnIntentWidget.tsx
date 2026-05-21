@@ -35,8 +35,9 @@ import { Modal } from './Modal';
 import { ProgressStepper } from './ProgressStepper';
 import { TokenSelector, type TokenWithChain } from './TokenSelector';
 import { WithdrawPanel } from './WithdrawPanel';
+import { WithdrawDetailPanel, WithdrawFundsButton } from './WithdrawDetailPanel';
 
-type EarnView = 'main' | 'selectToken' | 'selectMarket';
+type EarnView = 'main' | 'selectToken' | 'selectMarket' | 'withdrawDetail';
 
 interface EarnIntentWidgetProps {
   isOpen: boolean;
@@ -110,6 +111,15 @@ export function EarnIntentWidget({
   const [selectedPosition, setSelectedPosition] = useState<EpochEarnPosition | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawIsAll, setWithdrawIsAll] = useState(false);
+  // Smart Withdraw = let Epoch's intent network bridge/swap the withdrawn
+  // underlying to a different chain or token. OFF = receive the underlying on
+  // its native chain (current default behaviour). When ON, the
+  // `smartDest*` state captures the user's chosen destination — wired into
+  // the UI but not yet plumbed into the intent payload (today's flow still
+  // pins source = underlying, lands on the position's chain).
+  const [smartWithdraw, setSmartWithdraw] = useState(false);
+  const [smartDestChainId, setSmartDestChainId] = useState<number | null>(null);
+  const [smartDestTokenAddress, setSmartDestTokenAddress] = useState('');
   // Positions-API filters. Defaults: Base (8453), all lenders. User can switch
   // chain or scope to a single lender via the dropdowns in WithdrawPanel.
   const [positionsChainId, setPositionsChainId] = useState('8453');
@@ -142,8 +152,37 @@ export function EarnIntentWidget({
       setSelectedPosition(null);
       setWithdrawAmount('');
       setWithdrawIsAll(false);
+      setSmartWithdraw(false);
+      setSmartDestChainId(null);
+      setSmartDestTokenAddress('');
     }
   }, [isOpen]);
+
+  // Default destination = the position's underlying chain + token. Re-run
+  // whenever the user enters/leaves the detail view via a different position.
+  useEffect(() => {
+    if (!selectedPosition) {
+      setSmartDestChainId(null);
+      setSmartDestTokenAddress('');
+      return;
+    }
+    if (selectedPosition.market.chainId != null) {
+      setSmartDestChainId(selectedPosition.market.chainId);
+    }
+    setSmartDestTokenAddress(selectedPosition.market.token.address);
+  }, [selectedPosition]);
+
+  // Smart Withdraw OFF clears the destination so nothing stale survives if
+  // the user toggles it back on for a different position.
+  useEffect(() => {
+    if (smartWithdraw) return;
+    if (selectedPosition) {
+      if (selectedPosition.market.chainId != null) {
+        setSmartDestChainId(selectedPosition.market.chainId);
+      }
+      setSmartDestTokenAddress(selectedPosition.market.token.address);
+    }
+  }, [smartWithdraw, selectedPosition]);
 
   const configsState = useEarnConfigs({
     enabled: isOpen,
@@ -349,7 +388,11 @@ export function EarnIntentWidget({
 
   const ctaEnabled = ctaState.action === 'submit' || ctaState.action === 'switch';
 
-  const modalTitle = title ?? (earnTab === 'deposit' ? 'Earn' : 'Withdraw');
+  const detailTokenSymbol = selectedPosition?.market.token.symbol;
+  const modalTitle =
+    view === 'withdrawDetail' && detailTokenSymbol
+      ? `Withdraw ${detailTokenSymbol}`
+      : title ?? (earnTab === 'deposit' ? 'Earn' : 'Withdraw');
 
   const headerAction = null;
 
@@ -385,7 +428,10 @@ export function EarnIntentWidget({
       ? 'bg-warning hover:bg-warning'
       : 'bg-primary hover:bg-primary-hover';
 
-  const footer = (
+  const showDepositFooter = view === 'main' && earnTab === 'deposit';
+  const showDetailFooter = view === 'withdrawDetail';
+
+  const depositFooter = (
     <div className="flex flex-col gap-2">
       {inlineError && (
         <div
@@ -414,6 +460,32 @@ export function EarnIntentWidget({
     </div>
   );
 
+  const detailCtaLabel =
+    ctaState.action === 'switch'
+      ? ctaState.label
+      : isBusy
+        ? smartWithdraw ? 'Routing…' : 'Withdrawing…'
+        : earnFlow.isQuoting
+          ? 'Fetching quote…'
+          : smartWithdraw
+            ? 'Review Smart Withdrawal'
+            : 'Withdraw Funds';
+
+  const detailFooter = (
+    <WithdrawFundsButton
+      label={detailCtaLabel}
+      disabled={!ctaEnabled}
+      isBusy={isBusy || earnFlow.isQuoting}
+      onClick={handleCtaClick}
+    />
+  );
+
+  const footer = showDepositFooter
+    ? depositFooter
+    : showDetailFooter
+      ? detailFooter
+      : undefined;
+
   if (view === 'selectToken') {
     return (
       <Modal
@@ -436,6 +508,86 @@ export function EarnIntentWidget({
           }}
           onBack={() => setView('main')}
         />
+      </Modal>
+    );
+  }
+
+  if (view === 'withdrawDetail' && selectedPosition) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={modalTitle}
+        theme={theme}
+        classNames={cn}
+        footer={footer}
+        onBack={() => {
+          setView('main');
+          setSelectedPosition(null);
+          setWithdrawAmount('');
+          setWithdrawIsAll(false);
+          setSmartWithdraw(false);
+          setSmartDestChainId(null);
+          setSmartDestTokenAddress('');
+        }}
+        renderInline={renderInline}
+      >
+        <WithdrawDetailPanel
+          position={selectedPosition}
+          amount={withdrawAmount}
+          onAmountChange={(v) => {
+            setWithdrawAmount(v);
+            setWithdrawIsAll(false);
+          }}
+          onPickFraction={(human, isMax) => {
+            setWithdrawAmount(human);
+            setWithdrawIsAll(isMax);
+          }}
+          smartWithdraw={smartWithdraw}
+          onSmartWithdrawChange={setSmartWithdraw}
+          smartDestChainId={smartDestChainId}
+          smartDestTokenAddress={smartDestTokenAddress}
+          onPickDestChain={(id) => {
+            setSmartDestChainId(id);
+            // Reset receive token to first option on the new chain so we never
+            // surface a stale token from another network.
+            const firstTok = getEpochTokensByChainEnv(id, false)[0];
+            setSmartDestTokenAddress(firstTok?.address ?? '');
+          }}
+          onPickDestToken={setSmartDestTokenAddress}
+          buildError={withdrawBuildError}
+          quoteError={earnFlow.quoteError}
+          isQuoting={earnFlow.isQuoting}
+          approxUsd={(() => {
+            const usd = selectedPosition.underlyingUsdValue;
+            const bal = (() => {
+              try {
+                return Number(selectedPosition.underlyingBalanceRaw) /
+                  10 ** selectedPosition.market.token.decimals;
+              } catch {
+                return 0;
+              }
+            })();
+            const n = Number(withdrawAmount);
+            if (!Number.isFinite(n) || n <= 0 || !usd || bal <= 0) return null;
+            return (n / bal) * usd;
+          })()}
+        />
+        {(earnFlow.status === 'submitting' || earnFlow.status === 'sent' || earnFlow.status === 'complete') && (
+          <ProgressStepper
+            activeStep={earnFlow.status === 'complete' ? 5 : earnFlow.activeStep}
+            statusProgress={earnFlow.statusProgress}
+            className={cn?.progress}
+          />
+        )}
+        {earnFlow.status === 'complete' && (
+          <Banner variant="success" className={cn?.banner}>
+            <div className="flex items-center gap-2">
+              <CheckIcon />
+              <span>Withdraw completed successfully.</span>
+            </div>
+          </Banner>
+        )}
       </Modal>
     );
   }
@@ -525,25 +677,14 @@ export function EarnIntentWidget({
           isLoading={positionsState.isLoading}
           error={positionsState.error}
           walletConnected={isConnected}
-          selectedPosition={selectedPosition}
-          onSelectPosition={(p) => {
+          selectedPositionId={selectedPosition?.id ?? null}
+          onPickPosition={(p) => {
             setSelectedPosition(p);
             setWithdrawAmount('');
             setWithdrawIsAll(false);
+            setSmartWithdraw(false);
+            setView('withdrawDetail');
           }}
-          withdrawAmount={withdrawAmount}
-          onAmountChange={(v) => {
-            setWithdrawAmount(v);
-            setWithdrawIsAll(false);
-          }}
-          onMaxClick={(p, maxHuman) => {
-            if (selectedPosition?.id !== p.id) setSelectedPosition(p);
-            setWithdrawAmount(maxHuman);
-            setWithdrawIsAll(true);
-          }}
-          buildError={withdrawBuildError}
-          isAll={withdrawIsAll}
-          isQuoting={earnFlow.isQuoting}
           chainFilter={positionsChainId}
           onChainFilterChange={(v) => {
             setPositionsChainId(v);
