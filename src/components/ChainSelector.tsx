@@ -52,7 +52,7 @@ export function ChainSelector({ chains, selectedChainId, onSelect, onBack }: Cha
         />
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
+      <div className="flex flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="p-6 text-center text-[13px] text-fg-muted">No chains found</div>
         ) : (

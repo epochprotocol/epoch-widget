@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
+    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
     "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
     "@tailwindcss/cli": "^4.3.0",
     "@tanstack/react-query": "^5.0.0",

@@ -23,7 +23,7 @@ import type {
 } from '../types';
 import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
-import { useEarnConfigs, useUserPositions } from '../earn/api';
+import { useEarnConfigs, useLendingPools, useUserPositions } from '../earn/api';
 import { useEarnIntentFlow } from '../earn/use-earn-intent-flow';
 import type { OneDeltaConfig } from '../types';
 import { ArrowDownIcon, CheckIcon } from './Icons';
@@ -60,6 +60,30 @@ interface EarnIntentWidgetProps {
   earnWithdrawDefaults?: EarnWithdrawIntentDefaults;
   /** Override the 1delta-solver base URL (`POST /earn/quote`). Defaults to `api.baseUrl`. */
   earnSolverUrl?: string;
+  /**
+   * Chain IDs to fan /pools fetches over. Forwarded as one `chainId=` per
+   * request. Default: [1, 8453, 42161, 10, 137]. Set to a single chain to
+   * scope the picker.
+   */
+  earnChainIds?: number[];
+  /**
+   * Restrict /pools to specific lender keys. Passed verbatim as the `lender`
+   * query param — 1delta accepts CSV (e.g. `AAVE_V3,COMPOUND_V3_USDC`) and
+   * matches the granular `lenderKey` (per-market for Morpho/Fluid). Omit to
+   * include every lender on each chain.
+   */
+  earnLenderFilter?: string;
+  /** Max rows per chain on /pools (1delta `count`). Default 100. */
+  earnPoolsPerChain?: number;
+  /** /pools sort field. Default `totalDepositsUsd`. */
+  earnPoolsSortBy?:
+    | 'depositRate'
+    | 'variableBorrowRate'
+    | 'totalDepositsUsd'
+    | 'totalLiquidityUsd'
+    | 'utilization';
+  /** /pools sort direction. Default `DESC`. */
+  earnPoolsSortDir?: 'ASC' | 'DESC';
   /** @deprecated no-op — markets always come from `earnMarketsSource`. */
   earnUseMockData?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
@@ -90,6 +114,11 @@ export function EarnIntentWidget({
   earnDepositDefaults,
   earnWithdrawDefaults,
   earnSolverUrl,
+  earnChainIds,
+  earnLenderFilter,
+  earnPoolsPerChain,
+  earnPoolsSortBy,
+  earnPoolsSortDir,
   onIntentSent,
   onIntentComplete,
   onError,
@@ -120,9 +149,9 @@ export function EarnIntentWidget({
   const [smartWithdraw, setSmartWithdraw] = useState(false);
   const [smartDestChainId, setSmartDestChainId] = useState<number | null>(null);
   const [smartDestTokenAddress, setSmartDestTokenAddress] = useState('');
-  // Positions-API filters. Defaults: Base (8453), all lenders. User can switch
-  // chain or scope to a single lender via the dropdowns in WithdrawPanel.
-  const [positionsChainId, setPositionsChainId] = useState('8453');
+  // Positions-API filters. Defaults: all chains (empty → derived CSV) + all
+  // lenders. User can narrow via the dropdowns in WithdrawPanel.
+  const [positionsChainId, setPositionsChainId] = useState('');
   const [positionsLenderKey, setPositionsLenderKey] = useState('');
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
   const [selectedTokenAddress, setSelectedTokenAddress] = useState('');
@@ -184,10 +213,25 @@ export function EarnIntentWidget({
     }
   }, [smartWithdraw, selectedPosition]);
 
-  const configsState = useEarnConfigs({
-    enabled: isOpen,
+  // When the consumer wires a 1delta proxy via `api.positionsBaseUrl`, hit
+  // `/pools` for live market data — even if `earnMarketsSource` is also set
+  // (the proxy is the source of truth; the static prop is a fallback for
+  // offline / demo flows that don't run the proxy).
+  const useLivePools = !!api.positionsBaseUrl;
+  const poolsState = useLendingPools({
+    api,
+    enabled: isOpen && useLivePools,
+    chainIds: earnChainIds,
+    lender: earnLenderFilter,
+    count: earnPoolsPerChain,
+    sortBy: earnPoolsSortBy,
+    sortDir: earnPoolsSortDir,
+  });
+  const staticConfigsState = useEarnConfigs({
+    enabled: isOpen && !useLivePools,
     source: earnMarketsSource,
   });
+  const configsState = useLivePools ? poolsState : staticConfigsState;
   // legacy: callers passing `earnMarkets` directly still see them — we render
   // the configs picker but the deprecated prop is accepted for back-compat.
   void earnMarketsProp;
@@ -196,11 +240,39 @@ export function EarnIntentWidget({
     address,
     network: 'mainnet',
     api,
-    enabled: isOpen && isConnected,
+    // Only fetch positions while the Withdraw tab is active — deposit flow
+    // never reads them, so skip the request on first open / deposit usage.
+    enabled: isOpen && isConnected && earnTab === 'withdraw',
     configs: configsState.configs,
-    chainsOverride: positionsChainId,
+    // Empty filter ⇒ pass undefined so the hook falls back to the derived
+    // all-chains CSV instead of treating "" as a literal chain CSV.
+    chainsOverride: positionsChainId || undefined,
     lendersOverride: positionsLenderKey,
   });
+
+  // Auto-pick: when the user lands on the Withdraw tab and positions arrive,
+  // jump straight into the detail/amount view with positions[0] selected. The
+  // user opens the picker explicitly via the From card chevron — so we only
+  // do this once per (open × tab-entry) and never re-trigger it as long as a
+  // selection is preserved.
+  const didAutoPickRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen) {
+      didAutoPickRef.current = false;
+      return;
+    }
+    if (earnTab !== 'withdraw') {
+      didAutoPickRef.current = false;
+      return;
+    }
+    if (didAutoPickRef.current) return;
+    if (selectedPosition) return;
+    const first = positionsState.positions[0];
+    if (!first) return;
+    didAutoPickRef.current = true;
+    setSelectedPosition(first);
+    setView('withdrawDetail');
+  }, [isOpen, earnTab, positionsState.positions, selectedPosition]);
 
   const availableChains = useMemo(() => getEpochChains(false), []);
   const allTokens = useMemo<TokenWithChain[]>(
@@ -549,6 +621,12 @@ export function EarnIntentWidget({
             setWithdrawAmount(human);
             setWithdrawIsAll(isMax);
           }}
+          onPickAnotherPosition={() => {
+            // Open the picker without discarding the current selection — if
+            // the user backs out, they return to the same amount + position.
+            // The picker swap (onPickPosition) is what resets the amount.
+            setView('main');
+          }}
           smartWithdraw={smartWithdraw}
           onSmartWithdrawChange={setSmartWithdraw}
           smartDestChainId={smartDestChainId}
@@ -679,7 +757,6 @@ export function EarnIntentWidget({
       ) : (
         <WithdrawPanel
           positions={positionsState.positions}
-          summary={positionsState.summary}
           isLoading={positionsState.isLoading}
           error={positionsState.error}
           walletConnected={isConnected}

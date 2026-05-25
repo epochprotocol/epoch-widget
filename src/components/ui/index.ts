@@ -8,3 +8,6 @@ export { RowAccordion } from './RowAccordion';
 export { SegmentedTabs } from './SegmentedTabs';
 export type { SegmentedTab } from './SegmentedTabs';
 export { SearchInput } from './SearchInput';
+export { FilterDropdown } from './FilterDropdown';
+export type { FilterOption } from './FilterDropdown';
+export { TokenAmountCard } from './TokenAmountCard';

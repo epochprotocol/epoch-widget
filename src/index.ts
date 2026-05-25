@@ -39,7 +39,7 @@ export type {
 } from './types';
 export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
 export { cn } from './lib/cn';
-export { useEarnMarkets, useUserPositions, useEarnConfigs } from './earn/api';
+export { useEarnMarkets, useUserPositions, useEarnConfigs, useLendingPools } from './earn/api';
 export { HARDCODED_ONEDELTA_CONFIGS, chainLabelFor } from './earn/onedelta-markets';
 export { toEpochEarnMarket, flattenConfigsToMarkets } from './earn/onedelta-adapter';
 export { buildPayIntentFromFlatProps } from './pay/build-pay-intent';
@@ -48,5 +48,44 @@ export { buildEarnWithdrawIntent } from './earn/build-withdraw-intent';
 export { formatAmount, truncateAddress } from './utils';
 // UI primitives — exported so consumers can compose against the same design
 // system without re-importing from internal paths.
-export { Card, Pill, TokenAvatar, Skeleton, Stat, SegmentedTabs, RowAccordion, SearchInput } from './components/ui';
-export type { PillVariant, PillSize, SegmentedTab } from './components/ui';
+export {
+  Card,
+  Pill,
+  TokenAvatar,
+  Skeleton,
+  Stat,
+  SegmentedTabs,
+  RowAccordion,
+  SearchInput,
+  FilterDropdown,
+  TokenAmountCard,
+} from './components/ui';
+export type {
+  PillVariant,
+  PillSize,
+  SegmentedTab,
+  FilterOption,
+} from './components/ui';
+export type { PaySwapTokenWithChain } from './types';
+
+// ---------------------------------------------------------------------------
+// Headless SDK pass-through. Consumers who want the business logic without
+// the React UI can install `@epoch-protocol/epoch-flows-sdk` directly, or
+// import from the widget package as a convenience.
+// ---------------------------------------------------------------------------
+export {
+  EpochFlowsSDK,
+  EarnSession,
+  PaySession,
+  fetchLendingPools,
+  fetchUserPositions,
+  fetchTokenBalanceOnChain,
+} from '@epoch-protocol/epoch-flows-sdk';
+export type {
+  EarnIntentFlowStatus,
+  EarnQuote,
+  EarnQuoteInput,
+  EarnSubmitInput,
+  PayIntentFlowStatus,
+  PaySubmitInput,
+} from '@epoch-protocol/epoch-flows-sdk';

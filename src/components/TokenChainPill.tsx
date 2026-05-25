@@ -14,7 +14,7 @@ interface TokenChainPillProps {
 }
 
 const BASE_PILL =
-  'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-canvas py-0.75 pl-0.75 pr-2.25 text-[13px] font-semibold leading-none whitespace-nowrap text-fg shadow-sm border transition-[border-color,box-shadow] duration-150';
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-canvas py-0.75 pl-0.75 pr-2.25 text-[13px] font-semibold leading-none whitespace-nowrap text-fg shadow-sm border transition-[border-color,box-shadow,transform] duration-150';
 
 /**
  * Compact token+chain pill used inside the pay/receive cards.
@@ -80,7 +80,7 @@ export function TokenChainPill({
       aria-label={ariaLabel}
       className={cn(
         BASE_PILL,
-        'border-line cursor-pointer hover:border-primary hover:shadow-[0_0_0_3px_var(--epoch-color-accent-soft)]',
+        'border-line cursor-pointer hover:border-primary hover:shadow-[0_0_0_3px_var(--epoch-color-accent-soft)] active:scale-[0.97]',
       )}
     >
       {content}

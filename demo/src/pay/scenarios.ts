@@ -177,6 +177,28 @@ export const PAY_SCENARIOS: Scenario[] = [
       },
     },
   },
+  {
+    id: 'pay-locked-source',
+    name: 'Locked source (Base USDC)',
+    tagline:
+      'Pin the source side to USDC on Base — the user can\'t change it. Useful when the host app already knows what to charge in.',
+    props: {
+      mode: 'pay',
+      title: 'Send USDC',
+      submitButtonText: 'Send',
+      toAddress: '0x4235215114484bACDfF0071dB54Dc9faaD3489a9',
+      toAmount: '0.15',
+      toChainId: 8453,
+      toToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      sourceChainIds: [8453],
+      defaultSourceChainId: 8453,
+      defaultSourceTokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      lockSourceToken: true,
+      // Stubbed price oracle so the "≈ $0.15" line renders end-to-end.
+      usdPriceFor: ({ symbol }) =>
+        symbol === 'USDC' || symbol === 'USDT' || symbol === 'DAI' ? 1 : null,
+    },
+  },
 ];
 
 /** Swap mode uses the same intent SDK path as pay; `mode: 'swap'` drives copy and callbacks. */
@@ -191,6 +213,56 @@ export const SWAP_SCENARIOS: Scenario[] = [
       submitButtonText: 'Confirm swap',
       network: 'testnet',
       allowNetworkToggle: true,
+      intent: {
+        requiredToken: {
+          address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69',
+          symbol: 'USDC',
+          decimals: 18,
+        },
+        requiredAmount: BigInt('1000000000000000000'),
+        destinationChainName: 'Base Sepolia',
+        positionLabel: '1 USDC on Base Sepolia (demo)',
+        config: {
+          protocol: 'raffles',
+          action: 'buyTicket',
+          extraDataTypestring: 'address raffleAddress,uint256 numberOfTickets',
+          extraData: {
+            raffleAddress: '0x0000000000000000000000000000000000000001',
+            numberOfTickets: '1',
+          },
+          fixedOutput: true,
+          destinationTestnetChainId: 84532,
+        },
+      },
+    },
+  },
+  {
+    id: 'swap-custom-cta',
+    name: 'Swap with custom CTA',
+    tagline:
+      'Same swap scenario but every CTA state copy is integrator-supplied — and a stub price oracle is wired so the "≈ $X" line renders.',
+    props: {
+      mode: 'swap',
+      title: 'Buy USDC',
+      network: 'testnet',
+      allowNetworkToggle: true,
+      ctaLabels: {
+        submit: 'Confirm purchase',
+        switchNetwork: (c) => `Move to ${c}`,
+        quoting: 'Pricing…',
+        preparing: 'Wallet ready?',
+        signing: 'Approve in wallet',
+        submitting: 'Sending intent…',
+        polling: 'Settling on-chain…',
+        complete: 'All done',
+        insufficientBalance: (s) => `Not enough ${s} to cover this`,
+      },
+      usdPriceFor: ({ symbol }) => {
+        if (symbol === 'USDC' || symbol === 'USDT' || symbol === 'DAI') return 1;
+        if (symbol === 'WETH' || symbol === 'ETH') return 3500;
+        if (symbol === 'WBTC' || symbol === 'BTC') return 95_000;
+        return null;
+      },
       intent: {
         requiredToken: {
           address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69',

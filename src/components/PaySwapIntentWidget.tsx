@@ -3,6 +3,7 @@ import { useWalletClient, useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { getEpochChainById, getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
 import { useTokenBalance } from '../use-token-balance';
 import { useIntentFlow, type IntentFlowStatus } from '../use-intent-flow';
+import { useTokenUsdPrice } from '../hooks/use-token-usd-price';
 import { useSessionId } from '../session';
 import { cn as twcn } from '../lib/cn';
 import { formatAmount } from '../utils';
@@ -60,6 +61,15 @@ export type PaySwapIntentWidgetProps = Pick<
   | 'toToken'
   | 'toTokenDecimals'
   | 'toTokenSymbol'
+  | 'sourceChainIds'
+  | 'sourceTokenFilter'
+  | 'defaultSourceChainId'
+  | 'defaultSourceTokenAddress'
+  | 'lockSourceToken'
+  | 'ctaLabels'
+  | 'usdPriceFor'
+  | 'onSourceTokenChange'
+  | 'onQuote'
 > & {
   /** `pay` vs `swap` — same SDK path; affects copy and `onStart` / internal `mode`. */
   variant: 'pay' | 'swap';
@@ -91,6 +101,15 @@ export function PaySwapIntentWidget({
   toToken,
   toTokenDecimals,
   toTokenSymbol,
+  sourceChainIds,
+  sourceTokenFilter,
+  defaultSourceChainId,
+  defaultSourceTokenAddress,
+  lockSourceToken = false,
+  ctaLabels,
+  usdPriceFor,
+  onSourceTokenChange,
+  onQuote,
 }: PaySwapIntentWidgetProps) {
   const flatPayBuild = useMemo(() => {
     if (intentProp) return null;
@@ -149,19 +168,27 @@ export function PaySwapIntentWidget({
     setIsTestnet(network === 'testnet');
   }, [network]);
 
-  const availableChains = useMemo(() => getEpochChains(isTestnet), [isTestnet]);
+  const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(',') : '';
+  const availableChains = useMemo(() => {
+    const all = getEpochChains(isTestnet);
+    if (!sourceChainIds || sourceChainIds.length === 0) return all;
+    const allow = new Set(sourceChainIds);
+    return all.filter((c) => allow.has(c.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTestnet, sourceChainIdsKey]);
 
-  const allTokens = useMemo(
-    (): TokenWithChain[] =>
-      availableChains.flatMap((chain) =>
-        getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({ ...tok, chain })),
-      ),
-    [availableChains, isTestnet],
-  );
+  const allTokens = useMemo((): TokenWithChain[] => {
+    const flat = availableChains.flatMap((chain) =>
+      getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({ ...tok, chain })),
+    );
+    return sourceTokenFilter ? flat.filter(sourceTokenFilter) : flat;
+  }, [availableChains, isTestnet, sourceTokenFilter]);
 
+  // Tokens available on the currently-selected chain, derived from the
+  // already-filtered `allTokens` so `sourceTokenFilter` is applied uniformly.
   const availableTokens = useMemo(
-    () => (selectedChainId ? getEpochTokensByChainEnv(selectedChainId, isTestnet) : []),
-    [selectedChainId, isTestnet],
+    () => allTokens.filter((tok) => tok.chain.id === selectedChainId),
+    [allTokens, selectedChainId],
   );
 
   const selectedToken = useMemo(
@@ -174,15 +201,39 @@ export function PaySwapIntentWidget({
   const pillToken = selectedToken ?? allTokens[0] ?? null;
   const pillChain = selectedChain ?? availableChains[0] ?? null;
 
+  // Initial selection: honor integrator-supplied defaults when present and
+  // still part of the filtered token set; otherwise fall back to the first
+  // available token. Runs only when nothing is selected yet so we don't fight
+  // user changes mid-session.
   useEffect(() => {
     if (!isOpen) return;
     if (selectedChainId !== null) return;
+    if (defaultSourceChainId && defaultSourceTokenAddress) {
+      const wanted = allTokens.find(
+        (t) =>
+          t.chain.id === defaultSourceChainId &&
+          t.address.toLowerCase() === defaultSourceTokenAddress.toLowerCase(),
+      );
+      if (wanted) {
+        setSelectedChainId(wanted.chain.id);
+        setSelectedTokenAddress(wanted.address);
+        return;
+      }
+    }
+    if (defaultSourceChainId) {
+      const first = allTokens.find((t) => t.chain.id === defaultSourceChainId);
+      if (first) {
+        setSelectedChainId(first.chain.id);
+        setSelectedTokenAddress(first.address);
+        return;
+      }
+    }
     const first = allTokens[0];
     if (!first) return;
     setSelectedChainId(first.chain.id);
     setSelectedTokenAddress(first.address);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, allTokens]);
+  }, [isOpen, allTokens, defaultSourceChainId, defaultSourceTokenAddress]);
 
   useEffect(() => {
     if (availableTokens.length > 0) {
@@ -193,6 +244,17 @@ export function PaySwapIntentWidget({
       setSelectedTokenAddress('');
     }
   }, [availableTokens]);
+
+  const onSourceTokenChangeRef = useRef(onSourceTokenChange);
+  onSourceTokenChangeRef.current = onSourceTokenChange;
+  useEffect(() => {
+    if (!onSourceTokenChangeRef.current) return;
+    if (!selectedChainId || !selectedTokenAddress) return;
+    onSourceTokenChangeRef.current({
+      chainId: selectedChainId,
+      tokenAddress: selectedTokenAddress as `0x${string}`,
+    });
+  }, [selectedChainId, selectedTokenAddress]);
 
   const { balance, isLoading: isBalanceLoading } = useTokenBalance(
     selectedChainId,
@@ -264,6 +326,36 @@ export function PaySwapIntentWidget({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChainId, selectedTokenAddress, intentConfig.fixedOutput, address, chainId, isWrongNetwork, !!walletClient]);
 
+  // Emit quote results once per settle. Watches `isQuoting` falling edge so
+  // we don't fire on every render while quote is in flight.
+  const onQuoteRef = useRef(onQuote);
+  onQuoteRef.current = onQuote;
+  const prevQuotingRef = useRef(false);
+  useEffect(() => {
+    const wasQuoting = prevQuotingRef.current;
+    prevQuotingRef.current = intentFlow.isQuoting;
+    if (!onQuoteRef.current) return;
+    if (!wasQuoting || intentFlow.isQuoting) return;
+    if (!selectedChainId || !selectedToken) return;
+    const raw = intentFlow.quotedPayRaw;
+    let bigintRaw: bigint | null = null;
+    if (raw) {
+      try {
+        bigintRaw = BigInt(raw);
+      } catch {
+        bigintRaw = null;
+      }
+    }
+    onQuoteRef.current({
+      sourceChainId: selectedChainId,
+      sourceTokenAddress: selectedTokenAddress as `0x${string}`,
+      paySymbol: selectedToken.symbol,
+      payAmount: intentFlow.quotedPayAmount ?? null,
+      payAmountRaw: bigintRaw,
+      error: intentFlow.quoteError ?? undefined,
+    });
+  }, [intentFlow.isQuoting, intentFlow.quotedPayAmount, intentFlow.quotedPayRaw, intentFlow.quoteError, selectedChainId, selectedTokenAddress, selectedToken]);
+
   const hasResolvableIntent = !!payIntent;
 
   const showIntentSummary = !!payIntent;
@@ -295,37 +387,81 @@ export function PaySwapIntentWidget({
 
   const flatPayError = flatPayBuild && !flatPayBuild.ok ? flatPayBuild.error : null;
 
+  const cta = {
+    submit: ctaLabels?.submit ?? modalSubmitText,
+    switchNetwork: ctaLabels?.switchNetwork ?? ((chain: string) => `Switch to ${chain}`),
+    quoting: ctaLabels?.quoting ?? 'Fetching quote…',
+    preparing: ctaLabels?.preparing ?? 'Preparing…',
+    signing: ctaLabels?.signing ?? 'Signing…',
+    submitting: ctaLabels?.submitting ?? 'Submitting…',
+    polling: ctaLabels?.polling ?? 'Waiting for execution…',
+    complete: ctaLabels?.complete ?? 'Completed ✓',
+    insufficientBalance:
+      ctaLabels?.insufficientBalance ?? ((sym: string) => `Insufficient ${sym} balance`),
+    configureRequired:
+      ctaLabels?.configureRequired ?? (variant === 'swap' ? 'Configure swap' : 'Configure payment'),
+  };
+
   type CtaAction = 'switch' | 'submit' | 'disabled';
-  const ctaState: { action: CtaAction; label: string; tone?: 'primary' | 'warning' } = (() => {
+  type CtaTone = 'primary' | 'warning' | 'success';
+  const ctaState: { action: CtaAction; label: string; tone?: CtaTone } = (() => {
     if (!payIntent) {
-      return { action: 'disabled', label: flatPayError ? flatPayError : variant === 'swap' ? 'Configure swap' : 'Configure payment' };
+      return { action: 'disabled', label: flatPayError ?? cta.configureRequired };
     }
-    if (intentConfig.fixedOutput && intentFlow.isQuoting) return { action: 'disabled', label: 'Fetching quote…' };
+    if (intentConfig.fixedOutput && intentFlow.isQuoting)
+      return { action: 'disabled', label: cta.quoting };
     if (intentFlow.status === 'submitting') {
-      if (intentFlow.activeStep === 1) return { action: 'disabled', label: 'Preparing…' };
-      if (intentFlow.activeStep === 2) return { action: 'disabled', label: 'Signing…' };
-      if (intentFlow.activeStep === 3) return { action: 'disabled', label: 'Submitting…' };
+      if (intentFlow.activeStep === 1) return { action: 'disabled', label: cta.preparing };
+      if (intentFlow.activeStep === 2) return { action: 'disabled', label: cta.signing };
+      if (intentFlow.activeStep === 3) return { action: 'disabled', label: cta.submitting };
     }
-    if (intentFlow.status === 'polling') return { action: 'disabled', label: 'Waiting for execution…' };
-    if (intentFlow.status === 'complete') return { action: 'disabled', label: 'Completed ✓' };
+    if (intentFlow.status === 'polling') return { action: 'disabled', label: cta.polling };
+    if (intentFlow.status === 'complete')
+      return { action: 'disabled', label: cta.complete, tone: 'success' };
     if (isWrongNetwork && selectedChain) {
-      return { action: 'switch', label: `Switch to ${selectedChain.name}`, tone: 'warning' };
+      return { action: 'switch', label: cta.switchNetwork(selectedChain.name), tone: 'warning' };
     }
     if (insufficientBalance && selectedToken) {
-      return { action: 'disabled', label: `Insufficient ${selectedToken.symbol} balance` };
+      return { action: 'disabled', label: cta.insufficientBalance(selectedToken.symbol) };
     }
-    return { action: 'submit', label: modalSubmitText };
+    return { action: 'submit', label: cta.submit };
   })();
   const ctaEnabled = ctaState.action === 'submit' || ctaState.action === 'switch';
-  const ctaToneClasses =
-    ctaState.tone === 'warning'
-      ? 'bg-warning hover:bg-warning'
-      : 'bg-primary hover:bg-primary-hover';
+  const CTA_TONE_CLASSES: Record<CtaTone, string> = {
+    primary: 'bg-primary hover:bg-primary-hover',
+    warning: 'bg-warning hover:bg-warning',
+    success: 'bg-success hover:bg-success',
+  };
+  const ctaToneClasses = CTA_TONE_CLASSES[ctaState.tone ?? 'primary'];
 
   const balanceStr = (() => {
     if (!selectedToken || balance === null) return undefined;
     return `Balance: ${formatAmount(balance, selectedToken.decimals)} ${selectedToken.symbol}`;
   })();
+
+  // USD equivalent for the pay/sell amount — driven entirely by integrator
+  // resolver. When not provided, hook returns null and we render no "≈ $…"
+  // line. Cached per (chain, address) so token-flipping is instant.
+  const { priceUsd } = useTokenUsdPrice({
+    chainId: selectedChainId,
+    tokenAddress: selectedTokenAddress,
+    tokenSymbol: selectedToken?.symbol ?? '',
+    resolver: usdPriceFor,
+  });
+  const usdEquivalentStr = useMemo(() => {
+    if (priceUsd == null) return null;
+    if (!payAmountStr || payAmountStr === '—' || payAmountStr === '') return null;
+    const n = Number(payAmountStr.replace(/,/g, ''));
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const usd = n * priceUsd;
+    const formatted =
+      usd >= 1000
+        ? usd.toLocaleString(undefined, { maximumFractionDigits: 0 })
+        : usd >= 1
+        ? usd.toFixed(2)
+        : usd.toFixed(4);
+    return `≈ $${formatted}`;
+  }, [priceUsd, payAmountStr]);
 
   const destinationChainId =
     (isTestnet ? intentConfig.destinationTestnetChainId : intentConfig.destinationChainId) ??
@@ -380,8 +516,8 @@ export function PaySwapIntentWidget({
         tokenLogoURI={pillToken.logoURI}
         chainName={pillChain.name}
         chainLogoURI={pillChain.logoURI}
-        onClick={() => setView('selectToken')}
-        ariaLabel="Change source token"
+        onClick={lockSourceToken ? undefined : () => setView('selectToken')}
+        ariaLabel={lockSourceToken ? undefined : 'Change source token'}
       />
     ) : undefined;
 
@@ -416,9 +552,9 @@ export function PaySwapIntentWidget({
       <button
         type="button"
         className={twcn(
-          'flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 py-3.5 text-[15px] font-[650] -tracking-[0.005em] text-white shadow-md transition-[background-color,box-shadow,transform] duration-150',
+          'flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 py-3.5 text-[15px] font-[650] -tracking-[0.005em] text-white shadow-md transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]',
           ctaToneClasses,
-          ctaDisabled && 'cursor-not-allowed opacity-45',
+          ctaDisabled && 'cursor-not-allowed opacity-45 active:scale-100',
           cn?.button,
         )}
         disabled={ctaDisabled}
@@ -466,8 +602,8 @@ export function PaySwapIntentWidget({
           sellSymbol={selectedToken?.symbol ?? ''}
           sellTokenPill={floatingPill}
           buyAmount={requiredAmountStr}
-          buySymbol={requiredToken.symbol}
           buyTokenPill={destinationPill}
+          destinationChainName={destinationChainName ?? destinationChain?.name}
           isQuoting={intentFlow.isQuoting}
           balanceStr={isConnected ? balanceStr : undefined}
           balanceError={insufficientBalance}
@@ -475,6 +611,7 @@ export function PaySwapIntentWidget({
           walletConnected={isConnected}
           walletAddress={isConnected ? address : undefined}
           walletIcon={isConnected ? connector?.icon : undefined}
+          usdEquivalent={usdEquivalentStr}
           classNames={cn}
         />
       )}
@@ -495,6 +632,7 @@ export function PaySwapIntentWidget({
           balanceStr={isConnected ? balanceStr : undefined}
           balanceError={insufficientBalance}
           isBalanceLoading={isConnected && !!selectedToken && isBalanceLoading}
+          usdEquivalent={usdEquivalentStr}
           classNames={cn}
         />
       )}
@@ -510,12 +648,16 @@ export function PaySwapIntentWidget({
       )}
 
       {intentFlow.status === 'complete' && (
-        <Banner variant="success" className={cn?.banner}>
-          <div className="flex items-center gap-2">
-            <CheckIcon />
-            <span>{variant === 'swap' ? 'Swap completed successfully.' : 'Intent executed successfully.'}</span>
-          </div>
-        </Banner>
+        <div className="animate-overlay-in">
+          <Banner variant="success" className={cn?.banner}>
+            <div className="flex items-center gap-2">
+              <CheckIcon />
+              <span>
+                {variant === 'swap' ? 'Swap completed successfully.' : 'Intent executed successfully.'}
+              </span>
+            </div>
+          </Banner>
+        </div>
       )}
 
     </Modal>

@@ -18,68 +18,85 @@ function fmtUsd(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-const LENDER_LABELS: Record<string, string> = {
-  AAVE_V3: 'Aave',
-  AAVE_V2: 'Aave',
-  COMPOUND_V3: 'Compound',
-  MORPHO_BLUE: 'Morpho',
-  VENUS: 'Venus',
-};
-
 const LENDER_DOT: Record<string, string> = {
-  AAVE_V3: '#b6509e',
+  AAVE: '#b6509e',
   AAVE_V2: '#b6509e',
-  COMPOUND_V3: '#00d395',
-  MORPHO_BLUE: '#2b5cff',
+  AAVE_V3: '#b6509e',
+  AAVE_V3_PRIME: '#b6509e',
+  COMPOUND: '#00d395',
+  MORPHO: '#2b5cff',
+  FLUID: '#36b6ff',
+  EULER: '#4d9aff',
+  SPARK: '#ffaa00',
   VENUS: '#f6c344',
+  YLDR: '#ffb547',
 };
 
-function lenderShort(lenderKey: string): string {
-  return LENDER_LABELS[lenderKey] ?? lenderKey.replace('_', ' ');
-}
+const FAMILY_LABELS: Record<string, string> = {
+  AAVE: 'Aave',
+  AAVE_V2: 'Aave V2',
+  AAVE_V3: 'Aave V3',
+  AAVE_V3_PRIME: 'Aave V3 Prime',
+  COMPOUND: 'Compound',
+  MORPHO: 'Morpho',
+  FLUID: 'Fluid',
+  EULER: 'Euler',
+  SPARK: 'Spark',
+  VENUS: 'Venus',
+  YLDR: 'YLDR',
+};
 
 export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
   const asset = row.underlyingInfo.asset;
   const rate = kind === 'lend' ? row.depositRate : row.variableBorrowRate;
   const tvlUsd = kind === 'lend' ? row.totalDepositsUsd : row.borrowLiquidityUsd;
-  const lender = lenderShort(config.lenderKey);
-  const dotColor = LENDER_DOT[config.lenderKey] ?? 'var(--epoch-color-primary)';
-  const title = `${lender} v3 ${asset.symbol} ${kind === 'lend' ? 'Lending' : 'Borrowing'}`;
+  const family = config.lenderFamily ?? config.lenderKey;
+  const familyLabel = FAMILY_LABELS[family] ?? config.label ?? family.replace(/_/g, ' ');
+  const dotColor = LENDER_DOT[family] ?? 'var(--epoch-color-primary)';
+  const symbol = asset.symbol && asset.symbol !== '???' ? asset.symbol : asset.name || 'Market';
+  // Per-market label (e.g. "Morpho wstETH-USDT 86") only shown when more
+  // specific than the family — avoids "Aave · Aave V3" redundancy.
+  const subLabel =
+    config.label && config.label.toLowerCase() !== familyLabel.toLowerCase()
+      ? `${familyLabel} · ${config.label}`
+      : familyLabel;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Select ${title}`}
+      aria-label={`Select ${symbol} on ${familyLabel}`}
       className={cn(
-        'box-border flex w-full cursor-pointer items-center gap-3.5 border-0 border-t border-line bg-transparent px-1 py-3.5 text-left transition-colors duration-100 hover:bg-surface-muted',
+        'group box-border flex w-full cursor-pointer items-center gap-3.5 rounded-sm border-0 border-b border-line bg-transparent px-2 py-3 text-left transition-[background-color,transform] duration-150 last:border-b-0 hover:bg-surface-muted active:scale-[0.995]',
         selected && 'bg-accent-soft hover:bg-accent-soft',
       )}
     >
-      <TokenAvatar src={asset.logoURI} symbol={asset.symbol} size={44} />
+      <TokenAvatar src={asset.logoURI} symbol={asset.symbol} size={40} />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold leading-tight text-fg">
-          {title}
+          {symbol}
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5">
           <span
-            className="inline-block h-3.5 w-3.5 shrink-0 rounded-full"
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
             style={{
               background: `radial-gradient(circle at 30% 30%, ${dotColor}cc 0%, ${dotColor} 60%, ${dotColor}80 100%)`,
             }}
             aria-hidden
           />
-          <span className="text-[12.5px] font-medium text-fg-muted">{lender}</span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-fg-muted">
+            {subLabel}
+          </span>
         </span>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="inline-flex items-center gap-1.5 text-[15px] font-bold tabular-nums text-success">
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="inline-flex items-center gap-1 text-[15px] font-bold tabular-nums text-success">
           <TrendingUpIcon />
-          {rate.toFixed(rate >= 10 ? 1 : 2)}% APY
+          {rate.toFixed(rate >= 10 ? 1 : 2)}%
         </span>
-        <span className="text-xs tabular-nums text-fg-muted">TVL: {fmtUsd(tvlUsd)}</span>
+        <span className="text-[11px] tabular-nums text-fg-muted">TVL {fmtUsd(tvlUsd)}</span>
       </div>
     </button>
   );

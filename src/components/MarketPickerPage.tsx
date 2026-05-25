@@ -3,12 +3,9 @@ import { cn } from '../lib/cn';
 import type { EpochEarnMarket, OneDeltaConfig, OneDeltaMarketRow } from '../types';
 import { toEpochEarnMarket } from '../earn/onedelta-adapter';
 import { MarketRowCard } from './earn/MarketRowCard';
-import { ChevronDownIcon } from './Icons';
+import { FilterDropdown, type FilterOption } from './ui/FilterDropdown';
 import { SearchInput } from './ui/SearchInput';
-import { SegmentedTabs } from './ui/SegmentedTabs';
 import { Skeleton } from './ui/Skeleton';
-
-type SideTab = 'lend' | 'borrow';
 
 interface FlatRow {
   config: OneDeltaConfig;
@@ -22,31 +19,41 @@ interface Props {
   isLoading: boolean;
   error: Error | null;
   onSelect: (market: EpochEarnMarket, row: OneDeltaMarketRow, config: OneDeltaConfig) => void;
-  defaultSide?: SideTab;
   pageSize?: number;
   /** When set, markets on this chain bubble to the top of the list. */
   sourceChainId?: number | null;
 }
 
 const ALL_LENDERS = '__all__';
-const LENDER_DISPLAY: Record<string, string> = {
-  AAVE_V3: 'Aave',
-  AAVE_V2: 'Aave v2',
-  COMPOUND_V3: 'Compound',
-  MORPHO_BLUE: 'Morpho',
+const FAMILY_DISPLAY: Record<string, string> = {
+  AAVE: 'Aave',
+  AAVE_V2: 'Aave V2',
+  AAVE_V3: 'Aave V3',
+  AAVE_V3_PRIME: 'Aave V3 Prime',
+  COMPOUND: 'Compound',
+  MORPHO: 'Morpho',
+  FLUID: 'Fluid',
+  EULER: 'Euler',
+  SPARK: 'Spark',
   VENUS: 'Venus',
+  YLDR: 'YLDR',
 };
 
-function lenderLabel(key: string): string {
-  return LENDER_DISPLAY[key] ?? key.replace('_', ' ');
+function familyOf(cfg: OneDeltaConfig): string {
+  return cfg.lenderFamily ?? cfg.lenderKey;
 }
 
-function flatten(configs: OneDeltaConfig[], side: SideTab): FlatRow[] {
+function familyLabel(family: string): string {
+  // Always prefer the family-level label — bucket labels are per-market
+  // (e.g. "Morpho wstETH-USDT 86") and would flood the dropdown.
+  return FAMILY_DISPLAY[family] ?? family.replace(/_/g, ' ');
+}
+
+function flatten(configs: OneDeltaConfig[]): FlatRow[] {
   const out: FlatRow[] = [];
   for (const cfg of configs) {
-    const rows = side === 'lend' ? cfg.collaterals : cfg.borrowables;
-    for (const row of rows) {
-      out.push({ config: cfg, row, market: toEpochEarnMarket(row, cfg, side) });
+    for (const row of cfg.collaterals) {
+      out.push({ config: cfg, row, market: toEpochEarnMarket(row, cfg, 'lend') });
     }
   }
   const seen = new Set<string>();
@@ -57,27 +64,42 @@ function rowMatches(item: FlatRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const a = item.row.underlyingInfo.asset;
-  return `${a.symbol} ${a.name} ${item.config.lenderKey} ${lenderLabel(item.config.lenderKey)}`
+  const family = familyOf(item.config);
+  return `${a.symbol} ${a.name} ${family} ${item.config.label}`
     .toLowerCase()
     .includes(q);
 }
 
-function sortByRate(items: FlatRow[], side: SideTab, sourceChainId?: number | null): FlatRow[] {
-  const key = side === 'lend' ? 'depositRate' : 'variableBorrowRate';
+function sortByRate(items: FlatRow[], sourceChainId?: number | null): FlatRow[] {
   return [...items].sort((a, b) => {
     if (sourceChainId != null) {
       const aSame = a.market.chainId === sourceChainId ? 0 : 1;
       const bSame = b.market.chainId === sourceChainId ? 0 : 1;
       if (aSame !== bSame) return aSame - bSame;
     }
-    return b.row[key] - a.row[key];
+    return b.row.depositRate - a.row.depositRate;
   });
 }
 
-const FILTER_CHIP =
-  'inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-canvas px-3 py-2 text-[13px] font-semibold text-fg shadow-sm';
-const DROPDOWN_ITEM_BASE =
-  'cursor-pointer rounded-xs px-2.5 py-2 text-[13px] font-medium';
+const FAMILY_DOT: Record<string, string> = {
+  AAVE: '#b6509e',
+  AAVE_V2: '#b6509e',
+  AAVE_V3: '#b6509e',
+  AAVE_V3_PRIME: '#b6509e',
+  COMPOUND: '#00d395',
+  MORPHO: '#2b5cff',
+  FLUID: '#36b6ff',
+  EULER: '#4d9aff',
+  SPARK: '#ffaa00',
+  VENUS: '#f6c344',
+  YLDR: '#ffb547',
+};
+
+function familyDot(family: string): string {
+  return FAMILY_DOT[family] ?? 'var(--epoch-color-primary)';
+}
+
+const ALL_GRADIENT = 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)';
 
 export function MarketPickerPage({
   configs,
@@ -85,34 +107,55 @@ export function MarketPickerPage({
   isLoading,
   error,
   onSelect,
-  defaultSide = 'lend',
   pageSize = 20,
   sourceChainId,
 }: Props) {
-  const [side, setSide] = useState<SideTab>(defaultSide);
   const [query, setQuery] = useState('');
   const [lenderKey, setLenderKey] = useState<string>(ALL_LENDERS);
-  const [lenderOpen, setLenderOpen] = useState(false);
   const [page, setPage] = useState(0);
 
-  const availableLenders = useMemo(() => {
-    const set = new Set<string>();
-    for (const c of configs) set.add(c.lenderKey);
-    return Array.from(set);
+  // Dedupe by family + count rows per family so the dropdown can surface a
+  // tally chip — Morpho buckets each market under its own `MORPHO_BLUE_<hash>`
+  // key, so without this we'd flood the menu with one entry per market.
+  const { lenderOptions, totalMarkets } = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of configs) {
+      const fam = familyOf(c);
+      counts.set(fam, (counts.get(fam) ?? 0) + c.collaterals.length);
+    }
+    const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+    const sorted = Array.from(counts.keys()).sort((a, b) =>
+      familyLabel(a).toLowerCase().localeCompare(familyLabel(b).toLowerCase()),
+    );
+    const options: FilterOption[] = [
+      {
+        value: ALL_LENDERS,
+        label: 'All lenders',
+        count: total,
+        dotBackground: ALL_GRADIENT,
+      },
+      ...sorted.map((k) => ({
+        value: k,
+        label: familyLabel(k),
+        count: counts.get(k) ?? 0,
+        dotColor: familyDot(k),
+      })),
+    ];
+    return { lenderOptions: options, totalMarkets: total };
   }, [configs]);
+  void totalMarkets;
 
   const filtered = useMemo(() => {
-    const all = flatten(configs, side);
+    const all = flatten(configs);
     return sortByRate(
       all.filter(
         (item) =>
           rowMatches(item, query) &&
-          (lenderKey === ALL_LENDERS || item.config.lenderKey === lenderKey),
+          (lenderKey === ALL_LENDERS || familyOf(item.config) === lenderKey),
       ),
-      side,
       sourceChainId,
     );
-  }, [configs, side, query, lenderKey, sourceChainId]);
+  }, [configs, query, lenderKey, sourceChainId]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
@@ -136,79 +179,15 @@ export function MarketPickerPage({
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <button
-            type="button"
-            className={FILTER_CHIP}
-            onClick={() => setLenderOpen((o) => !o)}
-            aria-haspopup="listbox"
-            aria-expanded={lenderOpen}
-          >
-            <span
-              className="inline-block h-4.5 w-4.5 shrink-0 rounded-full"
-              style={{ background: 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)' }}
-              aria-hidden
-            />
-            {lenderKey === ALL_LENDERS ? 'All lenders' : lenderLabel(lenderKey)}
-            <ChevronDownIcon />
-          </button>
-          {lenderOpen && (
-            <div
-              role="listbox"
-              className="absolute left-0 top-[calc(100%+6px)] z-10 flex min-w-[180px] flex-col gap-0.5 rounded-sm border border-line bg-canvas p-1.5 shadow-lg"
-            >
-              <button
-                type="button"
-                className={cn(
-                  DROPDOWN_ITEM_BASE,
-                  lenderKey === ALL_LENDERS
-                    ? 'bg-accent-soft text-primary'
-                    : 'bg-transparent text-fg',
-                )}
-                onClick={() => {
-                  setLenderKey(ALL_LENDERS);
-                  setLenderOpen(false);
-                  setPage(0);
-                }}
-              >
-                All lenders
-              </button>
-              {availableLenders.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  className={cn(
-                    DROPDOWN_ITEM_BASE,
-                    lenderKey === k
-                      ? 'bg-accent-soft text-primary'
-                      : 'bg-transparent text-fg',
-                  )}
-                  onClick={() => {
-                    setLenderKey(k);
-                    setLenderOpen(false);
-                    setPage(0);
-                  }}
-                >
-                  {lenderLabel(k)}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="ml-auto min-w-[168px]">
-          <SegmentedTabs<SideTab>
-            tabs={[
-              { value: 'lend', label: 'Lend' },
-              { value: 'borrow', label: 'Borrow' },
-            ]}
-            value={side}
-            onChange={(v) => {
-              setSide(v);
-              setPage(0);
-            }}
-          />
-        </div>
+        <FilterDropdown
+          ariaLabel="Filter markets by lender"
+          value={lenderKey}
+          onChange={(v) => {
+            setLenderKey(v);
+            setPage(0);
+          }}
+          options={lenderOptions}
+        />
       </div>
 
       <div className="mt-3.5 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
@@ -224,13 +203,13 @@ export function MarketPickerPage({
       ) : filtered.length === 0 ? (
         <p className="my-3 text-[13px] text-fg-muted">No markets match your search.</p>
       ) : (
-        <div className="flex max-h-[460px] flex-col overflow-y-auto">
+        <div className="flex max-h-[460px] flex-col overflow-x-hidden overflow-y-auto">
           {pageItems.map((item) => (
             <MarketRowCard
               key={item.market.id}
               row={item.row}
               config={item.config}
-              kind={side}
+              kind="lend"
               selected={selectedId === item.market.id}
               onClick={() => onSelect(item.market, item.row, item.config)}
             />

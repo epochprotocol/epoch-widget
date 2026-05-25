@@ -1,97 +1,68 @@
 import type { EpochTheme } from './theme';
 
 // ---------------------------------------------------------------------------
-// Chain & token metadata
+// Re-exports — domain types live in @epoch-protocol/epoch-flows-sdk now.
+// Existing widget imports of `EpochChain`, `IntentProps`, etc. keep working
+// via this barrel so component code never knows the move happened.
 // ---------------------------------------------------------------------------
 
-export interface EpochChain {
-  id: number;
-  name: string;
-  network: string;
-  rpcUrl?: string;
-  logoURI?: string;
-}
+export type {
+  ApiConfig,
+  EarnDepositIntentDefaults,
+  EarnWithdrawIntentDefaults,
+  EpochChain,
+  EpochEarnMarket,
+  EpochEarnPosition,
+  EpochEarnPositionsSummary,
+  EpochToken,
+  IntentCompletePayload,
+  IntentConfig,
+  IntentProps,
+  IntentSentPayload,
+  OnErrorCtx,
+  OnSignCtx,
+  OnStartCtx,
+  OnSuccessCtx,
+  OneDeltaConfig,
+  OneDeltaMarketRow,
+  OneDeltaTokenRisk,
+  OneDeltaUnderlyingAsset,
+  SessionCtx,
+  WidgetFlow,
+  WidgetMode,
+} from '@epoch-protocol/epoch-flows-sdk';
 
-export interface EpochToken {
-  address: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-  chainId: number;
-  logoURI?: string;
-}
+import type {
+  ApiConfig,
+  EarnDepositIntentDefaults,
+  EarnWithdrawIntentDefaults,
+  EpochChain,
+  EpochEarnMarket,
+  EpochToken,
+  IntentProps,
+  IntentSentPayload,
+  IntentCompletePayload,
+  OnErrorCtx,
+  OnSignCtx,
+  OnStartCtx,
+  OnSuccessCtx,
+  SessionCtx,
+  OneDeltaConfig,
+  WidgetFlow,
+  WidgetMode,
+} from '@epoch-protocol/epoch-flows-sdk';
 
-// ---------------------------------------------------------------------------
-// Intent configuration
-// ---------------------------------------------------------------------------
-
-export interface IntentConfig {
-  /** Protocol identifier string, e.g. "raffles". Hashed with keccak256 internally. */
-  protocol: string;
-  /** Action identifier string, e.g. "buyTicket". Hashed with keccak256 internally. */
-  action: string;
-  /** Optional override for the protocol hash identifier sent to the solver. */
-  protocolHashIdentifier?: string;
-  /** ABI-encoded type string for extra fields, e.g. `"address raffleAddress,uint256 numberOfTickets"`. */
-  extraDataTypestring?: string;
-  /** Key-value pairs matching `extraDataTypestring`. */
-  extraData?: Record<string, string | boolean | number | bigint>;
-  /**
-   * When true, `tokenInAmount` is submitted as 0 and the solver performs a
-   * reverse quote to compute the required input.
-   */
-  fixedOutput?: boolean;
-  /** Destination chain ID for mainnet flows (default: 8453). */
-  destinationChainId?: number;
-  /** Destination chain ID for testnet flows (default: 84532). */
-  destinationTestnetChainId?: number;
-}
-
-// ---------------------------------------------------------------------------
-// Grouped prop interfaces
-// ---------------------------------------------------------------------------
-
-/** Describes what the user is paying for across chains. */
-export interface IntentProps {
-  /** The token required on the destination chain. */
-  requiredToken: { address: string; symbol: string; decimals: number };
-  /** Amount of `requiredToken` needed, in raw units. */
-  requiredAmount: bigint;
-  /** Cross-chain intent configuration. */
-  config: IntentConfig;
-  /** Human-readable destination chain name, shown in the summary (e.g. "Base"). */
-  destinationChainName?: string;
-  /**
-   * Human-readable label describing the position being purchased. Shown as the
-   * primary text inside the "You receive" card — overrides the default
-   * `<amount> <symbol>` rendering. Also used as a default for the modal header
-   * and submit button when they are not explicitly set.
-   *
-   * @example "1 Raffle Ticket"
-   * @example "500 USDC position on Aave"
-   */
-  positionLabel?: string;
-  /** Optional final receiver address on the destination chain. Defaults to the connected wallet. */
-  receiver?: `0x${string}`;
-}
-
-/** API / RPC endpoint configuration. */
-export interface ApiConfig {
-  /** Epoch allocator API base URL (e.g. `http://localhost:3000`). */
-  baseUrl: string;
-  /** Override RPC URLs by chain ID for on-chain reads. */
-  rpcUrls?: Record<number, string>;
-  /**
-   * Base URL of the 1delta positions proxy service
-   * (e.g. `http://localhost:4023`). When set, the Earn flow's Withdraw tab
-   * fetches the user's open positions from `${positionsBaseUrl}/positions`
-   * instead of using bundled mock data.
-   */
-  positionsBaseUrl?: string;
+/**
+ * Token + originating chain combo used by the source-token picker and by
+ * integrator `sourceTokenFilter` predicates.
+ */
+export interface PaySwapTokenWithChain extends EpochToken {
+  chain: EpochChain;
 }
 
 // ---------------------------------------------------------------------------
-// Custom class names (CSS / Tailwind support)
+// Widget-only types — UI presentation concerns the headless SDK doesn't know
+// about. These stay in the widget.
 // ---------------------------------------------------------------------------
 
 /**
@@ -131,19 +102,6 @@ export interface EpochClassNames {
   progress?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Callback payloads
-// ---------------------------------------------------------------------------
-
-export interface IntentSentPayload {
-  nonce: string;
-}
-
-export interface IntentCompletePayload {
-  nonce: string;
-  status: unknown;
-}
-
 /** Lifecycle status emitted by the widget for `onStatus`. */
 export type WidgetLifecycleStatus =
   | 'idle'
@@ -153,187 +111,10 @@ export type WidgetLifecycleStatus =
   | 'complete'
   | 'error';
 
-export interface SessionCtx {
-  sessionId: string;
-}
-
-export interface OnStartCtx extends SessionCtx {
-  /** Mirrors `mode` / `flow` on the widget (`pay`, `swap`, or `earn`). */
-  mode: WidgetFlow;
-}
-
-export interface OnSignCtx extends SessionCtx {}
-
-export interface OnSuccessCtx extends SessionCtx {
-  nonce: string;
-  status?: unknown;
-}
-
-export interface OnErrorCtx extends SessionCtx {
-  error: Error;
-}
-
 export interface OnStatusCtx extends SessionCtx {
   status: WidgetLifecycleStatus;
   progress: number;
   activeStep: number;
-}
-
-// ---------------------------------------------------------------------------
-// Earn flow (vault-style deposit)
-// ---------------------------------------------------------------------------
-
-/** High-level widget mode: `pay` / `swap` use the intent SDK path; `earn` uses allocator earn APIs. */
-export type WidgetFlow = 'pay' | 'swap' | 'earn';
-
-/** Alias matching the Trails-style public API (`mode="pay" | "swap" | "earn"`). */
-export type WidgetMode = WidgetFlow;
-
-/** One earn destination; usually comes from your allocator or static config. */
-export interface EpochEarnMarket {
-  id: string;
-  displayName: string;
-  chainLabel: string;
-  /** APR as annual decimal, e.g. 0.04 = 4% */
-  aprDecimal: number;
-  vaultAddress: string;
-  token: { address: string; symbol: string; decimals: number; logoURI?: string };
-  destinationChainName: string;
-  /** @deprecated earn is mainnet-only; kept for back-compat. Always `false`. */
-  testnet?: boolean;
-  /** Raw 1delta `marketUid` (e.g. "AAVE_V3:1:0xC02..."). Required for the 1delta solver path. */
-  oneDeltaMarketUid?: string;
-  /** Numeric chain ID derived from the 1delta config — used by the executor. */
-  chainId?: number;
-  /** Lender key (e.g. "AAVE_V3"). */
-  lenderKey?: string;
-  /** Display name for the lender (e.g. "Aave V3"). */
-  lenderName?: string;
-  /** Lender logo URL. */
-  lenderLogoURI?: string;
-}
-
-/** Optional overrides for the vault-style intent built from `EpochEarnMarket` + amount. */
-export interface EarnDepositIntentDefaults {
-  protocol?: string;
-  action?: string;
-  extraDataTypestring?: string;
-}
-
-/** Optional overrides for the vault-style intent built from an `EpochEarnPosition` + amount. */
-export interface EarnWithdrawIntentDefaults {
-  protocol?: string;
-  action?: string;
-  extraDataTypestring?: string;
-}
-
-// ---------------------------------------------------------------------------
-// 1delta lending data shapes
-// ---------------------------------------------------------------------------
-
-/** Underlying asset metadata from the 1delta /earn/markets/by-config payload. */
-export interface OneDeltaUnderlyingAsset {
-  name: string;
-  symbol: string;
-  address: string;
-  chainId: string;
-  logoURI: string | null;
-  decimals: number;
-  assetGroup: string;
-  props?: unknown;
-  currencyId?: string;
-  intrinsicYield?: number | null;
-}
-
-/** Single collateral or borrowable market row inside a 1delta config. */
-export interface OneDeltaMarketRow {
-  marketUid: string;
-  depositRate: number;
-  variableBorrowRate: number;
-  utilization: number;
-  totalDepositsUsd: number;
-  totalLiquidityUsd: number;
-  borrowLiquidityUsd: number;
-  collateralFactor: number;
-  intrinsicYield: number | null;
-  underlyingInfo: {
-    asset: OneDeltaUnderlyingAsset;
-    prices: {
-      priceUsd: number;
-      priceTs?: string;
-      priceTs24h?: string;
-      priceUsd24h?: number;
-    };
-    tokenRisk: { riskLabel: string; riskScore: number };
-    oraclePrice?: { oraclePrice: number; oraclePriceUsd: number };
-  };
-  borrowFactor?: number;
-  totalDebtUsd?: number;
-  totalLiquidity?: number;
-  borrowLiquidity?: number;
-  stableBorrowRate?: number;
-  borrowCollateralFactor?: number;
-}
-
-/** Token risk row inside a 1delta config. */
-export interface OneDeltaTokenRisk {
-  marketUid: string;
-  isCollateral: boolean;
-  tokenRiskLabel: string;
-  tokenRiskScore: number;
-  oracleRiskScore: number;
-  tokenRiskScores: Record<string, unknown>;
-  underlyingAddress: string;
-}
-
-/** Top-level 1delta config (one lender + risk bucket on a chain). */
-export interface OneDeltaConfig {
-  lenderKey: string;
-  chainId: string;
-  configId: string;
-  label: string;
-  category: string;
-  collaterals: OneDeltaMarketRow[];
-  borrowables: OneDeltaMarketRow[];
-  configRiskLabel: string;
-  configRiskScore: number;
-  chainRiskScore?: number;
-  lenderRiskScore?: number;
-  maxTokenRiskScore?: number;
-  tokenRisks?: OneDeltaTokenRisk[];
-}
-
-/** A user's open position in a vault/market — returned from the positions API. */
-export interface EpochEarnPosition {
-  id: string;
-  market: EpochEarnMarket;
-  /** Vault share balance in raw base units (stringified bigint). */
-  shareBalanceRaw: string;
-  /** Underlying token balance in raw base units (stringified bigint). */
-  underlyingBalanceRaw: string;
-  /** Withdrawable amount in raw base units. Defaults to `underlyingBalanceRaw` if upstream doesn't separate them. */
-  withdrawableRaw?: string;
-  /** Optional USD value snapshot at fetch time. */
-  underlyingUsdValue?: number;
-  /** 24h price change (percent, signed). */
-  priceChange24h?: number;
-  /** Whether this asset is currently set as collateral for the user. */
-  collateralEnabled?: boolean;
-  /** @deprecated earn is mainnet-only. */
-  testnet?: boolean;
-}
-
-/** Portfolio-level rollup returned alongside positions. */
-export interface EpochEarnPositionsSummary {
-  depositsUsd: number;
-  debtUsd: number;
-  navUsd: number;
-  deposits24hUsd: number;
-  nav24hUsd: number;
-  /** Weighted net APR as decimal (e.g. 0.014 = 1.4%). */
-  netAprDecimal: number;
-  activeLenders: number;
-  activeChains: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -348,125 +129,157 @@ export interface EpochIntentWidgetProps {
 
   // ---- Mode -----------------------------------------------------------------
 
-  /**
-   * High-level widget mode. Default: `"pay"`.
-   * `pay` and `swap` share the same Epoch intent SDK pipeline; `swap` is for swap-oriented copy and callbacks.
-   * **Requires** a parent `WagmiProvider` (and configured connectors) so the widget can list wallets and connect.
-   */
   mode?: WidgetMode;
-  /** Legacy alias for `mode`. Accepted for backwards compatibility. */
+  /** Legacy alias for `mode`. */
   flow?: WidgetFlow;
 
   // ---- Pay (nested OR flat) -------------------------------------------------
 
-  /**
-   * Nested intent shape — full control. When provided, takes precedence over
-   * the flat `to*` props.
-   */
   intent?: IntentProps;
 
-  /** Flat: destination receiver address. */
   toAddress?: `0x${string}`;
-  /** Flat: destination amount in human units (e.g. "0.15"). */
   toAmount?: string;
-  /** Flat: destination chain ID (e.g. 8453). */
   toChainId?: number;
-  /** Flat: destination token contract address. */
   toToken?: `0x${string}`;
-  /** Flat: optional override for destination token decimals (default: looked up). */
   toTokenDecimals?: number;
-  /** Flat: optional override for destination token symbol (default: looked up). */
   toTokenSymbol?: string;
+
+  // ---- Pay / Swap source-side scoping --------------------------------------
+
+  /**
+   * Restrict the source chain picker to these chain IDs. Default: every chain
+   * the SDK knows about for the active `network` env.
+   */
+  sourceChainIds?: number[];
+  /**
+   * Predicate applied to every (chain, token) candidate after `sourceChainIds`
+   * filtering. Return `false` to hide. Receives the same `TokenWithChain`
+   * shape consumed by the internal token picker.
+   */
+  sourceTokenFilter?: (token: PaySwapTokenWithChain) => boolean;
+  /**
+   * Pre-select this chain on first open. Must be present in `sourceChainIds`
+   * (when set) or it falls back to the first available chain.
+   */
+  defaultSourceChainId?: number;
+  /**
+   * Pre-select this token address on first open. Requires
+   * `defaultSourceChainId` to be set; otherwise ignored.
+   */
+  defaultSourceTokenAddress?: `0x${string}`;
+  /**
+   * Render the source-token pill as a read-only chip — no chevron, no
+   * click handler, no token picker route. Use with `defaultSourceChainId`
+   * + `defaultSourceTokenAddress` to pin the source side entirely.
+   */
+  lockSourceToken?: boolean;
+  /**
+   * Override the CTA button copy for every state. Each field is independently
+   * overridable; missing fields fall back to the built-in default.
+   */
+  ctaLabels?: Partial<{
+    submit: string;
+    switchNetwork: (chainName: string) => string;
+    quoting: string;
+    preparing: string;
+    signing: string;
+    submitting: string;
+    polling: string;
+    complete: string;
+    insufficientBalance: (tokenSymbol: string) => string;
+    configureRequired: string;
+  }>;
+  /**
+   * Optional async resolver that returns the USD spot price for a given
+   * (chainId, token). Result is cached per `(chainId, address)` for the
+   * lifetime of the widget. When omitted, the widget renders no "≈ $…" line.
+   */
+  usdPriceFor?: (token: { chainId: number; address: string; symbol: string }) =>
+    | number
+    | null
+    | Promise<number | null>;
 
   // ---- Earn -----------------------------------------------------------------
 
-  /** Initial earn sub-tab. Default: `"deposit"`. */
   earnDefaultTab?: 'deposit' | 'withdraw';
-  /** Hide earn deposit/withdraw tab row (e.g. builder preview locked to one tab). */
   earnHideTabs?: boolean;
-  /** Override protocol / action / extraData type for earn deposit intents. */
   earnDepositDefaults?: EarnDepositIntentDefaults;
-  /** Override protocol / action / extraData type for earn withdraw intents. */
   earnWithdrawDefaults?: EarnWithdrawIntentDefaults;
-  /**
-   * @deprecated Markets are now fetched via the internal `useEarnMarkets` hook.
-   * When provided, the array is merged with hook output (caller-supplied first).
-   */
+  /** @deprecated Markets now come from the internal hook. */
   earnMarkets?: EpochEarnMarket[];
-  /**
-   * Hardcoded 1delta market configs surfaced inside the Earn flow. Defaults to
-   * the widget's bundled `HARDCODED_ONEDELTA_CONFIGS`. Pass your own array to
-   * customise which lender configs / chains are shown.
-   */
   earnMarketsSource?: OneDeltaConfig[];
-  /**
-   * Override the 1delta-solver base URL (`POST /earn/quote`). When omitted the
-   * widget falls back to `api.baseUrl`. Set this if the solver runs on a
-   * different host than the allocator.
-   */
   earnSolverUrl?: string;
-  /** @deprecated retained for backwards compatibility — markets always come from `earnMarketsSource`. */
+  /**
+   * Chain IDs to fan /pools fetches over. One request per chain ID. Default:
+   * `[1, 8453, 42161, 10, 137]`. Pass a single chain to scope the picker.
+   */
+  earnChainIds?: number[];
+  /**
+   * CSV of 1delta lender keys to restrict /pools to (e.g.
+   * `"AAVE_V3,COMPOUND_V3_USDC"`). Forwarded verbatim as the `lender` query
+   * param. Omit to include every lender.
+   */
+  earnLenderFilter?: string;
+  /** Max rows per chain returned by /pools (1delta `count`). Default 100. */
+  earnPoolsPerChain?: number;
+  /** /pools sort field. Default `totalDepositsUsd`. */
+  earnPoolsSortBy?:
+    | 'depositRate'
+    | 'variableBorrowRate'
+    | 'totalDepositsUsd'
+    | 'totalLiquidityUsd'
+    | 'utilization';
+  /** /pools sort direction. Default `DESC`. */
+  earnPoolsSortDir?: 'ASC' | 'DESC';
+  /** @deprecated retained for backwards compatibility. */
   earnUseMockData?: boolean;
 
   // ---- API ------------------------------------------------------------------
 
-  /** Epoch API endpoints and RPC configuration. */
   api: ApiConfig;
 
   // ---- Network --------------------------------------------------------------
 
-  /** Network mode. Default: `"mainnet"`. */
   network?: 'mainnet' | 'testnet';
-  /** Allow the user to toggle mainnet/testnet inside the widget. Default: false. */
   allowNetworkToggle?: boolean;
 
   // ---- Rendering ------------------------------------------------------------
 
-  /** Render the widget body inline (no modal overlay/portal). Default: false. */
   renderInline?: boolean;
 
   // ---- Callbacks ------------------------------------------------------------
 
-  /** Fired when the widget opens (per `isOpen` cycle). */
   onOpen?: () => void;
-  /** Fired when the user begins a submit. */
   onStart?: (ctx: OnStartCtx) => void;
-  /** Fired after the user signs the typed-data payload. */
   onSign?: (ctx: OnSignCtx) => void;
-  /** Fired when execution is confirmed on-chain. */
   onSuccess?: (ctx: OnSuccessCtx) => void;
-  /** Fired on any error during the submit/execute flow. */
   onError?: (ctx: OnErrorCtx) => void;
-  /** Fired whenever the internal status / progress changes. */
   onStatus?: (ctx: OnStatusCtx) => void;
 
-  /** Legacy: fired when the intent is accepted by the solver. */
   onIntentSent?: (data: IntentSentPayload) => void;
-  /** Legacy: fired when polling confirms execution. */
   onIntentComplete?: (data: IntentCompletePayload) => void;
+
+  /** Fires whenever the user (or default) picks a different source chain/token. */
+  onSourceTokenChange?: (sel: { chainId: number; tokenAddress: `0x${string}` }) => void;
+  /**
+   * Fires once per quote settle (success or failure). Only relevant when the
+   * intent has `fixedOutput: true`.
+   */
+  onQuote?: (quote: {
+    sourceChainId: number;
+    sourceTokenAddress: `0x${string}`;
+    paySymbol: string;
+    payAmount: string | null;
+    payAmountRaw: bigint | null;
+    error?: string;
+  }) => void;
 
   // ---- Customisation --------------------------------------------------------
 
-  /** Title displayed in the dialog header. Default: "Pay". */
   title?: string;
-  /** Label on the submit button. Default: "Pay". */
   submitButtonText?: string;
-
-  /**
-   * CSS class name overrides for every visual slot. When provided for a slot,
-   * the widget skips its built-in inline styles — giving full CSS control
-   * (vanilla CSS, Tailwind, CSS Modules, etc.).
-   */
   classNames?: EpochClassNames;
-  /**
-   * Theme — pass `"light"` / `"dark"` for presets, or an `EpochTheme` token
-   * object for full control. Tokens project as CSS custom properties.
-   */
   theme?: 'light' | 'dark' | EpochTheme;
 }
-
-// ---------------------------------------------------------------------------
-// Re-exports
-// ---------------------------------------------------------------------------
 
 export type { EpochTheme } from './theme';

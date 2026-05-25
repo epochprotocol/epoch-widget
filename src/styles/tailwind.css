@@ -76,6 +76,7 @@
   --animate-modal-in:     modal-in 220ms ease-out;
   --animate-dropdown-in:  dropdown-in 140ms ease-out;
   --animate-shimmer:      shimmer 1.4s linear infinite;
+  --animate-row-in:       row-in 220ms ease-out both;
 }
 
 /* Keyframes used by the utilities above. Names are prefixed with the widget's
@@ -98,4 +99,8 @@
 @keyframes shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

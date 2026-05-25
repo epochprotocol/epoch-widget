@@ -41,7 +41,7 @@ const ICON_BUTTON_CLASSES =
   'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg-muted transition-colors hover:bg-line hover:text-fg';
 
 const BODY_CLASSES =
-  'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 pt-1 pb-5';
+  'flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-6 pt-1 pb-5';
 
 const FOOTER_CLASSES = 'px-6 pt-4 pb-5';
 

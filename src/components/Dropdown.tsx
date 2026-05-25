@@ -278,7 +278,7 @@ export function Dropdown({
                 />
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-1">
+            <div className="flex-1 overflow-x-hidden overflow-y-auto p-1">
               {filtered.length === 0 ? (
                 <div className="p-3 text-center text-[13px] text-fg-muted">{emptyLabel}</div>
               ) : (

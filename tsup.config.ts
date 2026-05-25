@@ -14,6 +14,7 @@ export default defineConfig({
     'viem',
     '@epoch-protocol/epoch-intents-sdk',
     '@epoch-protocol/epoch-commons-sdk',
+    '@epoch-protocol/epoch-flows-sdk',
   ],
   jsx: 'transform',
   treeshake: true,

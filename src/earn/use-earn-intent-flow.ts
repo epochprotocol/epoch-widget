@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { keccak256, parseUnits, toBytes } from 'viem';
 import type { WalletClient } from 'viem';
-import { TaskType } from '@epoch-protocol/epoch-commons-sdk';
-import { EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
+import {
+  EarnSession,
+  type EarnIntentFlowStatus,
+  type EarnQuote,
+  type EarnQuoteInput,
+  type EarnSubmitInput,
+} from '@epoch-protocol/epoch-flows-sdk';
 import type {
-  EpochEarnMarket,
-  EpochEarnPosition,
-  EpochToken,
   IntentCompletePayload,
   IntentSentPayload,
   OnErrorCtx,
@@ -15,60 +16,14 @@ import type {
   OnSuccessCtx,
 } from '../types';
 
-export type EarnIntentFlowStatus =
-  | 'idle'
-  | 'quoting'
-  | 'submitting'
-  | 'sent'
-  | 'polling'
-  | 'complete'
-  | 'error';
-
-interface ExecutionTx {
-  target: string;
-  value: string;
-  callData: string;
-}
-
-interface EarnQuote {
-  tokenIn?: string;
-  tokenOut?: string;
-  asset?: string;
-  executionTransactions: ExecutionTx[];
-  resourceLockRequired: boolean;
-  raw?: unknown;
-}
-
-interface EarnQuoteInput {
-  tab: 'deposit' | 'withdraw';
-  amount: string;
-  market?: EpochEarnMarket | null;
-  position?: EpochEarnPosition | null;
-  sourceChainId: number;
-  sourceToken: EpochToken;
-  network: 'mainnet' | 'testnet';
-  /** Withdraw-only. When true, signals the 1delta API to use protocol-level max-withdraw
-   *  mechanisms (maxUint256 / share-based redemption) where supported. */
-  isAll?: boolean;
-  /** Withdraw-only. When true, the intent declares a cross-token / cross-chain
-   *  delivery: SIO chains 1delta withdraw on the position chain with a
-   *  swap/bridge step that converts the underlying to {@link smartDestTokenAddress}
-   *  on {@link smartDestChainId} before delivering to the user. */
-  smartWithdraw?: boolean;
-  smartDestChainId?: number | null;
-  smartDestTokenAddress?: string;
-}
-
-interface EarnSubmitInput extends EarnQuoteInput {
-  quote: EarnQuote | null;
-}
+export type { EarnIntentFlowStatus } from '@epoch-protocol/epoch-flows-sdk';
 
 interface UseEarnIntentFlowParams {
   apiBaseUrl: string;
   address: string | undefined;
   walletClient?: WalletClient | null;
   sessionId: string;
-  /** @deprecated SIO now selects the solver via smallocator; this prop is ignored. */
+  /** @deprecated SIO selects the solver via smallocator; this prop is ignored. */
   earnSolverUrl?: string;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
@@ -79,14 +34,14 @@ interface UseEarnIntentFlowParams {
   onRequestClose?: () => void;
 }
 
-const POLL_INTERVAL_MS = 3000;
-const AUTO_CLOSE_DELAY_MS = 2500;
-
-// All earn intents route to the 1delta aggregator. 1delta itself dispatches
-// to the underlying lender (Aave, Morpho, etc.) based on `marketUid`, so the
-// SIO-level protocol name is always `1delta` regardless of the chosen lender.
-const ONEDELTA_PROTOCOL_NAME = '1delta';
-
+/**
+ * Thin React adapter over `EarnSession` (in `@epoch-protocol/epoch-flows-sdk`).
+ * Creates a fresh session whenever the wallet/address tuple changes and
+ * mirrors session events into React state so the component re-renders.
+ *
+ * The public surface (status / activeStep / statusProgress / fetchQuote / submit
+ * / reset) is unchanged from the prior in-widget implementation.
+ */
 export function useEarnIntentFlow({
   apiBaseUrl,
   address,
@@ -108,16 +63,8 @@ export function useEarnIntentFlow({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const sessionRef = useRef<EarnSession | null>(null);
   const mountedRef = useRef(true);
-  const quoteCallIdRef = useRef(0);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isCheckingRef = useRef(false);
-  // Cache last quote params so submit() can reuse without a re-quote.
-  const pendingQuoteRef = useRef<{
-    taskTypeString: string;
-    intentData: any;
-    quoteResult: any;
-  } | null>(null);
 
   const onIntentSentRef = useRef(onIntentSent);
   const onIntentCompleteRef = useRef(onIntentComplete);
@@ -138,388 +85,72 @@ export function useEarnIntentFlow({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
 
-  const reset = useCallback(() => {
-    quoteCallIdRef.current += 1;
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
+  // Recreate session whenever wallet/address/apiBaseUrl change.
+  useEffect(() => {
+    if (!address || !walletClient) {
+      sessionRef.current?.dispose();
+      sessionRef.current = null;
+      return;
     }
-    isCheckingRef.current = false;
-    setStatus('idle');
-    setActiveStep(0);
-    setStatusProgress(0);
-    setNonce(null);
-    setQuote(null);
-    setQuoteError(null);
-    setError(null);
-    pendingQuoteRef.current = null;
+
+    const session = new EarnSession({
+      apiBaseUrl,
+      address,
+      walletClient,
+      sessionId,
+    });
+    sessionRef.current = session;
+
+    const offs: Array<() => void> = [];
+    offs.push(session.on('statusChange', (s) => mountedRef.current && setStatus(s)));
+    offs.push(session.on('activeStep', (n) => mountedRef.current && setActiveStep(n)));
+    offs.push(session.on('progress', (n) => mountedRef.current && setStatusProgress(n)));
+    offs.push(
+      session.on('pollTick', () =>
+        mountedRef.current && setStatusProgress((p) => Math.min(p + 5, 95)),
+      ),
+    );
+    offs.push(session.on('nonce', (n) => mountedRef.current && setNonce(n)));
+    offs.push(session.on('quote', (q) => mountedRef.current && setQuote(q)));
+    offs.push(
+      session.on('quoteError', (e) => mountedRef.current && setQuoteError(e)),
+    );
+    offs.push(session.on('error', (e) => mountedRef.current && setError(e)));
+    offs.push(session.on('intentSent', (d) => onIntentSentRef.current?.(d)));
+    offs.push(session.on('intentComplete', (d) => onIntentCompleteRef.current?.(d)));
+    offs.push(session.on('start', (c) => onStartRef.current?.(c)));
+    offs.push(session.on('sign', (c) => onSignRef.current?.(c)));
+    offs.push(session.on('success', (c) => onSuccessRef.current?.(c)));
+    offs.push(session.on('errorCtx', (c) => onErrorRef.current?.(c)));
+    offs.push(session.on('requestClose', () => onRequestCloseRef.current?.()));
+
+    return () => {
+      for (const off of offs) off();
+      session.dispose();
+      if (sessionRef.current === session) sessionRef.current = null;
+    };
+  }, [apiBaseUrl, address, walletClient, sessionId]);
+
+  const reset = useCallback(() => {
+    sessionRef.current?.reset();
+    // Local state mirrors fire from the session via events.
   }, []);
 
-  // Build the params an Epoch intent needs for an earn (lending) deposit/withdraw.
-  //
-  // Deposit:  tokenIn = user-selected source token, tokenOut = market underlying.
-  //           SIO chains bridge/swap before 1delta if source ≠ destination.
-  // Withdraw: tokenIn = market underlying on the position chain (post-withdraw
-  //           equivalent). When Smart Withdraw is OFF, tokenOut = underlying on
-  //           the same chain — single-leg flow. When Smart Withdraw is ON,
-  //           tokenOut = user-picked destination token on destination chain;
-  //           SIO is expected to chain a bridge/swap leg AFTER the 1delta
-  //           withdraw runs on the position chain. The action's chain is
-  //           surfaced via `extraData.actionChainId` so the SIO path-finder
-  //           can pin the withdraw to the source rather than the destination.
-  const buildParams = useCallback(
-    (input: EarnQuoteInput) => {
-      const market = input.market ?? input.position?.market;
-      if (!market) throw new Error('Market missing');
-      const marketUid = market.oneDeltaMarketUid;
-      if (!marketUid) throw new Error('Market is missing the 1delta marketUid');
-
-      const sourceToken = input.sourceToken;
-      if (!sourceToken) throw new Error('Source token missing');
-
-      // Internal-consistency check on the market object. marketUid encodes the
-      // canonical (chain, underlying) tuple — `LENDER:chainId:underlyingAddr`.
-      // If the picker handed us a market whose chainId or token.address
-      // disagrees with the marketUid, downstream routing will quote with one
-      // tuple and settle against another. Fail fast at intent-build time with
-      // a message that points at the offending field — easier than chasing a
-      // revert in the solver.
-      const muidParts = marketUid.split(':');
-      const muidChain = muidParts[1];
-      const muidUnderlying = muidParts[2];
-      if (
-        muidChain &&
-        market.chainId != null &&
-        Number(muidChain) !== Number(market.chainId)
-      ) {
-        throw new Error(
-          `Market chainId mismatch: marketUid chain ${muidChain} ≠ market.chainId ${market.chainId}`,
-        );
-      }
-      if (
-        muidUnderlying &&
-        market.token?.address &&
-        muidUnderlying.toLowerCase() !==
-          (market.token.address as string).toLowerCase()
-      ) {
-        throw new Error(
-          `Market underlying mismatch: marketUid underlying ${muidUnderlying} ≠ market.token.address ${market.token.address}`,
-        );
-      }
-
-      const tokenInAmount = parseUnits(
-        input.amount.trim().replace(/,/g, ''),
-        sourceToken.decimals,
-      ).toString();
-
-      const isWithdraw = input.tab === 'withdraw';
-      const isSmartWithdraw =
-        isWithdraw &&
-        input.smartWithdraw === true &&
-        input.smartDestChainId != null &&
-        !!input.smartDestTokenAddress;
-
-      const protocolHashIdentifier = keccak256(toBytes(ONEDELTA_PROTOCOL_NAME));
-      const underlyingAddress = market.token.address as string;
-      const actionChainId =
-        market.chainId != null ? String(market.chainId) : muidChain ?? '1';
-
-      // For deposit + plain withdraw, destinationChainId == position chain.
-      // For Smart Withdraw, destinationChainId is where the user wants the
-      // proceeds delivered, distinct from the action chain.
-      const destinationChainId = isSmartWithdraw
-        ? String(input.smartDestChainId)
-        : actionChainId;
-
-      const tokenOutAddress = isSmartWithdraw
-        ? (input.smartDestTokenAddress as `0x${string}`)
-        : (underlyingAddress as `0x${string}`);
-
-      // SIO chains the swap/bridge step before 1delta on deposit, so 1delta
-      // always receives the underlying. `payAsset` is the underlying. Solver
-      // forces direct path internally — no `mode` field needed on the wire.
-      const isSameChain = input.sourceChainId === Number(destinationChainId);
-      const payAsset = underlyingAddress;
-
-      // For withdrawals, surface `isAll` + `simulate` so the 1delta API can use
-      // protocol-level max-withdraw mechanisms (e.g. maxUint256 / share redemption)
-      // and return projected post-trade metrics. Smart Withdraw adds
-      // `actionChainId` + `actionOutputToken` so the SIO path-finder knows
-      // the protocol-interaction leg lives on the position chain and produces
-      // the underlying, which feeds the subsequent bridge/swap leg.
-      const extraDataFields = ['string marketUid', 'string action', 'string payAsset'];
-      if (isWithdraw) extraDataFields.push('bool isAll', 'bool simulate');
-      if (isSmartWithdraw) extraDataFields.push('string actionChainId', 'string actionOutputToken');
-      const extraDataTypestring = extraDataFields.join(',');
-
-      const extraData: Record<string, string | boolean> = {
-        marketUid,
-        action: input.tab,
-        payAsset,
-      };
-      if (isWithdraw) {
-        extraData.isAll = input.isAll === true;
-        extraData.simulate = true;
-      }
-      if (isSmartWithdraw) {
-        extraData.actionChainId = actionChainId;
-        extraData.actionOutputToken = underlyingAddress;
-      }
-
-      return {
-        tokenInAmount,
-        destinationChainId,
-        protocolHashIdentifier,
-        tokenInAddress: sourceToken.address as `0x${string}`,
-        tokenOutAddress,
-        recipient: (address ?? '0x0000000000000000000000000000000000000000') as `0x${string}`,
-        extraDataTypestring,
-        extraData,
-        isSameChain,
-      };
-    },
-    [address],
-  );
-
-  // ---- Quote ----------------------------------------------------------------
   const fetchQuote = useCallback(
     async (input: EarnQuoteInput) => {
-      if (!address || !walletClient) return;
-      if (!input.amount.trim()) return;
-
-      let params: ReturnType<typeof buildParams>;
-      try {
-        params = buildParams(input);
-      } catch (e) {
-        setQuoteError((e as Error).message);
-        return;
-      }
-
-      const callId = ++quoteCallIdRef.current;
-      setStatus('quoting');
-      setQuote(null);
-      setQuoteError(null);
-      pendingQuoteRef.current = null;
-
-      try {
-        const sdk = new EpochIntentSDK({
-          apiBaseUrl,
-          walletClient: walletClient as unknown as never,
-        });
-
-        const { taskTypeString, intentData } = await sdk.getTaskData({
-          taskType: TaskType.ProtocolInteraction,
-          intentData: {
-            isNative: false,
-            depositTokenAddress: params.tokenInAddress,
-            tokenInAmount: params.tokenInAmount,
-            outputTokenAddress: params.tokenOutAddress,
-            minTokenOut: '0',
-            destinationChainId: params.destinationChainId,
-            protocolHashIdentifier: params.protocolHashIdentifier,
-            recipient: params.recipient,
-          },
-          extraDataTypestring: params.extraDataTypestring,
-          extraData: params.extraData,
-        });
-
-        const quoteResult = await sdk.getIntentQuote({
-          sponsorAddress: address as `0x${string}`,
-          taskTypeString,
-          intentData,
-          isNative: false,
-        });
-
-        if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
-
-        if (!quoteResult?.success) {
-          setQuoteError(
-            (quoteResult as { error?: string } | undefined)?.error ?? 'Quote unavailable',
-          );
-          setStatus('idle');
-          return;
-        }
-
-        const txs: ExecutionTx[] = (quoteResult.transactions ?? []) as ExecutionTx[];
-        setQuote({
-          tokenIn: quoteResult.tokenIn,
-          tokenOut: quoteResult.tokenOut,
-          asset: params.tokenOutAddress,
-          executionTransactions: txs,
-          resourceLockRequired: !!quoteResult.resourceLockRequired,
-          raw: quoteResult,
-        });
-        pendingQuoteRef.current = { taskTypeString, intentData, quoteResult };
-        setStatus('idle');
-      } catch (err) {
-        if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
-        setQuoteError(err instanceof Error ? err.message : String(err));
-        setStatus('idle');
-      }
+      await sessionRef.current?.quote(input);
     },
-    [address, walletClient, apiBaseUrl, buildParams],
+    [],
   );
 
-  // ---- Poll intent status ---------------------------------------------------
-  const checkIntentStatus = useCallback(
-    async (nonceStr: string, sdk: EpochIntentSDK) => {
-      if (!address || isCheckingRef.current) return;
-      isCheckingRef.current = true;
-      try {
-        const statusList = await sdk.getIntentStatus(address, nonceStr);
-        if (!mountedRef.current) return;
-        const isComplete = Array.isArray(statusList)
-          ? statusList.some(
-              (s: { status?: string }) =>
-                s.status === 'completed' ||
-                s.status === 'finalized' ||
-                s.status === 'success',
-            )
-          : false;
-
-        if (isComplete) {
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-          setStatusProgress(100);
-          setStatus('complete');
-          onIntentCompleteRef.current?.({ nonce: nonceStr, status: statusList });
-          onSuccessRef.current?.({ sessionId, nonce: nonceStr, status: statusList });
-          setTimeout(() => {
-            if (mountedRef.current) onRequestCloseRef.current?.();
-          }, AUTO_CLOSE_DELAY_MS);
-        } else {
-          setStatusProgress((p) => Math.min(p + 5, 95));
-        }
-      } catch {
-        /* swallow — poll again */
-      } finally {
-        isCheckingRef.current = false;
-      }
-    },
-    [address, sessionId],
-  );
-
-  // ---- Submit ---------------------------------------------------------------
   const submit = useCallback(
     async (input: EarnSubmitInput) => {
-      if (!address || !walletClient) {
-        setError('Wallet client unavailable');
-        setStatus('error');
-        return;
-      }
-
-      setError(null);
-      setStatus('submitting');
-      setActiveStep(1);
-      setStatusProgress(15);
-      onStartRef.current?.({ sessionId, mode: 'earn' });
-
-      try {
-        const sdk = new EpochIntentSDK({
-          apiBaseUrl,
-          walletClient: walletClient as unknown as never,
-        });
-
-        let taskTypeString: string;
-        let intentData: any;
-        let quoteResult: any;
-
-        if (pendingQuoteRef.current) {
-          ({ taskTypeString, intentData, quoteResult } = pendingQuoteRef.current);
-        } else {
-          const params = buildParams(input);
-          const td = await sdk.getTaskData({
-            taskType: TaskType.ProtocolInteraction,
-            intentData: {
-              isNative: false,
-              depositTokenAddress: params.tokenInAddress,
-              tokenInAmount: params.tokenInAmount,
-              outputTokenAddress: params.tokenOutAddress,
-              minTokenOut: '0',
-              destinationChainId: params.destinationChainId,
-              protocolHashIdentifier: params.protocolHashIdentifier,
-              recipient: params.recipient,
-            },
-            extraDataTypestring: params.extraDataTypestring,
-            extraData: params.extraData,
-          });
-          taskTypeString = td.taskTypeString;
-          intentData = td.intentData;
-          const qr = await sdk.getIntentQuote({
-            sponsorAddress: address as `0x${string}`,
-            taskTypeString,
-            intentData,
-            isNative: false,
-          });
-          if (!qr?.success) {
-            throw new Error((qr as { error?: string } | undefined)?.error ?? 'Quote failed');
-          }
-          quoteResult = qr;
-        }
-
-        setActiveStep(2);
-        setStatusProgress(45);
-        onSignRef.current?.({ sessionId });
-
-        const data = await sdk.solveIntent({
-          isNative: false,
-          sponsorAddress: address as `0x${string}`,
-          taskTypeString,
-          intentData,
-          quoteResult,
-        } as any);
-
-        if (!mountedRef.current) return;
-
-        setActiveStep(3);
-        setStatusProgress(75);
-
-        const responseNonce: string | null =
-          (data as { allocationResponse?: { nonce?: string } })?.allocationResponse?.nonce ??
-          (data as { submittedIntentData?: { nonce?: string } })?.submittedIntentData?.nonce ??
-          (data as { intentNonce?: string })?.intentNonce ??
-          null;
-
-        if (responseNonce) {
-          const n = responseNonce.toString();
-          setNonce(n);
-          setStatus('sent');
-          onIntentSentRef.current?.({ nonce: n });
-          setStatus('polling');
-          setActiveStep(4);
-          checkIntentStatus(n, sdk);
-          pollingRef.current = setInterval(
-            () => checkIntentStatus(n, sdk),
-            POLL_INTERVAL_MS,
-          );
-        } else {
-          setStatus('complete');
-          setStatusProgress(100);
-          setActiveStep(5);
-          onIntentCompleteRef.current?.({ nonce: '', status: data });
-          onSuccessRef.current?.({ sessionId, nonce: '', status: data });
-          setTimeout(() => {
-            if (mountedRef.current) onRequestCloseRef.current?.();
-          }, AUTO_CLOSE_DELAY_MS);
-        }
-      } catch (err) {
-        const e = err instanceof Error ? err : new Error(String(err));
-        if (mountedRef.current) {
-          setError(e.message);
-          setStatus('error');
-          setActiveStep(0);
-          setStatusProgress(0);
-        }
-        onErrorRef.current?.({ sessionId, error: e });
-      }
+      await sessionRef.current?.submit(input);
     },
-    [address, walletClient, apiBaseUrl, sessionId, buildParams, checkIntentStatus],
+    [],
   );
 
   return {
@@ -532,9 +163,7 @@ export function useEarnIntentFlow({
     error,
     isQuoting: status === 'quoting',
     isBusy:
-      status === 'submitting' ||
-      status === 'sent' ||
-      status === 'polling',
+      status === 'submitting' || status === 'sent' || status === 'polling',
     fetchQuote,
     submit,
     reset,

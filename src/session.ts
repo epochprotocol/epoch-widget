@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-function makeId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `epoch-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
-}
+import { makeId } from '@epoch-protocol/epoch-flows-sdk';
 
 /**
  * Returns a stable session ID for the current `isOpen=true` cycle. The ID
