@@ -1,78 +1,83 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { useWalletClient, useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { getEpochChainById, getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
-import { useTokenBalance } from '../use-token-balance';
-import { useIntentFlow, type IntentFlowStatus } from '../use-intent-flow';
-import { useTokenUsdPrice } from '../hooks/use-token-usd-price';
-import { useSessionId } from '../session';
-import { cn as twcn } from '../lib/cn';
-import { formatAmount } from '../utils';
-import { Modal } from './Modal';
-import { ProgressStepper } from './ProgressStepper';
-import { NetworkToggle } from './NetworkToggle';
-import { TokenSelector, type TokenWithChain } from './TokenSelector';
-import { PayIntentSummary } from './PayIntentSummary';
-import { SwapIntentSummary } from './SwapIntentSummary';
-import { Banner } from './Banner';
-import { TokenChainPill } from './TokenChainPill';
-import { CheckIcon } from './Icons';
-import { buildPayIntentFromFlatProps } from '../pay/build-pay-intent';
-import type { EpochIntentWidgetProps, IntentProps } from '../types';
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useWalletClient, useAccount, useChainId, useSwitchChain } from "wagmi";
+import {
+  getEpochChainById,
+  getEpochChains,
+  getEpochTokensByChainEnv,
+} from "../epoch-config";
+import { useTokenBalance } from "../use-token-balance";
+import { useIntentFlow, type IntentFlowStatus } from "../use-intent-flow";
+import { useTokenUsdPrice } from "../hooks/use-token-usd-price";
+import { useSessionId } from "../session";
+import { cn as twcn } from "../lib/cn";
+import { formatAmount } from "../utils";
+import { Modal } from "./Modal";
+import { ProgressStepper } from "./ProgressStepper";
+import { NetworkToggle } from "./NetworkToggle";
+import { TokenSelector, type TokenWithChain } from "./TokenSelector";
+import { PayIntentSummary } from "./PayIntentSummary";
+import { SwapIntentSummary } from "./SwapIntentSummary";
+import { Banner } from "./Banner";
+import { TokenChainPill } from "./TokenChainPill";
+import { CheckIcon } from "./Icons";
+import { buildPayIntentFromFlatProps } from "../pay/build-pay-intent";
+import type { EpochIntentWidgetProps, IntentProps } from "../types";
 
-type WidgetView = 'main' | 'selectToken';
+type WidgetView = "main" | "selectToken" | "selectDestToken";
 
 const PLACEHOLDER_INTENT: IntentProps = {
   requiredToken: {
-    address: '0x0000000000000000000000000000000000000000',
-    symbol: '',
+    address: "0x0000000000000000000000000000000000000000",
+    symbol: "",
     decimals: 18,
   },
   requiredAmount: 0n,
   config: {
-    protocol: 'transfer',
-    action: 'pay',
+    protocol: "transfer",
+    action: "pay",
     fixedOutput: false,
   },
 };
 
 export type PaySwapIntentWidgetProps = Pick<
   EpochIntentWidgetProps,
-  | 'isOpen'
-  | 'onClose'
-  | 'api'
-  | 'network'
-  | 'allowNetworkToggle'
-  | 'classNames'
-  | 'theme'
-  | 'onIntentSent'
-  | 'onIntentComplete'
-  | 'onError'
-  | 'onStart'
-  | 'onSign'
-  | 'onSuccess'
-  | 'onStatus'
-  | 'title'
-  | 'submitButtonText'
-  | 'renderInline'
-  | 'intent'
-  | 'toAddress'
-  | 'toAmount'
-  | 'toChainId'
-  | 'toToken'
-  | 'toTokenDecimals'
-  | 'toTokenSymbol'
-  | 'sourceChainIds'
-  | 'sourceTokenFilter'
-  | 'defaultSourceChainId'
-  | 'defaultSourceTokenAddress'
-  | 'lockSourceToken'
-  | 'ctaLabels'
-  | 'usdPriceFor'
-  | 'onSourceTokenChange'
-  | 'onQuote'
+  | "isOpen"
+  | "onClose"
+  | "api"
+  | "network"
+  | "allowNetworkToggle"
+  | "classNames"
+  | "theme"
+  | "onIntentSent"
+  | "onIntentComplete"
+  | "onError"
+  | "onStart"
+  | "onSign"
+  | "onSuccess"
+  | "onStatus"
+  | "title"
+  | "submitButtonText"
+  | "renderInline"
+  | "intent"
+  | "toAddress"
+  | "toAmount"
+  | "toChainId"
+  | "toToken"
+  | "toTokenDecimals"
+  | "toTokenSymbol"
+  | "sourceChainIds"
+  | "sourceTokenFilter"
+  | "defaultSourceChainId"
+  | "defaultSourceTokenAddress"
+  | "lockSourceToken"
+  | "lockDestinationToken"
+  | "ctaLabels"
+  | "usdPriceFor"
+  | "onSourceTokenChange"
+  | "onQuote"
 > & {
   /** `pay` vs `swap` — same SDK path; affects copy and `onStart` / internal `mode`. */
-  variant: 'pay' | 'swap';
+  variant: "pay" | "swap";
 };
 
 export function PaySwapIntentWidget({
@@ -81,7 +86,7 @@ export function PaySwapIntentWidget({
   onClose,
   intent: intentProp,
   api,
-  network = 'mainnet',
+  network = "mainnet",
   allowNetworkToggle = false,
   classNames: cn,
   theme,
@@ -106,11 +111,19 @@ export function PaySwapIntentWidget({
   defaultSourceChainId,
   defaultSourceTokenAddress,
   lockSourceToken = false,
+  lockDestinationToken: lockDestinationTokenProp = true,
   ctaLabels,
   usdPriceFor,
   onSourceTokenChange,
   onQuote,
 }: PaySwapIntentWidgetProps) {
+  // `lockDestinationToken` is a Pay-only concept — Swap UX always lets the
+  // user pick what they receive. Force-disable for Swap regardless of the
+  // incoming prop so an integrator passing `lockDestinationToken: true` to a
+  // Swap widget gets the expected always-clickable Buy pill.
+  const lockDestinationToken =
+    variant === "swap" ? false : lockDestinationTokenProp;
+
   const flatPayBuild = useMemo(() => {
     if (intentProp) return null;
     if (!toAddress && !toAmount && !toChainId && !toToken) return null;
@@ -122,13 +135,22 @@ export function PaySwapIntentWidget({
       toTokenDecimals,
       toTokenSymbol,
     });
-  }, [intentProp, toAddress, toAmount, toChainId, toToken, toTokenDecimals, toTokenSymbol]);
+  }, [
+    intentProp,
+    toAddress,
+    toAmount,
+    toChainId,
+    toToken,
+    toTokenDecimals,
+    toTokenSymbol,
+  ]);
 
-  const payIntent: IntentProps | null = intentProp ?? (flatPayBuild?.ok ? flatPayBuild.intent : null);
+  const payIntent: IntentProps | null =
+    intentProp ?? (flatPayBuild?.ok ? flatPayBuild.intent : null);
 
   const sessionId = useSessionId(isOpen);
 
-  const [isTestnet, setIsTestnet] = useState(network === 'testnet');
+  const [isTestnet, setIsTestnet] = useState(network === "testnet");
 
   const { data: walletClient } = useWalletClient();
   const { address, isConnected, connector } = useAccount();
@@ -148,27 +170,33 @@ export function PaySwapIntentWidget({
     receiver,
   } = resolvedIntent;
 
-  const verb = variant === 'swap' ? 'Swap' : 'Pay';
+  const verb = variant === "swap" ? "Swap" : "Pay";
 
   const modalTitle =
-    titleProp ??
-    (positionLabel ? `${verb} ${positionLabel}` : verb);
+    titleProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb);
 
-  const modalSubmitText = submitButtonTextProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb);
+  const modalSubmitText =
+    submitButtonTextProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb);
 
   const resolvedAllowNetworkToggle = allowNetworkToggle;
 
   const { baseUrl: apiBaseUrl, rpcUrls } = api;
 
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
-  const [selectedTokenAddress, setSelectedTokenAddress] = useState('');
-  const [view, setView] = useState<WidgetView>('main');
+  const [selectedTokenAddress, setSelectedTokenAddress] = useState("");
+  // Destination overrides — only used when `lockDestinationToken === false`.
+  // null/'' means "use whatever the intent props pinned".
+  const [destChainIdOverride, setDestChainIdOverride] = useState<number | null>(
+    null,
+  );
+  const [destTokenAddressOverride, setDestTokenAddressOverride] = useState("");
+  const [view, setView] = useState<WidgetView>("main");
 
   useEffect(() => {
-    setIsTestnet(network === 'testnet');
+    setIsTestnet(network === "testnet");
   }, [network]);
 
-  const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(',') : '';
+  const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(",") : "";
   const availableChains = useMemo(() => {
     const all = getEpochChains(isTestnet);
     if (!sourceChainIds || sourceChainIds.length === 0) return all;
@@ -179,7 +207,10 @@ export function PaySwapIntentWidget({
 
   const allTokens = useMemo((): TokenWithChain[] => {
     const flat = availableChains.flatMap((chain) =>
-      getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({ ...tok, chain })),
+      getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
+        ...tok,
+        chain,
+      })),
     );
     return sourceTokenFilter ? flat.filter(sourceTokenFilter) : flat;
   }, [availableChains, isTestnet, sourceTokenFilter]);
@@ -192,7 +223,9 @@ export function PaySwapIntentWidget({
   );
 
   const selectedToken = useMemo(
-    () => availableTokens.find((tok) => tok.address === selectedTokenAddress) ?? null,
+    () =>
+      availableTokens.find((tok) => tok.address === selectedTokenAddress) ??
+      null,
     [availableTokens, selectedTokenAddress],
   );
 
@@ -238,10 +271,12 @@ export function PaySwapIntentWidget({
   useEffect(() => {
     if (availableTokens.length > 0) {
       setSelectedTokenAddress((prev) =>
-        availableTokens.some((tok) => tok.address === prev) ? prev : availableTokens[0].address,
+        availableTokens.some((tok) => tok.address === prev)
+          ? prev
+          : availableTokens[0].address,
       );
     } else {
-      setSelectedTokenAddress('');
+      setSelectedTokenAddress("");
     }
   }, [availableTokens]);
 
@@ -263,16 +298,79 @@ export function PaySwapIntentWidget({
     rpcUrls,
   );
 
-  const isWrongNetwork = selectedChainId !== null && chainId !== selectedChainId;
+  const isWrongNetwork =
+    selectedChainId !== null && chainId !== selectedChainId;
   const insufficientBalance = balance !== null && balance === 0n;
+
+  // ---------------------------------------------------------------------------
+  // Effective destination (token + chain). When `lockDestinationToken === true`
+  // (default), pinned from the intent props. When `false`, the user-picked
+  // destination overrides the pinned values everywhere downstream — pill,
+  // quote inputs, intent submission.
+  // ---------------------------------------------------------------------------
+  const pinnedDestChainId =
+    (isTestnet
+      ? intentConfig.destinationTestnetChainId
+      : intentConfig.destinationChainId) ?? (isTestnet ? 84532 : 8453);
+
+  const allDestTokens = useMemo(
+    (): TokenWithChain[] =>
+      getEpochChains(isTestnet).flatMap((chain) =>
+        getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
+          ...tok,
+          chain,
+        })),
+      ),
+    [isTestnet],
+  );
+
+  const effectiveDestChainId = lockDestinationToken
+    ? pinnedDestChainId
+    : (destChainIdOverride ?? pinnedDestChainId);
+
+  const effectiveDestTokenAddress = lockDestinationToken
+    ? requiredToken.address
+    : destTokenAddressOverride || requiredToken.address;
+
+  const effectiveDestMeta = useMemo(
+    () =>
+      allDestTokens.find(
+        (t) =>
+          t.chain.id === effectiveDestChainId &&
+          t.address.toLowerCase() === effectiveDestTokenAddress.toLowerCase(),
+      ) ?? null,
+    [allDestTokens, effectiveDestChainId, effectiveDestTokenAddress],
+  );
+
+  const effectiveRequiredToken = useMemo(
+    () =>
+      effectiveDestMeta
+        ? {
+            address: effectiveDestMeta.address,
+            symbol: effectiveDestMeta.symbol,
+            decimals: effectiveDestMeta.decimals,
+          }
+        : requiredToken,
+    [effectiveDestMeta, requiredToken],
+  );
+
+  const effectiveIntentConfig = useMemo(() => {
+    if (lockDestinationToken) return intentConfig;
+    return {
+      ...intentConfig,
+      ...(isTestnet
+        ? { destinationTestnetChainId: effectiveDestChainId }
+        : { destinationChainId: effectiveDestChainId }),
+    };
+  }, [intentConfig, isTestnet, effectiveDestChainId, lockDestinationToken]);
 
   const intentFlow = useIntentFlow({
     apiBaseUrl,
     walletClient,
     address,
-    requiredToken,
+    requiredToken: effectiveRequiredToken,
     requiredAmount,
-    intentConfig,
+    intentConfig: effectiveIntentConfig,
     isTestnet,
     sessionId,
     mode: variant,
@@ -292,22 +390,38 @@ export function PaySwapIntentWidget({
     if (!onStatusRef.current) return;
     onStatusRef.current({
       sessionId,
-      status: intentFlow.status as IntentFlowStatus,
+      status: intentFlow.status,
       progress: intentFlow.statusProgress,
       activeStep: intentFlow.activeStep,
     });
-  }, [sessionId, intentFlow.status, intentFlow.statusProgress, intentFlow.activeStep]);
+  }, [
+    sessionId,
+    intentFlow.status,
+    intentFlow.statusProgress,
+    intentFlow.activeStep,
+  ]);
 
   useEffect(() => {
     if (!isOpen) {
       intentFlow.reset();
       setSelectedChainId(null);
-      setSelectedTokenAddress('');
-      setIsTestnet(network === 'testnet');
-      setView('main');
+      setSelectedTokenAddress("");
+      setDestChainIdOverride(null);
+      setDestTokenAddressOverride("");
+      setIsTestnet(network === "testnet");
+      setView("main");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, network]);
+
+  // When the user flips mainnet/testnet, the previous destination override
+  // (an address from the other env) is no longer valid — drop it so the pill
+  // falls back to the intent prop's pinned destination, which the integrator
+  // is expected to provide via `destinationChainId` + `destinationTestnetChainId`.
+  useEffect(() => {
+    setDestChainIdOverride(null);
+    setDestTokenAddressOverride("");
+  }, [isTestnet]);
 
   const fetchQuoteRef = useRef(intentFlow.fetchQuote);
   fetchQuoteRef.current = intentFlow.fetchQuote;
@@ -321,10 +435,26 @@ export function PaySwapIntentWidget({
       address &&
       !isWrongNetwork
     ) {
-      fetchQuoteRef.current({ sourceChainId: selectedChainId, sourceToken: selectedToken });
+      fetchQuoteRef.current({
+        sourceChainId: selectedChainId,
+        sourceToken: selectedToken,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChainId, selectedTokenAddress, intentConfig.fixedOutput, address, chainId, isWrongNetwork, !!walletClient]);
+  }, [
+    selectedChainId,
+    selectedTokenAddress,
+    intentConfig.fixedOutput,
+    address,
+    chainId,
+    isWrongNetwork,
+    !!walletClient,
+    // Re-quote when the user picks a different destination — the PaySession
+    // already recreates on requiredToken/intentConfig changes, so this just
+    // makes sure the auto-fetch fires once after that recreation.
+    effectiveDestChainId,
+    effectiveDestTokenAddress,
+  ]);
 
   // Emit quote results once per settle. Watches `isQuoting` falling edge so
   // we don't fire on every render while quote is in flight.
@@ -354,13 +484,22 @@ export function PaySwapIntentWidget({
       payAmountRaw: bigintRaw,
       error: intentFlow.quoteError ?? undefined,
     });
-  }, [intentFlow.isQuoting, intentFlow.quotedPayAmount, intentFlow.quotedPayRaw, intentFlow.quoteError, selectedChainId, selectedTokenAddress, selectedToken]);
+  }, [
+    intentFlow.isQuoting,
+    intentFlow.quotedPayAmount,
+    intentFlow.quotedPayRaw,
+    intentFlow.quoteError,
+    selectedChainId,
+    selectedTokenAddress,
+    selectedToken,
+  ]);
 
   const hasResolvableIntent = !!payIntent;
 
   const showIntentSummary = !!payIntent;
 
-  const isBusy = intentFlow.status === 'submitting' || intentFlow.status === 'polling';
+  const isBusy =
+    intentFlow.status === "submitting" || intentFlow.status === "polling";
 
   const canSubmit =
     hasResolvableIntent &&
@@ -374,65 +513,88 @@ export function PaySwapIntentWidget({
     !isBusy &&
     !(intentConfig.fixedOutput && intentFlow.isQuoting);
 
-  const requiredAmountStr = formatAmount(requiredAmount, requiredToken.decimals);
+  const requiredAmountStr = formatAmount(
+    requiredAmount,
+    requiredToken.decimals,
+  );
 
   const payAmountStr = (() => {
-    if (!selectedToken) return '—';
+    if (!selectedToken) return "—";
     if (!intentConfig.fixedOutput) return requiredAmountStr;
-    if (intentFlow.isQuoting) return '';
+    if (intentFlow.isQuoting) return "";
     if (intentFlow.quotedPayAmount) return intentFlow.quotedPayAmount;
-    if (intentFlow.quoteError) return '—';
-    return '—';
+    if (intentFlow.quoteError) return "—";
+    return "—";
   })();
 
-  const flatPayError = flatPayBuild && !flatPayBuild.ok ? flatPayBuild.error : null;
+  const flatPayError =
+    flatPayBuild && !flatPayBuild.ok ? flatPayBuild.error : null;
 
   const cta = {
     submit: ctaLabels?.submit ?? modalSubmitText,
-    switchNetwork: ctaLabels?.switchNetwork ?? ((chain: string) => `Switch to ${chain}`),
-    quoting: ctaLabels?.quoting ?? 'Fetching quote…',
-    preparing: ctaLabels?.preparing ?? 'Preparing…',
-    signing: ctaLabels?.signing ?? 'Signing…',
-    submitting: ctaLabels?.submitting ?? 'Submitting…',
-    polling: ctaLabels?.polling ?? 'Waiting for execution…',
-    complete: ctaLabels?.complete ?? 'Completed ✓',
+    switchNetwork:
+      ctaLabels?.switchNetwork ?? ((chain: string) => `Switch to ${chain}`),
+    quoting: ctaLabels?.quoting ?? "Fetching quote…",
+    preparing: ctaLabels?.preparing ?? "Preparing…",
+    signing: ctaLabels?.signing ?? "Signing…",
+    submitting: ctaLabels?.submitting ?? "Submitting…",
+    polling: ctaLabels?.polling ?? "Waiting for execution…",
+    complete: ctaLabels?.complete ?? "Completed ✓",
     insufficientBalance:
-      ctaLabels?.insufficientBalance ?? ((sym: string) => `Insufficient ${sym} balance`),
+      ctaLabels?.insufficientBalance ??
+      ((sym: string) => `Insufficient ${sym} balance`),
     configureRequired:
-      ctaLabels?.configureRequired ?? (variant === 'swap' ? 'Configure swap' : 'Configure payment'),
+      ctaLabels?.configureRequired ??
+      (variant === "swap" ? "Configure swap" : "Configure payment"),
   };
 
-  type CtaAction = 'switch' | 'submit' | 'disabled';
-  type CtaTone = 'primary' | 'warning' | 'success';
-  const ctaState: { action: CtaAction; label: string; tone?: CtaTone } = (() => {
-    if (!payIntent) {
-      return { action: 'disabled', label: flatPayError ?? cta.configureRequired };
-    }
-    if (intentConfig.fixedOutput && intentFlow.isQuoting)
-      return { action: 'disabled', label: cta.quoting };
-    if (intentFlow.status === 'submitting') {
-      if (intentFlow.activeStep === 1) return { action: 'disabled', label: cta.preparing };
-      if (intentFlow.activeStep === 2) return { action: 'disabled', label: cta.signing };
-      if (intentFlow.activeStep === 3) return { action: 'disabled', label: cta.submitting };
-    }
-    if (intentFlow.status === 'polling') return { action: 'disabled', label: cta.polling };
-    if (intentFlow.status === 'complete')
-      return { action: 'disabled', label: cta.complete, tone: 'success' };
-    if (isWrongNetwork && selectedChain) {
-      return { action: 'switch', label: cta.switchNetwork(selectedChain.name), tone: 'warning' };
-    }
-    if (insufficientBalance && selectedToken) {
-      return { action: 'disabled', label: cta.insufficientBalance(selectedToken.symbol) };
-    }
-    return { action: 'submit', label: cta.submit };
-  })();
-  const ctaEnabled = ctaState.action === 'submit' || ctaState.action === 'switch';
+  type CtaAction = "switch" | "submit" | "disabled";
+  type CtaTone = "primary" | "warning" | "success";
+  const ctaState: { action: CtaAction; label: string; tone?: CtaTone } =
+    (() => {
+      if (!payIntent) {
+        return {
+          action: "disabled",
+          label: flatPayError ?? cta.configureRequired,
+        };
+      }
+      if (intentConfig.fixedOutput && intentFlow.isQuoting)
+        return { action: "disabled", label: cta.quoting };
+      if (intentFlow.status === "submitting") {
+        if (intentFlow.activeStep === 1)
+          return { action: "disabled", label: cta.preparing };
+        if (intentFlow.activeStep === 2)
+          return { action: "disabled", label: cta.signing };
+        if (intentFlow.activeStep === 3)
+          return { action: "disabled", label: cta.submitting };
+      }
+      if (intentFlow.status === "polling")
+        return { action: "disabled", label: cta.polling };
+      if (intentFlow.status === "complete")
+        return { action: "disabled", label: cta.complete, tone: "success" };
+      if (isWrongNetwork && selectedChain) {
+        return {
+          action: "switch",
+          label: cta.switchNetwork(selectedChain.name),
+          tone: "warning",
+        };
+      }
+      if (insufficientBalance && selectedToken) {
+        return {
+          action: "disabled",
+          label: cta.insufficientBalance(selectedToken.symbol),
+        };
+      }
+      return { action: "submit", label: cta.submit };
+    })();
+  const ctaEnabled =
+    ctaState.action === "submit" || ctaState.action === "switch";
   const CTA_TONE_CLASSES: Record<CtaTone, string> = {
-    primary: 'bg-primary hover:bg-primary-hover',
-    warning: 'bg-warning hover:bg-warning',
-    success: 'bg-success hover:bg-success',
+    primary: "bg-primary hover:bg-primary-hover",
+    warning: "bg-warning hover:bg-warning",
+    success: "bg-success hover:bg-success",
   };
-  const ctaToneClasses = CTA_TONE_CLASSES[ctaState.tone ?? 'primary'];
+  const ctaToneClasses = CTA_TONE_CLASSES[ctaState.tone ?? "primary"];
 
   const balanceStr = (() => {
     if (!selectedToken || balance === null) return undefined;
@@ -445,45 +607,70 @@ export function PaySwapIntentWidget({
   const { priceUsd } = useTokenUsdPrice({
     chainId: selectedChainId,
     tokenAddress: selectedTokenAddress,
-    tokenSymbol: selectedToken?.symbol ?? '',
+    tokenSymbol: selectedToken?.symbol ?? "",
     resolver: usdPriceFor,
   });
   const usdEquivalentStr = useMemo(() => {
     if (priceUsd == null) return null;
-    if (!payAmountStr || payAmountStr === '—' || payAmountStr === '') return null;
-    const n = Number(payAmountStr.replace(/,/g, ''));
+    if (!payAmountStr || payAmountStr === "—" || payAmountStr === "")
+      return null;
+    const n = Number(payAmountStr.replace(/,/g, ""));
     if (!Number.isFinite(n) || n <= 0) return null;
     const usd = n * priceUsd;
     const formatted =
       usd >= 1000
         ? usd.toLocaleString(undefined, { maximumFractionDigits: 0 })
         : usd >= 1
-        ? usd.toFixed(2)
-        : usd.toFixed(4);
+          ? usd.toFixed(2)
+          : usd.toFixed(4);
     return `≈ $${formatted}`;
   }, [priceUsd, payAmountStr]);
 
-  const destinationChainId =
-    (isTestnet ? intentConfig.destinationTestnetChainId : intentConfig.destinationChainId) ??
-    (isTestnet ? 84532 : 8453);
+  const destinationChain = useMemo(
+    () => getEpochChainById(effectiveDestChainId),
+    [effectiveDestChainId],
+  );
 
-  const destinationChain = useMemo(() => getEpochChainById(destinationChainId), [destinationChainId]);
-
-  const destinationToken = useMemo(() => {
-    const tokens = getEpochTokensByChainEnv(destinationChainId, isTestnet);
-    return tokens.find((tok) => tok.address.toLowerCase() === requiredToken.address.toLowerCase());
-  }, [destinationChainId, isTestnet, requiredToken.address]);
+  // Prefer the live SDK token lookup so logo + decimals are correct, but fall
+  // back to the integrator-supplied `requiredToken` when the address isn't in
+  // our bundled token registry (custom tokens).
+  const destinationTokenMeta = useMemo(
+    () =>
+      effectiveDestMeta ??
+      getEpochTokensByChainEnv(effectiveDestChainId, isTestnet).find(
+        (tok) =>
+          tok.address.toLowerCase() ===
+          effectiveRequiredToken.address.toLowerCase(),
+      ),
+    [
+      effectiveDestMeta,
+      effectiveDestChainId,
+      isTestnet,
+      effectiveRequiredToken.address,
+    ],
+  );
 
   const destinationPill = (
     <TokenChainPill
-      tokenSymbol={requiredToken.symbol}
-      tokenLogoURI={destinationToken?.logoURI}
-      chainName={destinationChainName ?? destinationChain?.name ?? ''}
+      tokenSymbol={effectiveRequiredToken.symbol}
+      tokenLogoURI={destinationTokenMeta?.logoURI}
+      chainName={
+        // When user is actively picking destination (override active), show the
+        // chain name we just resolved. Otherwise fall back to the integrator's
+        // human label (`destinationChainName`) for the pinned variant.
+        lockDestinationToken
+          ? (destinationChainName ?? destinationChain?.name ?? "")
+          : (destinationChain?.name ?? destinationChainName ?? "")
+      }
       chainLogoURI={destinationChain?.logoURI}
+      onClick={
+        lockDestinationToken ? undefined : () => setView("selectDestToken")
+      }
+      ariaLabel={lockDestinationToken ? undefined : "Change destination token"}
     />
   );
 
-  if (view === 'selectToken') {
+  if (view === "selectToken") {
     return (
       <Modal
         isOpen={isOpen}
@@ -491,7 +678,7 @@ export function PaySwapIntentWidget({
         title="Select source token"
         theme={theme}
         classNames={cn}
-        onBack={() => setView('main')}
+        onBack={() => setView("main")}
         renderInline={renderInline}
       >
         <TokenSelector
@@ -501,9 +688,35 @@ export function PaySwapIntentWidget({
           onSelect={(addr, cid) => {
             setSelectedChainId(cid);
             setSelectedTokenAddress(addr);
-            setView('main');
+            setView("main");
           }}
-          onBack={() => setView('main')}
+          onBack={() => setView("main")}
+        />
+      </Modal>
+    );
+  }
+
+  if (view === "selectDestToken") {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Select destination token"
+        theme={theme}
+        classNames={cn}
+        onBack={() => setView("main")}
+        renderInline={renderInline}
+      >
+        <TokenSelector
+          tokens={allDestTokens}
+          selectedTokenAddress={effectiveDestTokenAddress}
+          selectedChainId={effectiveDestChainId}
+          onSelect={(addr, cid) => {
+            setDestChainIdOverride(cid);
+            setDestTokenAddressOverride(addr);
+            setView("main");
+          }}
+          onBack={() => setView("main")}
         />
       </Modal>
     );
@@ -516,28 +729,32 @@ export function PaySwapIntentWidget({
         tokenLogoURI={pillToken.logoURI}
         chainName={pillChain.name}
         chainLogoURI={pillChain.logoURI}
-        onClick={lockSourceToken ? undefined : () => setView('selectToken')}
-        ariaLabel={lockSourceToken ? undefined : 'Change source token'}
+        onClick={lockSourceToken ? undefined : () => setView("selectToken")}
+        ariaLabel={lockSourceToken ? undefined : "Change source token"}
       />
     ) : undefined;
 
   const inlineError = intentFlow.quoteError
     ? `Quote failed: ${intentFlow.quoteError}`
-    : intentFlow.status === 'error' && intentFlow.error
-    ? intentFlow.error
-    : null;
+    : intentFlow.status === "error" && intentFlow.error
+      ? intentFlow.error
+      : null;
 
   const handleCtaClick = () => {
-    if (ctaState.action === 'switch' && selectedChain) {
+    if (ctaState.action === "switch" && selectedChain) {
       switchChain?.({ chainId: selectedChain.id });
       return;
     }
-    if (ctaState.action !== 'submit') return;
+    if (ctaState.action !== "submit") return;
     if (!selectedChainId || !selectedToken) return;
-    intentFlow.submit({ sourceChainId: selectedChainId, sourceToken: selectedToken });
+    intentFlow.submit({
+      sourceChainId: selectedChainId,
+      sourceToken: selectedToken,
+    });
   };
 
-  const ctaDisabled = !ctaEnabled || (ctaState.action === 'submit' && !canSubmit);
+  const ctaDisabled =
+    !ctaEnabled || (ctaState.action === "submit" && !canSubmit);
 
   const footer = (
     <div className="flex flex-col gap-2">
@@ -552,9 +769,9 @@ export function PaySwapIntentWidget({
       <button
         type="button"
         className={twcn(
-          'flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 py-3.5 text-[15px] font-[650] -tracking-[0.005em] text-white shadow-md transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]',
+          "flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 py-3.5 text-[15px] font-[650] -tracking-[0.005em] text-white shadow-md transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]",
           ctaToneClasses,
-          ctaDisabled && 'cursor-not-allowed opacity-45 active:scale-100',
+          ctaDisabled && "cursor-not-allowed opacity-45 active:scale-100",
           cn?.button,
         )}
         disabled={ctaDisabled}
@@ -574,7 +791,7 @@ export function PaySwapIntentWidget({
       onChange={(checked) => {
         setIsTestnet(checked);
         setSelectedChainId(null);
-        setSelectedTokenAddress('');
+        setSelectedTokenAddress("");
       }}
     />
   ) : undefined;
@@ -596,10 +813,10 @@ export function PaySwapIntentWidget({
         </Banner>
       )}
 
-      {showIntentSummary && variant === 'swap' && (
+      {showIntentSummary && variant === "swap" && (
         <SwapIntentSummary
           sellAmount={payAmountStr}
-          sellSymbol={selectedToken?.symbol ?? ''}
+          sellSymbol={selectedToken?.symbol ?? ""}
           sellTokenPill={floatingPill}
           buyAmount={requiredAmountStr}
           buyTokenPill={destinationPill}
@@ -615,7 +832,7 @@ export function PaySwapIntentWidget({
           classNames={cn}
         />
       )}
-      {showIntentSummary && variant === 'pay' && (
+      {showIntentSummary && variant === "pay" && (
         <PayIntentSummary
           receiveAmount={requiredAmountStr}
           receiveSymbol={requiredToken.symbol}
@@ -623,7 +840,7 @@ export function PaySwapIntentWidget({
           destinationChainName={destinationChainName}
           recipientAddress={receiver ?? toAddress}
           payAmount={payAmountStr}
-          paySymbol={selectedToken?.symbol ?? ''}
+          paySymbol={selectedToken?.symbol ?? ""}
           tokenSelectorTrigger={floatingPill}
           walletAddress={isConnected ? address : undefined}
           walletIcon={isConnected ? connector?.icon : undefined}
@@ -637,29 +854,32 @@ export function PaySwapIntentWidget({
         />
       )}
 
-      {(intentFlow.status === 'submitting' ||
-        intentFlow.status === 'polling' ||
-        intentFlow.status === 'complete') && (
+      {(intentFlow.status === "submitting" ||
+        intentFlow.status === "polling" ||
+        intentFlow.status === "complete") && (
         <ProgressStepper
-          activeStep={intentFlow.status === 'complete' ? 5 : intentFlow.activeStep}
+          activeStep={
+            intentFlow.status === "complete" ? 5 : intentFlow.activeStep
+          }
           statusProgress={intentFlow.statusProgress}
           className={cn?.progress}
         />
       )}
 
-      {intentFlow.status === 'complete' && (
+      {intentFlow.status === "complete" && (
         <div className="animate-overlay-in">
           <Banner variant="success" className={cn?.banner}>
             <div className="flex items-center gap-2">
               <CheckIcon />
               <span>
-                {variant === 'swap' ? 'Swap completed successfully.' : 'Intent executed successfully.'}
+                {variant === "swap"
+                  ? "Swap completed successfully."
+                  : "Intent executed successfully."}
               </span>
             </div>
           </Banner>
         </div>
       )}
-
     </Modal>
   );
 }

@@ -1,6 +1,9 @@
-import { PaySwapIntentWidget, type PaySwapIntentWidgetProps } from './PaySwapIntentWidget';
+import {
+  PaySwapIntentWidget,
+  type PaySwapIntentWidgetProps,
+} from "./PaySwapIntentWidget";
 
-export type PayIntentWidgetProps = Omit<PaySwapIntentWidgetProps, 'variant'>;
+export type PayIntentWidgetProps = Omit<PaySwapIntentWidgetProps, "variant">;
 
 /**
  * Pay flow — cross-chain payment with a fixed destination. Visual cues:
@@ -13,12 +16,16 @@ export type PayIntentWidgetProps = Omit<PaySwapIntentWidgetProps, 'variant'>;
  * client, quote/submit). Edit `PayIntentSummary.tsx` for Pay-only visual
  * tweaks; edit this file for Pay-only behavioural defaults.
  */
-export function PayIntentWidget({ title, submitButtonText, ...rest }: PayIntentWidgetProps) {
+export function PayIntentWidget({
+  title,
+  submitButtonText,
+  ...rest
+}: PayIntentWidgetProps) {
   return (
     <PaySwapIntentWidget
       variant="pay"
-      title={title ?? 'Pay'}
-      submitButtonText={submitButtonText ?? 'Pay'}
+      title={title ?? "Pay"}
+      submitButtonText={submitButtonText ?? "Pay"}
       {...rest}
     />
   );

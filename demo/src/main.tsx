@@ -5,7 +5,7 @@ import { arbitrum, base, baseSepolia, optimism, polygon, sepolia } from 'wagmi/c
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import './index.css';
-import 'epoch-intent-widget/styles.css';
+import '@epoch-protocol/epoch-intent-widget/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import 'sonner/dist/styles.css';
 import { Toaster } from 'sonner';
@@ -14,7 +14,7 @@ import {
   WalletAdapterNetwork,
 } from '@miden-sdk/miden-wallet-adapter-base';
 import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
-import { themeToCssVars, LIGHT_THEME } from 'epoch-intent-widget';
+import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
 import App from './app/App';
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind

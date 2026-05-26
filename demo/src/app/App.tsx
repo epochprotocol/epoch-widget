@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { EpochIntentWidget, SegmentedTabs } from 'epoch-intent-widget';
+import { useEffect, useMemo, useState } from 'react';
+import { EpochIntentWidget, SegmentedTabs } from '@epoch-protocol/epoch-intent-widget';
 import type { ScenarioProps } from '../pay/scenarios';
 import { PAY_SCENARIOS } from '../pay/scenarios';
 import { getApiBaseUrl } from '../lib/apiBaseUrl';
-import { shorten } from '../lib/format';
 import { AppShell } from './AppShell';
-import { Hero } from './Hero';
 import type { DemoSurface } from '../types/surface';
-import type { LogEntry } from './log';
 import { PaySurface } from '../surfaces/PaySurface';
 import { SwapSurface } from '../surfaces/SwapSurface';
 import { EarnSurface } from '../surfaces/EarnSurface';
 import { AdvancedSurface } from '../surfaces/AdvancedSurface';
-import { EventLog } from '../components/EventLog';
 
 /**
  * Read `?advanced=1` once on mount. When set, the Advanced (Miden → EVM)
@@ -47,25 +43,10 @@ export default function App() {
   const [payScenarioId, setPayScenarioId] = useState(PAY_SCENARIOS[0].id);
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [widgetProps, setWidgetProps] = useState<ScenarioProps>(PAY_SCENARIOS[0].props);
-  const [log, setLog] = useState<LogEntry[]>([]);
 
-  const tabsRef = useRef<HTMLDivElement>(null);
-
-  const addLog = (level: LogEntry['level'], msg: string) =>
-    setLog((prev) => [{ ts: new Date(), level, msg }, ...prev].slice(0, 50));
-
-  const openWidget = (props: ScenarioProps, label: string) => {
+  const openWidget = (props: ScenarioProps) => {
     setWidgetProps(props);
     setWidgetOpen(true);
-    addLog('info', `Opened widget: ${label}`);
-  };
-
-  // Hero CTA → Pay tab + scroll to the tab strip.
-  const handleTryPay = () => {
-    setSurface('pay');
-    requestAnimationFrame(() => {
-      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
   };
 
   // Defensive: if `?advanced=1` is removed mid-session and the saved surface
@@ -76,9 +57,7 @@ export default function App() {
 
   return (
     <AppShell>
-      <Hero onTryPay={handleTryPay} />
-
-      <div ref={tabsRef} className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-3xl px-6 pt-6">
         <SegmentedTabs<DemoSurface>
           tabs={tabs}
           value={surface}
@@ -87,56 +66,45 @@ export default function App() {
         />
       </div>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section>
-          {surface === 'pay' && (
-            <PaySurface
-              apiBaseUrl={apiBaseUrl}
-              scenarioId={payScenarioId}
-              onChangeScenario={setPayScenarioId}
-              onOpenWidget={openWidget}
-            />
-          )}
-          {surface === 'swap' && (
-            <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
-          )}
-          {surface === 'earn' && (
-            <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
-          )}
-          {surface === 'advanced' && showAdvanced && (
-            <AdvancedSurface api={apiBaseUrl} />
-          )}
-        </section>
-
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <EventLog entries={log} />
-        </aside>
+      <main className="mx-auto max-w-3xl px-6 py-8">
+        {surface === 'pay' && (
+          <PaySurface
+            apiBaseUrl={apiBaseUrl}
+            scenarioId={payScenarioId}
+            onChangeScenario={setPayScenarioId}
+            onOpenWidget={openWidget}
+          />
+        )}
+        {surface === 'swap' && (
+          <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
+        )}
+        {surface === 'earn' && (
+          <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
+        )}
+        {surface === 'advanced' && showAdvanced && <AdvancedSurface api={apiBaseUrl} />}
       </main>
 
-      <EpochIntentWidget
-        {...widgetProps}
-        earnSolverUrl={earnSolverUrl}
-        isOpen={widgetOpen}
-        onClose={() => {
-          setWidgetOpen(false);
-          addLog('info', 'Widget closed');
-        }}
-        api={{ baseUrl: apiBaseUrl, positionsBaseUrl }}
-        onIntentSent={({ nonce }) => addLog('info', `Intent sent — nonce ${shorten(nonce)}`)}
-        onIntentComplete={({ nonce }) => addLog('success', `Intent complete — nonce ${shorten(nonce)}`)}
-        onError={({ error }) => addLog('error', error.message)}
-        onStart={({ sessionId, mode }) =>
-          addLog('info', `onStart — mode=${mode} session=${shorten(sessionId)}`)
-        }
-        onSign={({ sessionId }) => addLog('info', `onSign — session=${shorten(sessionId)}`)}
-        onSuccess={({ sessionId, nonce }) =>
-          addLog('success', `onSuccess — nonce=${shorten(nonce)} session=${shorten(sessionId)}`)
-        }
-        onStatus={({ status, progress, activeStep }) =>
-          addLog('info', `status=${status} step=${activeStep} progress=${progress}`)
-        }
-        onOpen={() => addLog('info', 'Widget opened')}
-      />
+      {(() => {
+        // Earn-only props (`earnSolverUrl`, `api.positionsBaseUrl`) only
+        // travel when an Earn scenario is open. Keeps Pay/Swap surfaces
+        // visibly free of 1delta wiring — even though the router already
+        // ignored those props for non-Earn modes.
+        const widgetMode = widgetProps.mode ?? widgetProps.flow ?? 'pay';
+        const isEarnMode = widgetMode === 'earn';
+        return (
+          <EpochIntentWidget
+            {...widgetProps}
+            {...(isEarnMode ? { earnSolverUrl } : {})}
+            isOpen={widgetOpen}
+            onClose={() => setWidgetOpen(false)}
+            api={
+              isEarnMode
+                ? { baseUrl: apiBaseUrl, positionsBaseUrl }
+                : { baseUrl: apiBaseUrl }
+            }
+          />
+        );
+      })()}
     </AppShell>
   );
 }

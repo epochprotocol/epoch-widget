@@ -174,6 +174,18 @@ export interface EpochIntentWidgetProps {
    */
   lockSourceToken?: boolean;
   /**
+   * Pay-mode only. Render the destination-token pill as a clickable picker.
+   * Default `true` — destination stays pinned to whatever the integrator
+   * passed in `intent.requiredToken`. When `false`, the user can pick any
+   * token on any chain from the current env (mainnet or testnet) and the
+   * widget overrides `requiredToken` + `intentConfig.destinationChainId` on
+   * submit/quote.
+   *
+   * **Ignored when `mode === 'swap'`** — Swap UX always lets the user pick
+   * what they receive; the prop is force-disabled internally for Swap.
+   */
+  lockDestinationToken?: boolean;
+  /**
    * Override the CTA button copy for every state. Each field is independently
    * overridable; missing fields fall back to the built-in default.
    */

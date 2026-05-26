@@ -112,7 +112,7 @@ export function SwapIntentSummary({
   return (
     <div className="relative flex animate-overlay-in flex-col">
       <TokenAmountCard
-        label="Sell"
+        label="You pay"
         labelAdornment={walletBadge}
         amount={sellAmount}
         amountLoading={isQuoting}
@@ -133,7 +133,7 @@ export function SwapIntentSummary({
       </div>
 
       <TokenAmountCard
-        label="Buy"
+        label="You receive"
         amount={buyAmount}
         amountLoading={isQuoting}
         tokenPill={buyTokenPill}

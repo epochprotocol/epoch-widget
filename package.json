@@ -1,5 +1,5 @@
 {
-  "name": "epoch-intent-widget",
+  "name": "@epoch-protocol/epoch-intent-widget",
   "version": "0.1.0",
   "description": "Drop-in React widget for sending cross-chain intents via Epoch Protocol",
   "type": "module",
@@ -36,9 +36,14 @@
     "prepublishOnly": "npm run build",
     "demo": "cd demo && npm run dev"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
+    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
     "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.1"
+  },
+  "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
     "lucide-react": "^1.14.0",
     "react": "^18.0.0",
@@ -47,19 +52,14 @@
     "wagmi": "^2.0.0"
   },
   "devDependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
-    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
-    "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
     "@tailwindcss/cli": "^4.3.0",
     "@tanstack/react-query": "^5.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",
     "npm-run-all": "^4.1.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.6.1",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0",

@@ -1,5 +1,5 @@
-import { HARDCODED_ONEDELTA_CONFIGS } from 'epoch-intent-widget';
-import type { ScenarioProps } from '../pay/scenarios';
+import { HARDCODED_ONEDELTA_CONFIGS } from "@epoch-protocol/epoch-intent-widget";
+import type { ScenarioProps } from "../pay/scenarios";
 
 /**
  * Earn scenarios. The widget ships hardcoded 1delta lender configs in
@@ -8,15 +8,15 @@ import type { ScenarioProps } from '../pay/scenarios';
  * scope which lenders / chains appear.
  */
 export const EARN_DEPOSIT_PROPS: ScenarioProps = {
-  mode: 'earn',
-  earnDefaultTab: 'deposit',
+  mode: "earn",
+  earnDefaultTab: "deposit",
   earnMarketsSource: HARDCODED_ONEDELTA_CONFIGS,
-  title: 'Earn',
+  title: "Earn",
 };
 
 export const EARN_WITHDRAW_PROPS: ScenarioProps = {
-  mode: 'earn',
-  earnDefaultTab: 'withdraw',
+  mode: "earn",
+  earnDefaultTab: "withdraw",
   earnMarketsSource: HARDCODED_ONEDELTA_CONFIGS,
-  title: 'Withdraw',
+  title: "Withdraw",
 };
