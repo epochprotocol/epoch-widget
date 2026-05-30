@@ -59,25 +59,27 @@ export const PAY_SCENARIOS: Scenario[] = [
       },
     },
   },
+];
+
+// Base Sepolia USDC — public Circle test faucet token.
+const BASE_SEPOLIA_USDC =
+  "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
+
+export const PAY_TESTNET_SCENARIOS: Scenario[] = [
   {
-    id: "pay-locked-source",
-    name: "Locked source (Base USDC)",
+    id: "flat-pay-testnet",
+    name: "Flat pay (Base Sepolia)",
     tagline:
-      "Pin the source side to USDC on Base — user cannot change it. Useful when host app knows what to charge in.",
+      "Send a fixed test USDC amount on Base Sepolia. Same flat-pay prop shape as mainnet, network flipped to testnet.",
     props: {
       mode: "pay",
-      title: "Send USDC",
+      network: "testnet",
+      title: "Send test USDC",
       submitButtonText: "Send",
       toAddress: "0x4235215114484bACDfF0071dB54Dc9faaD3489a9",
-      toAmount: "0.15",
-      toChainId: 8453,
-      toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      sourceChainIds: [8453],
-      defaultSourceChainId: 8453,
-      defaultSourceTokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      lockSourceToken: true,
-      usdPriceFor: ({ symbol }) =>
-        symbol === "USDC" || symbol === "USDT" || symbol === "DAI" ? 1 : null,
+      toAmount: "0.10",
+      toChainId: 84532,
+      toToken: BASE_SEPOLIA_USDC,
     },
   },
 ];
@@ -135,6 +137,40 @@ export const SWAP_SCENARIOS: Scenario[] = [
       ctaLabels: SHARED_CTA_LABELS,
       usdPriceFor: SHARED_USD_ORACLE,
       intent: SWAP_INITIAL_INTENT,
+    },
+  },
+];
+
+const SWAP_TESTNET_INITIAL_INTENT = {
+  requiredToken: {
+    address: BASE_SEPOLIA_USDC,
+    symbol: "USDC",
+    decimals: 6,
+  },
+  requiredAmount: BigInt(1_000_000), // 1 test USDC
+  destinationChainName: "Base Sepolia",
+  positionLabel: "1 USDC on Base Sepolia",
+  config: {
+    protocol: "swap",
+    action: "swap",
+    fixedOutput: true,
+    destinationChainId: 84532,
+  },
+};
+
+export const SWAP_TESTNET_SCENARIOS: Scenario[] = [
+  {
+    id: "swap-testnet",
+    name: "Swap (Base Sepolia)",
+    tagline:
+      "Same Swap UX on Base Sepolia. Default destination 1 test USDC on Base Sepolia — both sides re-pickable.",
+    props: {
+      mode: "swap",
+      network: "testnet",
+      title: "Swap",
+      ctaLabels: SHARED_CTA_LABELS,
+      usdPriceFor: SHARED_USD_ORACLE,
+      intent: SWAP_TESTNET_INITIAL_INTENT,
     },
   },
 ];

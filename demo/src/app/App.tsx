@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { EpochIntentWidget, SegmentedTabs } from '@epoch-protocol/epoch-intent-widget';
 import type { ScenarioProps } from '../pay/scenarios';
-import { PAY_SCENARIOS } from '../pay/scenarios';
+import { PAY_SCENARIOS, PAY_TESTNET_SCENARIOS } from '../pay/scenarios';
 import { getApiBaseUrl } from '../lib/apiBaseUrl';
 import { AppShell } from './AppShell';
+import type { DemoNetwork } from './AppShell';
 import type { DemoSurface } from '../types/surface';
 import { PaySurface } from '../surfaces/PaySurface';
 import { SwapSurface } from '../surfaces/SwapSurface';
@@ -22,11 +23,9 @@ function useAdvancedFlag(): boolean {
   }, []);
 }
 
-const BASE_TABS = [
-  { value: 'pay'  as const, label: 'Pay' },
-  { value: 'swap' as const, label: 'Swap' },
-  { value: 'earn' as const, label: 'Earn' },
-];
+const PAY_TAB = { value: 'pay'  as const, label: 'Pay' };
+const SWAP_TAB = { value: 'swap' as const, label: 'Swap' };
+const EARN_TAB = { value: 'earn' as const, label: 'Earn' };
 const ADVANCED_TAB = { value: 'advanced' as const, label: 'Advanced' };
 
 export default function App() {
@@ -37,7 +36,14 @@ export default function App() {
     (import.meta.env.VITE_POSITIONS_API_BASE_URL as string | undefined) ?? 'http://localhost:4023';
 
   const showAdvanced = useAdvancedFlag();
-  const tabs = showAdvanced ? [...BASE_TABS, ADVANCED_TAB] : BASE_TABS;
+
+  const [network, setNetwork] = useState<DemoNetwork>('mainnet');
+  // Earn is mainnet-only (1delta upstream doesn't index testnet pools) — hide
+  // the tab whenever the demo is set to testnet.
+  const tabs = useMemo(() => {
+    const base = network === 'testnet' ? [PAY_TAB, SWAP_TAB] : [PAY_TAB, SWAP_TAB, EARN_TAB];
+    return showAdvanced ? [...base, ADVANCED_TAB] : base;
+  }, [network, showAdvanced]);
 
   const [surface, setSurface] = useState<DemoSurface>('pay');
   const [payScenarioId, setPayScenarioId] = useState(PAY_SCENARIOS[0].id);
@@ -55,8 +61,21 @@ export default function App() {
     if (surface === 'advanced' && !showAdvanced) setSurface('pay');
   }, [surface, showAdvanced]);
 
+  // Earn tab disappears on testnet — flip surface back to Pay so we never
+  // render a surface whose tab isn't in the strip.
+  useEffect(() => {
+    if (network === 'testnet' && surface === 'earn') setSurface('pay');
+  }, [network, surface]);
+
+  // Reset pay scenario when network flips — testnet + mainnet have disjoint
+  // scenario ids so the previously selected id won't match anything.
+  useEffect(() => {
+    const scenarios = network === 'testnet' ? PAY_TESTNET_SCENARIOS : PAY_SCENARIOS;
+    setPayScenarioId(scenarios[0].id);
+  }, [network]);
+
   return (
-    <AppShell>
+    <AppShell network={network} onNetworkChange={setNetwork}>
       <div className="mx-auto max-w-3xl px-6 pt-6">
         <SegmentedTabs<DemoSurface>
           tabs={tabs}
@@ -73,10 +92,11 @@ export default function App() {
             scenarioId={payScenarioId}
             onChangeScenario={setPayScenarioId}
             onOpenWidget={openWidget}
+            network={network}
           />
         )}
         {surface === 'swap' && (
-          <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
+          <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} network={network} />
         )}
         {surface === 'earn' && (
           <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />

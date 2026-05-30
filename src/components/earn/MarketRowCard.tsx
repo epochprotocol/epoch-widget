@@ -1,4 +1,5 @@
 import { cn } from '../../lib/cn';
+import { getEpochChainById } from '../../epoch-config';
 import type { OneDeltaConfig, OneDeltaMarketRow } from '../../types';
 import { TrendingUpIcon } from '../Icons';
 import { TokenAvatar } from '../ui/TokenAvatar';
@@ -54,6 +55,10 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
   const familyLabel = FAMILY_LABELS[family] ?? config.label ?? family.replace(/_/g, ' ');
   const dotColor = LENDER_DOT[family] ?? 'var(--epoch-color-primary)';
   const symbol = asset.symbol && asset.symbol !== '???' ? asset.symbol : asset.name || 'Market';
+  // OneDelta types `chainId` as string on both asset and config; SDK helper
+  // takes a number. Fall back to config when asset is missing the field.
+  const chainIdNum = Number(asset.chainId ?? config.chainId);
+  const chain = Number.isFinite(chainIdNum) ? getEpochChainById(chainIdNum) : undefined;
   // Per-market label (e.g. "Morpho wstETH-USDT 86") only shown when more
   // specific than the family — avoids "Aave · Aave V3" redundancy.
   const subLabel =
@@ -67,36 +72,43 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
       onClick={onClick}
       aria-label={`Select ${symbol} on ${familyLabel}`}
       className={cn(
-        'group box-border flex w-full cursor-pointer items-center gap-3.5 rounded-sm border-0 border-b border-line bg-transparent px-2 py-3 text-left transition-[background-color,transform] duration-150 last:border-b-0 hover:bg-surface-muted active:scale-[0.995]',
-        selected && 'bg-accent-soft hover:bg-accent-soft',
+        'group relative box-border flex w-full cursor-pointer items-center gap-3.5 rounded-sm border-0 border-b border-line bg-transparent px-2 py-3 pl-3 text-left transition-[background-color,transform] duration-150 last:border-b-0 hover:bg-surface-muted active:scale-[0.995]',
+        selected &&
+          "bg-accent-soft hover:bg-accent-soft before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-primary before:content-['']",
       )}
     >
-      <TokenAvatar src={asset.logoURI} symbol={asset.symbol} size={40} />
+      <TokenAvatar
+        src={asset.logoURI}
+        symbol={asset.symbol}
+        size={40}
+        chainSrc={chain?.logoURI}
+        chainAlt={chain?.name}
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold leading-tight text-fg">
           {symbol}
         </span>
-        <span className="inline-flex min-w-0 items-center gap-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] leading-tight text-fg-muted">
           <span
-            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            className="inline-block h-2 w-2 shrink-0 rounded-full"
             style={{
               background: `radial-gradient(circle at 30% 30%, ${dotColor}cc 0%, ${dotColor} 60%, ${dotColor}80 100%)`,
             }}
             aria-hidden
           />
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-fg-muted">
-            {subLabel}
-          </span>
+          <span className="max-w-[200px] truncate">{subLabel}</span>
         </span>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-0.5">
+      <div className="flex min-w-[92px] shrink-0 flex-col items-end gap-0.5">
         <span className="inline-flex items-center gap-1 text-[15px] font-bold tabular-nums text-success">
           <TrendingUpIcon />
           {rate.toFixed(rate >= 10 ? 1 : 2)}%
         </span>
-        <span className="text-[11px] tabular-nums text-fg-muted">TVL {fmtUsd(tvlUsd)}</span>
+        <span className="text-[11px] tabular-nums text-fg-muted">
+          <span className="uppercase tracking-[0.04em]">tvl</span> {fmtUsd(tvlUsd)}
+        </span>
       </div>
     </button>
   );

@@ -23,7 +23,13 @@ import type {
 } from '../types';
 import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
-import { useEarnConfigs, useLendingPools, useUserPositions } from '../earn/api';
+import { useEarnConfigs, useLendingPoolsPage, useUserPositions } from '../earn/api';
+import {
+  ALL_LENDERS,
+  MARKETS_PAGE_SIZE,
+  clientPage,
+  configsToRows,
+} from '../earn/market-rows';
 import { useEarnIntentFlow } from '../earn/use-earn-intent-flow';
 import type { OneDeltaConfig } from '../types';
 import { ArrowDownIcon, CheckIcon } from './Icons';
@@ -38,6 +44,20 @@ import { WithdrawPanel } from './WithdrawPanel';
 import { WithdrawDetailPanel, WithdrawFundsButton } from './WithdrawDetailPanel';
 
 type EarnView = 'main' | 'selectToken' | 'selectMarket' | 'withdrawDetail';
+
+// Earn is mainnet-only by design (1delta upstream doesn't index testnet pools).
+// Any consumer-supplied `earnChainIds` is clamped to this set; testnet IDs are
+// dropped with a dev warning rather than silently producing empty /pools
+// results.
+const EARN_MAINNET_CHAIN_IDS = new Set<number>([1, 8453, 42161, 10, 137]);
+
+type PoolSortBy =
+  | 'depositRate'
+  | 'variableBorrowRate'
+  | 'totalDepositsUsd'
+  | 'totalLiquidityUsd'
+  | 'utilization';
+type PoolSortDir = 'ASC' | 'DESC';
 
 interface EarnIntentWidgetProps {
   isOpen: boolean;
@@ -100,8 +120,6 @@ export function EarnIntentWidget({
   isOpen,
   onClose,
   api,
-  network: _network,
-  allowNetworkToggle: _allowNetworkToggle,
   classNames: cn,
   theme,
   renderInline = false,
@@ -184,6 +202,9 @@ export function EarnIntentWidget({
       setSmartWithdraw(false);
       setSmartDestChainId(null);
       setSmartDestTokenAddress('');
+      setPickerChainId('all');
+      setPickerLenderKey(ALL_LENDERS);
+      setPickerPage(0);
     }
   }, [isOpen]);
 
@@ -213,40 +234,163 @@ export function EarnIntentWidget({
     }
   }, [smartWithdraw, selectedPosition]);
 
-  // When the consumer wires a 1delta proxy via `api.positionsBaseUrl`, hit
-  // `/pools` for live market data — even if `earnMarketsSource` is also set
-  // (the proxy is the source of truth; the static prop is a fallback for
-  // offline / demo flows that don't run the proxy).
+  // Chain filter state for the market picker — purely client-side; we fetch
+  // every chain in `earnChainIds` once and let MarketPickerPage narrow the
+  // visible rows. Preserved across picker opens so the selection sticks.
+  const [pickerChainId, setPickerChainId] = useState<number | 'all'>('all');
+  // Lender family filter (server `lender` param) + current page (server
+  // `start`). Single-select family; ALL_LENDERS = omit the param.
+  const [pickerLenderKey, setPickerLenderKey] = useState<string>(ALL_LENDERS);
+  const [pickerPage, setPickerPage] = useState(0);
+
+  // Market sort. Drives the /pools API (`sortBy`/`sortDir`) so each chain's
+  // rows arrive server-sorted, AND the picker's final cross-chain merge. Lifted
+  // here (rather than living in MarketPickerPage) so the sort dropdown can
+  // trigger a refetch. Seeded from the integrator props.
+  const [poolSortBy, setPoolSortBy] = useState<PoolSortBy>(
+    earnPoolsSortBy ?? 'totalDepositsUsd',
+  );
+  const [poolSortDir, setPoolSortDir] = useState<PoolSortDir>(
+    earnPoolsSortDir ?? 'DESC',
+  );
+
+  // Drop any consumer-supplied IDs that aren't in the mainnet whitelist —
+  // earn flows depend on 1delta indexing which is mainnet-only. Returning
+  // `undefined` (instead of `[]`) lets the SDK default kick in so the picker
+  // doesn't silently render zero markets.
+  const sanitizedEarnChainIds = useMemo(() => {
+    if (!earnChainIds) return undefined;
+    const ok = earnChainIds.filter((id) => EARN_MAINNET_CHAIN_IDS.has(id));
+    const dropped = earnChainIds.filter((id) => !EARN_MAINNET_CHAIN_IDS.has(id));
+    if (dropped.length) {
+      console.warn(
+        '[EpochIntentWidget] earnChainIds clamped to mainnet; dropped:',
+        dropped,
+      );
+    }
+    return ok.length ? ok : undefined;
+  }, [earnChainIds]);
+
+  // The chains the earn flow covers — used to scope the positions query (now
+  // decoupled from the pool page, which only loads one server page at a time).
+  const earnChainsCsv = useMemo(
+    () => (sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]).join(','),
+    [sanitizedEarnChainIds],
+  );
+
+  // Market picker data. When a 1delta proxy is wired (`api.positionsBaseUrl`):
+  // single-chain selection → server-paginated page. "All chains" selection →
+  // fan-out across the user-selected chain subset, merged + re-sorted on the
+  // client (upstream requires `chainId` per request). Without a proxy, fall
+  // back to client sort/filter/paginate over the bundled configs.
   const useLivePools = !!api.positionsBaseUrl;
-  const poolsState = useLendingPools({
+  const pickerEnabled = isOpen && view === 'selectMarket';
+
+  // "All chains" → the user-allowed subset (clamped to mainnet earn chains).
+  // Specific chain → single-element array. Either way the hook gets a list and
+  // decides single vs multi-call behavior.
+  const requestedChainIds = useMemo<number[]>(() => {
+    if (pickerChainId !== 'all') return [pickerChainId];
+    return sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS];
+  }, [pickerChainId, sanitizedEarnChainIds]);
+
+  // Lender axis. `earnLenderFilter` is a CSV (multi-select from the consumer).
+  // The picker's single-select dropdown overrides when set; ALL_LENDERS falls
+  // back to the consumer's CSV. Empty → no `lender` filter at all.
+  const requestedLenders = useMemo<string[]>(() => {
+    if (pickerLenderKey !== ALL_LENDERS) return [pickerLenderKey];
+    if (!earnLenderFilter) return [];
+    return earnLenderFilter
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [pickerLenderKey, earnLenderFilter]);
+
+  const poolsPage = useLendingPoolsPage({
     api,
-    enabled: isOpen && useLivePools,
-    chainIds: earnChainIds,
-    lender: earnLenderFilter,
-    count: earnPoolsPerChain,
-    sortBy: earnPoolsSortBy,
-    sortDir: earnPoolsSortDir,
+    enabled: pickerEnabled && useLivePools,
+    chainIds: requestedChainIds,
+    lenders: requestedLenders,
+    sortBy: poolSortBy,
+    sortDir: poolSortDir,
+    start: pickerPage * MARKETS_PAGE_SIZE,
+    count: MARKETS_PAGE_SIZE,
+    // NOTE: `minTvlUsd`, `maxRiskScore`, `minUtil`, `maxUtil` are intentionally
+    // omitted — pinning them upstream caused issues on the 1delta side. Re-add
+    // once the upstream behavior is stable.
   });
+
   const staticConfigsState = useEarnConfigs({
     enabled: isOpen && !useLivePools,
     source: earnMarketsSource,
   });
-  const configsState = useLivePools ? poolsState : staticConfigsState;
+  const staticRowsAll = useMemo(
+    () => (useLivePools ? [] : configsToRows(staticConfigsState.configs)),
+    [useLivePools, staticConfigsState.configs],
+  );
+  const staticPage = useMemo(
+    () =>
+      clientPage(staticRowsAll, {
+        chainId: pickerChainId === 'all' ? undefined : pickerChainId,
+        lender: pickerLenderKey === ALL_LENDERS ? undefined : pickerLenderKey,
+        sortBy: poolSortBy,
+        sortDir: poolSortDir,
+        page: pickerPage,
+      }),
+    [staticRowsAll, pickerChainId, pickerLenderKey, poolSortBy, poolSortDir, pickerPage],
+  );
+
+  const picker = useLivePools
+    ? {
+        rows: poolsPage.rows,
+        hasMore: poolsPage.hasMore,
+        isLoading: poolsPage.isLoading,
+        error: poolsPage.error,
+      }
+    : {
+        rows: staticPage.rows,
+        hasMore: staticPage.hasMore,
+        isLoading: staticConfigsState.isLoading,
+        error: staticConfigsState.error,
+      };
+
+  // Lender keys to surface in the picker's lender dropdown. Combines (a) the
+  // consumer scope from `earnLenderFilter` (deterministic, doesn't shift as
+  // pages change) with (b) lender families observed in the currently loaded
+  // rows (covers anything not pre-declared by the consumer). Empty array →
+  // picker falls back to its bundled `FAMILY_DISPLAY` list.
+  const availableLenders = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    if (earnLenderFilter) {
+      for (const k of earnLenderFilter.split(',')) {
+        const trimmed = k.trim();
+        if (trimmed) set.add(trimmed);
+      }
+    }
+    for (const r of picker.rows) {
+      const fam = r.config.lenderFamily ?? r.config.lenderKey;
+      if (fam) set.add(fam);
+    }
+    return [...set];
+  }, [earnLenderFilter, picker.rows]);
+
   // legacy: callers passing `earnMarkets` directly still see them — we render
   // the configs picker but the deprecated prop is accepted for back-compat.
   void earnMarketsProp;
+  void earnPoolsPerChain;
 
   const positionsState = useUserPositions({
     address,
     network: 'mainnet',
     api,
-    // Only fetch positions while the Withdraw tab is active — deposit flow
-    // never reads them, so skip the request on first open / deposit usage.
-    enabled: isOpen && isConnected && earnTab === 'withdraw',
-    configs: configsState.configs,
-    // Empty filter ⇒ pass undefined so the hook falls back to the derived
-    // all-chains CSV instead of treating "" as a literal chain CSV.
-    chainsOverride: positionsChainId || undefined,
+    // Only fetch positions while the Withdraw tab is active AND the user is
+    // on the main list view — skips the request on deposit usage and
+    // prevents a refetch when the user enters the withdraw detail view.
+    enabled: isOpen && isConnected && earnTab === 'withdraw' && view === 'main',
+    // Scope to the earn chains directly — no longer derived from a full pool
+    // config set (the picker is now server-paginated). Empty user filter ⇒
+    // fall back to the all-chains CSV.
+    chainsOverride: positionsChainId || earnChainsCsv,
     lendersOverride: positionsLenderKey,
   });
 
@@ -689,11 +833,33 @@ export function EarnIntentWidget({
         headerAction={headerAction}
       >
         <MarketPickerPage
-          configs={configsState.configs}
+          rows={picker.rows}
           selectedId={earnSelectedMarket?.id}
-          isLoading={configsState.isLoading}
-          error={configsState.error}
-          sourceChainId={selectedChainId}
+          isLoading={picker.isLoading}
+          error={picker.error}
+          chainFilter={pickerChainId}
+          onChainChange={(c) => {
+            setPickerChainId(c);
+            setPickerPage(0);
+          }}
+          lenderFilter={pickerLenderKey}
+          onLenderChange={(l) => {
+            setPickerLenderKey(l);
+            setPickerPage(0);
+          }}
+          sortBy={poolSortBy}
+          sortDir={poolSortDir}
+          onSortChange={(by, dir) => {
+            setPoolSortBy(by);
+            setPoolSortDir(dir);
+            setPickerPage(0);
+          }}
+          page={pickerPage}
+          hasMore={picker.hasMore}
+          onPrev={() => setPickerPage((p) => Math.max(0, p - 1))}
+          onNext={() => setPickerPage((p) => p + 1)}
+          availableChainIds={sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]}
+          availableLenders={availableLenders}
           onSelect={(m) => {
             setEarnSelectedMarket(m);
             setView('main');

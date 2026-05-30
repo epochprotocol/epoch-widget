@@ -168,12 +168,6 @@ export interface EpochIntentWidgetProps {
    */
   defaultSourceTokenAddress?: `0x${string}`;
   /**
-   * Render the source-token pill as a read-only chip — no chevron, no
-   * click handler, no token picker route. Use with `defaultSourceChainId`
-   * + `defaultSourceTokenAddress` to pin the source side entirely.
-   */
-  lockSourceToken?: boolean;
-  /**
    * Pay-mode only. Render the destination-token pill as a clickable picker.
    * Default `true` — destination stays pinned to whatever the integrator
    * passed in `intent.requiredToken`. When `false`, the user can pick any

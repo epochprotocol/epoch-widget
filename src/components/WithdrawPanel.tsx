@@ -1,3 +1,4 @@
+import { SECTION_LABEL } from '../lib/styles';
 import type { EpochEarnPosition } from '../types';
 import { Banner } from './Banner';
 import { PositionRow } from './PositionRow';
@@ -37,8 +38,6 @@ interface Props {
   onLenderFilterChange: (v: string) => void;
 }
 
-const SECTION_LABEL_CLASSES =
-  'text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted';
 
 export function WithdrawPanel({
   positions,
@@ -56,7 +55,7 @@ export function WithdrawPanel({
 
   const headerRow = (
     <div className="mb-3 flex items-center justify-between gap-2">
-      <span className={SECTION_LABEL_CLASSES}>
+      <span className={SECTION_LABEL}>
         Your positions
         {!isLoading && positionsCount > 0 && (
           <span className="ml-1.5 normal-case tracking-normal text-fg-muted/80">

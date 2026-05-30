@@ -69,7 +69,6 @@ export type PaySwapIntentWidgetProps = Pick<
   | "sourceTokenFilter"
   | "defaultSourceChainId"
   | "defaultSourceTokenAddress"
-  | "lockSourceToken"
   | "lockDestinationToken"
   | "ctaLabels"
   | "usdPriceFor"
@@ -110,7 +109,6 @@ export function PaySwapIntentWidget({
   sourceTokenFilter,
   defaultSourceChainId,
   defaultSourceTokenAddress,
-  lockSourceToken = false,
   lockDestinationToken: lockDestinationTokenProp = true,
   ctaLabels,
   usdPriceFor,
@@ -729,8 +727,8 @@ export function PaySwapIntentWidget({
         tokenLogoURI={pillToken.logoURI}
         chainName={pillChain.name}
         chainLogoURI={pillChain.logoURI}
-        onClick={lockSourceToken ? undefined : () => setView("selectToken")}
-        ariaLabel={lockSourceToken ? undefined : "Change source token"}
+        onClick={() => setView("selectToken")}
+        ariaLabel="Change source token"
       />
     ) : undefined;
 

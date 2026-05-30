@@ -31,7 +31,7 @@ const OVERLAY_CLASSES =
   'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-overlay backdrop-blur-md animate-overlay-in';
 
 const CONTAINER_CLASSES =
-  'flex w-full max-w-[420px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
+  'flex w-full max-w-[480px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
 
 const HEADER_CLASSES = 'flex items-center justify-between px-6 pt-5 pb-3';
 

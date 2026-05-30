@@ -60,7 +60,7 @@ export function TokenAvatar({ src, symbol, size = 32, chainSrc, chainAlt, style 
       </span>
       {chainSrc ? (
         <span
-          className="absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border-[1.5px] border-canvas bg-canvas shadow-[0_0_0_1px_var(--epoch-color-border)]"
+          className="absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border-2 border-canvas bg-canvas"
           style={badgeStyle}
         >
           <img
@@ -68,7 +68,7 @@ export function TokenAvatar({ src, symbol, size = 32, chainSrc, chainAlt, style 
             alt={chainAlt ?? 'chain'}
             width={badgeSize}
             height={badgeSize}
-            className="block"
+            className="block h-full w-full object-cover"
           />
         </span>
       ) : null}

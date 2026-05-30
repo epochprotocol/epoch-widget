@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
+import { SECTION_LABEL } from '../lib/styles';
 import { formatAmount, formatBalancePortionForInput } from '../utils';
 import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
 import type { EpochEarnPosition } from '../types';
@@ -36,8 +37,6 @@ const FRACTIONS: { label: string; num: number; den: number; isMax: boolean }[] =
   { label: 'Max', num: 1,  den: 1,   isMax: true  },
 ];
 
-const SECTION_LABEL_CLASSES =
-  'text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted';
 const FRACTION_CHIP_CLASSES =
   'cursor-pointer rounded-full border border-line bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-fg-secondary transition-[background-color,border-color,color,transform] duration-100 hover:border-primary hover:text-primary active:scale-[0.96]';
 
@@ -126,7 +125,7 @@ export function WithdrawDetailPanel({
         )}
       >
         <div className="mb-2 flex items-start justify-between gap-3">
-          <span className={SECTION_LABEL_CLASSES}>Amount</span>
+          <span className={SECTION_LABEL}>Amount</span>
           <TokenChainBadge
             tokenSymbol={market.token.symbol}
             tokenLogoURI={market.token.logoURI}
@@ -230,7 +229,7 @@ function FromCard({
   const inner = (
     <>
       <div className="mb-2">
-        <span className={SECTION_LABEL_CLASSES}>From</span>
+        <span className={SECTION_LABEL}>From</span>
       </div>
       <div className="flex items-center gap-3">
         <Avatar src={tokenLogoURI} label={tokenSymbol} size={40} />
@@ -361,7 +360,7 @@ function SmartWithdrawToggle({
 function LabeledPicker({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <span className={SECTION_LABEL_CLASSES}>{label}</span>
+      <span className={SECTION_LABEL}>{label}</span>
       {children}
     </div>
   );

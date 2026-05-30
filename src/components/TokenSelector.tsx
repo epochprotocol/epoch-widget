@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { cn } from '../lib/cn';
 import type { EpochChain, EpochToken } from '../types';
 import { Avatar } from './Avatar';
-import { CheckIcon, ChevronLeftIcon, CloseIcon, SearchIcon } from './Icons';
+import { CheckIcon, CloseIcon, SearchIcon } from './Icons';
 
 export interface TokenWithChain extends EpochToken {
   chain: EpochChain;
@@ -36,7 +36,6 @@ export function TokenSelector({
   selectedTokenAddress,
   selectedChainId,
   onSelect,
-  onBack,
 }: TokenSelectorProps) {
   const [query, setQuery] = useState('');
   const [chainFilter, setChainFilter] = useState<number | null>(null);
@@ -71,18 +70,6 @@ export function TokenSelector({
 
   return (
     <div className="flex h-[440px] flex-col">
-      <div className="mb-3.5 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back"
-          className="flex h-7.5 w-7.5 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg transition-colors duration-150 hover:bg-surface"
-        >
-          <ChevronLeftIcon width={18} height={18} />
-        </button>
-        <h3 className="m-0 text-base font-semibold text-fg">Select Token</h3>
-      </div>
-
       <div className="mb-2.5 flex items-center gap-2.5 rounded-sm border-[1.5px] border-line bg-canvas px-3.5 py-2.5 transition-colors duration-150 focus-within:border-primary">
         <SearchIcon />
         <input

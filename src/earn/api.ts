@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   fetchLendingPools,
+  fetchLendingPoolsPage,
+  fetchLendingPoolsPageMulti,
   fetchUserPositions,
   flattenConfigsToMarkets,
   HARDCODED_ONEDELTA_CONFIGS,
+} from '@epoch-protocol/epoch-flows-sdk';
+import type {
+  EarnMarketRow,
+  PoolSortBy,
+  PoolSortDir,
 } from '@epoch-protocol/epoch-flows-sdk';
 import type {
   ApiConfig,
@@ -95,11 +102,161 @@ export function useEarnMarkets(opts: {
   return state;
 }
 
+interface PoolsPageState {
+  rows: EarnMarketRow[];
+  hasMore: boolean;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+/**
+ * Server-side sorted + paginated market page. Single chain → one `/pools`
+ * request (multi-lender collapses to `lender=CSV`, which upstream accepts).
+ * Multi-chain → `fetchLendingPoolsPageMulti` fans out one request per chain,
+ * each carrying the same `lender=CSV`, then merges + client-side re-sorts.
+ * Optional filter params (`minTvlUsd`, `maxRiskScore`, `minUtil`, `maxUtil`)
+ * are forwarded so cross-chain comparison is consistent.
+ */
+export function useLendingPoolsPage(opts: {
+  api: ApiConfig;
+  enabled?: boolean;
+  /** Chains to query. 1 → single request. N → fan-out + client merge. */
+  chainIds: number[];
+  /**
+   * Lenders to query. Empty → no `lender` filter (upstream returns all).
+   * Multi-element → joined as `lender=CSV` (one upstream call per chain).
+   */
+  lenders?: string[];
+  sortBy: PoolSortBy;
+  sortDir: PoolSortDir;
+  start: number;
+  count: number;
+  minTvlUsd?: number;
+  maxRiskScore?: number;
+  minUtil?: number;
+  maxUtil?: number;
+}): PoolsPageState {
+  const {
+    api,
+    enabled = true,
+    chainIds,
+    lenders,
+    sortBy,
+    sortDir,
+    start,
+    count,
+    minTvlUsd,
+    maxRiskScore,
+    minUtil,
+    maxUtil,
+  } = opts;
+  const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
+  // Stable keys so the effect doesn't refetch on array-identity churn alone.
+  const chainIdsKey = chainIds.join(',');
+  const lendersKey = (lenders ?? []).join(',');
+
+  const [state, setState] = useState<PoolsPageState>({
+    rows: [],
+    hasMore: false,
+    isLoading: !!positionsBaseUrl && enabled && chainIds.length > 0,
+    error: null,
+  });
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!enabled || !positionsBaseUrl || chainIds.length === 0) {
+      setState({ rows: [], hasMore: false, isLoading: false, error: null });
+      return;
+    }
+    const id = ++reqIdRef.current;
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    const controller = new AbortController();
+    let cancelled = false;
+    const parsedChainIds = chainIdsKey
+      .split(',')
+      .map((s) => Number(s))
+      .filter(Number.isFinite);
+    const parsedLenders = lendersKey ? lendersKey.split(',').filter(Boolean) : [];
+    // Upstream accepts `lender=CSV` so multi-lender stays a single request per
+    // chain. Multi-chain still requires fan-out (chainId is required + single).
+    const lenderCsv = parsedLenders.length ? parsedLenders.join(',') : undefined;
+
+    const promise =
+      parsedChainIds.length > 1
+        ? fetchLendingPoolsPageMulti({
+            positionsBaseUrl,
+            chainIds: parsedChainIds,
+            lenders: parsedLenders.length ? parsedLenders : undefined,
+            sortBy,
+            sortDir,
+            start,
+            count,
+            minTvlUsd,
+            maxRiskScore,
+            minUtil,
+            maxUtil,
+            signal: controller.signal,
+          })
+        : fetchLendingPoolsPage({
+            positionsBaseUrl,
+            chainId: parsedChainIds[0],
+            lender: lenderCsv,
+            sortBy,
+            sortDir,
+            start,
+            count,
+            minTvlUsd,
+            maxRiskScore,
+            minUtil,
+            maxUtil,
+            signal: controller.signal,
+          });
+
+    promise
+      .then(({ rows, hasMore }) => {
+        if (cancelled || id !== reqIdRef.current) return;
+        setState({ rows, hasMore, isLoading: false, error: null });
+      })
+      .catch((err) => {
+        if (cancelled || id !== reqIdRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setState({
+          rows: [],
+          hasMore: false,
+          isLoading: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    positionsBaseUrl,
+    enabled,
+    chainIdsKey,
+    lendersKey,
+    sortBy,
+    sortDir,
+    start,
+    count,
+    minTvlUsd,
+    maxRiskScore,
+    minUtil,
+    maxUtil,
+  ]);
+
+  return state;
+}
+
 const DEFAULT_POOL_CHAIN_IDS = [1, 8453, 42161, 10, 137];
 
 /**
- * Fetch lending pools via the SDK `fetchLendingPools` fan-out fetcher,
- * grouped into `OneDeltaConfig[]` buckets. Falls back to the bundled
+ * Fetch lending pools via the SDK `fetchLendingPools` fetcher — fans out one
+ * `/pools?chainId=…` request per chain in parallel (Promise.allSettled), so a
+ * single chain failure doesn't blank the picker. Falls back to the bundled
  * `HARDCODED_ONEDELTA_CONFIGS` when no proxy base URL is configured.
  */
 export function useLendingPools(opts: {
@@ -121,9 +278,9 @@ export function useLendingPools(opts: {
     enabled = true,
     chainIds = DEFAULT_POOL_CHAIN_IDS,
     lender,
-    sortBy = 'totalDepositsUsd',
-    sortDir = 'DESC',
-    count = 100,
+    sortBy,
+    sortDir,
+    count,
   } = opts;
   const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
   const chainsKey = chainIds.join(',');
@@ -155,7 +312,7 @@ export function useLendingPools(opts: {
 
     const run = async () => {
       try {
-        const { configs, failures } = await fetchLendingPools({
+        const { configs } = await fetchLendingPools({
           positionsBaseUrl,
           chainIds: chains,
           lender,
@@ -165,11 +322,6 @@ export function useLendingPools(opts: {
           signal: controller.signal,
         });
         if (cancelled || id !== reqIdRef.current) return;
-        if (configs.length === 0 && failures.length > 0) {
-          throw new Error(
-            failures.map((f) => `chain ${f.chainId}: ${f.error}`).join('; '),
-          );
-        }
         setState({ configs, isLoading: false, error: null });
       } catch (err) {
         if (cancelled || id !== reqIdRef.current) return;

@@ -1,197 +1,301 @@
-import { useMemo, useState } from 'react';
-import { cn } from '../lib/cn';
-import type { EpochEarnMarket, OneDeltaConfig, OneDeltaMarketRow } from '../types';
-import { toEpochEarnMarket } from '../earn/onedelta-adapter';
-import { MarketRowCard } from './earn/MarketRowCard';
-import { FilterDropdown, type FilterOption } from './ui/FilterDropdown';
-import { SearchInput } from './ui/SearchInput';
-import { Skeleton } from './ui/Skeleton';
+import { useMemo, useState } from "react";
+import { getEpochChainById } from "../epoch-config";
+import { SECTION_LABEL } from "../lib/styles";
+import type {
+  EarnMarketRow,
+  PoolSortBy,
+  PoolSortDir,
+} from "@epoch-protocol/epoch-flows-sdk";
+import type {
+  EpochEarnMarket,
+  OneDeltaConfig,
+  OneDeltaMarketRow,
+} from "../types";
+import { MarketRowCard } from "./earn/MarketRowCard";
+import { ArrowDownUpIcon } from "./Icons";
+import { FilterDropdown, type FilterOption } from "./ui/FilterDropdown";
+import { SearchInput } from "./ui/SearchInput";
+import { Skeleton } from "./ui/Skeleton";
 
-interface FlatRow {
-  config: OneDeltaConfig;
-  row: OneDeltaMarketRow;
-  market: EpochEarnMarket;
-}
+export const ALL_LENDERS = "__all__";
+export const ALL_CHAINS = "__all__";
 
 interface Props {
-  configs: OneDeltaConfig[];
+  /**
+   * Current page of markets, in the order the server returned them. The parent
+   * owns sort, chain/lender filtering, and pagination — this component does NOT
+   * re-sort, re-filter (except the page-local text search), or slice.
+   */
+  rows: EarnMarketRow[];
   selectedId?: string;
   isLoading: boolean;
   error: Error | null;
-  onSelect: (market: EpochEarnMarket, row: OneDeltaMarketRow, config: OneDeltaConfig) => void;
-  pageSize?: number;
-  /** When set, markets on this chain bubble to the top of the list. */
-  sourceChainId?: number | null;
+  onSelect: (
+    market: EpochEarnMarket,
+    row: OneDeltaMarketRow,
+    config: OneDeltaConfig,
+  ) => void;
+
+  /** Chain filter — forwarded to the API as `chainId` (or all). */
+  chainFilter: number | "all";
+  onChainChange: (chainId: number | "all") => void;
+
+  /** Lender family filter — forwarded to the API as `lender` (or all). */
+  lenderFilter: string;
+  onLenderChange: (lender: string) => void;
+
+  /** Sort — forwarded to the API as `sortBy`/`sortDir`. */
+  sortBy: PoolSortBy;
+  sortDir: PoolSortDir;
+  onSortChange: (sortBy: PoolSortBy, sortDir: PoolSortDir) => void;
+
+  /** Server-side pagination (load-more / next-only — no total available). */
+  page: number;
+  hasMore: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  /**
+   * Subset of chains the parent will actually query. Drives the chain
+   * dropdown options and the "All chains" / "All selected chains" label.
+   * Defaults to the full mainnet earn set when omitted.
+   */
+  availableChainIds?: number[];
+  /**
+   * Lender keys the parent will surface in the lender dropdown. Typically the
+   * union of (a) consumer scope from `earnLenderFilter` and (b) lenders
+   * observed in the current page rows — so the dropdown reflects what's
+   * actually fetchable. Omit → falls back to the bundled `FAMILY_DISPLAY`.
+   */
+  availableLenders?: string[];
 }
 
-const ALL_LENDERS = '__all__';
-const FAMILY_DISPLAY: Record<string, string> = {
-  AAVE: 'Aave',
-  AAVE_V2: 'Aave V2',
-  AAVE_V3: 'Aave V3',
-  AAVE_V3_PRIME: 'Aave V3 Prime',
-  COMPOUND: 'Compound',
-  MORPHO: 'Morpho',
-  FLUID: 'Fluid',
-  EULER: 'Euler',
-  SPARK: 'Spark',
-  VENUS: 'Venus',
-  YLDR: 'YLDR',
+// Default mainnet earn universe — used when the parent doesn't narrow the
+// chain set. Kept in sync with EarnIntentWidget.EARN_MAINNET_CHAIN_IDS.
+const DEFAULT_CHAIN_IDS = [1, 8453, 42161, 10, 137];
+const CHAIN_DOT: Record<number, string> = {
+  1: "#627eea",
+  8453: "#0052ff",
+  42161: "#28a0f0",
+  10: "#ff0420",
+  137: "#8247e5",
 };
+
+// Known lender families with pretty labels. Used as a fallback when the
+// consumer doesn't supply `availableLenders` and as the display lookup for
+// known keys. Granular keys (e.g. `MORPHO_BLUE`, `AAVE_V3_PRIME`) fall through
+// to `prettifyLender` below.
+const FAMILY_DISPLAY: Record<string, string> = {
+  AAVE_V3: "Aave V3",
+  AAVE_V2: "Aave V2",
+  COMPOUND: "Compound",
+  MORPHO: "Morpho",
+  FLUID: "Fluid",
+  EULER: "Euler",
+  SPARK: "Spark",
+  VENUS: "Venus",
+  YLDR: "YLDR",
+};
+
+// Segments kept upper-case in pretty labels so tickers / version suffixes
+// don't get title-cased into garbage (USDC → Usdc, V3 → V3).
+const KEEP_UPPER_LENDER_SEG = new Set([
+  "LP", "PT", "RWA", "LST", "LRTS", "DAO",
+  "USDC", "USDT", "USDS", "USDE", "USDA", "USDX", "USDBC", "USDCE", "PYUSD", "GHO", "DAI",
+  "ETH", "WETH", "CMETH", "METH", "WSTETH",
+  "BTC", "WBTC", "LBTC", "EBTC", "UBTC", "OBTC", "STBTC", "CBBTC", "FBTC",
+  "SOLVBTC", "SWELLBTC", "PUMPBTC", "UNIBTC", "LSTBTC",
+  "BNB", "MNT", "WMNT", "AERO", "WRON", "BOB", "XAUM",
+  "SUSDE", "SOLV", "BEETS", "LISTA", "UNIIOTX", "VENO", "SKAIA", "EDEL",
+  "CROAK", "FOXY", "ATROPA", "LORENZO", "TRON", "CURVE",
+]);
+
+function prettifyLender(key: string): string {
+  if (FAMILY_DISPLAY[key]) return FAMILY_DISPLAY[key];
+  return key
+    .split("_")
+    .map((seg) => {
+      if (KEEP_UPPER_LENDER_SEG.has(seg)) return seg;
+      if (/^V\d+$/i.test(seg)) return seg.toUpperCase();
+      return seg.charAt(0) + seg.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+const FAMILY_DOT: Record<string, string> = {
+  AAVE_V3: "#b6509e",
+  AAVE_V2: "#b6509e",
+  COMPOUND: "#00d395",
+  MORPHO: "#2b5cff",
+  FLUID: "#36b6ff",
+  EULER: "#4d9aff",
+  SPARK: "#ffaa00",
+  VENUS: "#f6c344",
+  YLDR: "#ffb547",
+};
+const ALL_GRADIENT = "linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)";
+
+const SORT_OPTIONS: FilterOption[] = [
+  { value: "apr_desc", label: "Highest APY", featured: true },
+  { value: "tvl_desc", label: "Highest TVL", featured: true },
+  { value: "apr_asc", label: "Lowest APY" },
+  { value: "tvl_asc", label: "Lowest TVL" },
+];
+
+// Dropdown value ⇄ API (sortBy, sortDir). Only APY / TVL are surfaced.
+const SORT_VALUE_TO_PARAMS: Record<
+  string,
+  { sortBy: PoolSortBy; sortDir: PoolSortDir }
+> = {
+  apr_desc: { sortBy: "depositRate", sortDir: "DESC" },
+  apr_asc: { sortBy: "depositRate", sortDir: "ASC" },
+  tvl_desc: { sortBy: "totalDepositsUsd", sortDir: "DESC" },
+  tvl_asc: { sortBy: "totalDepositsUsd", sortDir: "ASC" },
+};
+
+function paramsToSortValue(sortBy: PoolSortBy, sortDir: PoolSortDir): string {
+  const field = sortBy === "depositRate" ? "apr" : "tvl";
+  return `${field}_${sortDir === "ASC" ? "asc" : "desc"}`;
+}
+
+const PAGER_BTN =
+  "cursor-pointer rounded-full border border-line bg-surface px-3 py-1 text-[12px] font-semibold text-fg-secondary transition-colors duration-150 hover:border-line-strong hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-fg-secondary";
 
 function familyOf(cfg: OneDeltaConfig): string {
   return cfg.lenderFamily ?? cfg.lenderKey;
 }
 
-function familyLabel(family: string): string {
-  // Always prefer the family-level label — bucket labels are per-market
-  // (e.g. "Morpho wstETH-USDT 86") and would flood the dropdown.
-  return FAMILY_DISPLAY[family] ?? family.replace(/_/g, ' ');
-}
-
-function flatten(configs: OneDeltaConfig[]): FlatRow[] {
-  const out: FlatRow[] = [];
-  for (const cfg of configs) {
-    for (const row of cfg.collaterals) {
-      out.push({ config: cfg, row, market: toEpochEarnMarket(row, cfg, 'lend') });
-    }
-  }
-  const seen = new Set<string>();
-  return out.filter((x) => (seen.has(x.market.id) ? false : (seen.add(x.market.id), true)));
-}
-
-function rowMatches(item: FlatRow, query: string): boolean {
+// Page-local text search — filters only the rows already on screen (the API
+// exposes no free-text search param, so this can't reach other pages).
+function rowMatches(item: EarnMarketRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const a = item.row.underlyingInfo.asset;
-  const family = familyOf(item.config);
-  return `${a.symbol} ${a.name} ${family} ${item.config.label}`
+  return `${a.symbol} ${a.name} ${familyOf(item.config)} ${item.config.label}`
     .toLowerCase()
     .includes(q);
 }
 
-function sortByRate(items: FlatRow[], sourceChainId?: number | null): FlatRow[] {
-  return [...items].sort((a, b) => {
-    if (sourceChainId != null) {
-      const aSame = a.market.chainId === sourceChainId ? 0 : 1;
-      const bSame = b.market.chainId === sourceChainId ? 0 : 1;
-      if (aSame !== bSame) return aSame - bSame;
-    }
-    return b.row.depositRate - a.row.depositRate;
-  });
-}
-
-const FAMILY_DOT: Record<string, string> = {
-  AAVE: '#b6509e',
-  AAVE_V2: '#b6509e',
-  AAVE_V3: '#b6509e',
-  AAVE_V3_PRIME: '#b6509e',
-  COMPOUND: '#00d395',
-  MORPHO: '#2b5cff',
-  FLUID: '#36b6ff',
-  EULER: '#4d9aff',
-  SPARK: '#ffaa00',
-  VENUS: '#f6c344',
-  YLDR: '#ffb547',
-};
-
-function familyDot(family: string): string {
-  return FAMILY_DOT[family] ?? 'var(--epoch-color-primary)';
-}
-
-const ALL_GRADIENT = 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)';
-
 export function MarketPickerPage({
-  configs,
+  rows,
   selectedId,
   isLoading,
   error,
   onSelect,
-  pageSize = 20,
-  sourceChainId,
+  chainFilter,
+  onChainChange,
+  lenderFilter,
+  onLenderChange,
+  sortBy,
+  sortDir,
+  onSortChange,
+  page,
+  hasMore,
+  onPrev,
+  onNext,
+  availableChainIds,
+  availableLenders,
 }: Props) {
-  const [query, setQuery] = useState('');
-  const [lenderKey, setLenderKey] = useState<string>(ALL_LENDERS);
-  const [page, setPage] = useState(0);
+  const [query, setQuery] = useState("");
 
-  // Dedupe by family + count rows per family so the dropdown can surface a
-  // tally chip — Morpho buckets each market under its own `MORPHO_BLUE_<hash>`
-  // key, so without this we'd flood the menu with one entry per market.
-  const { lenderOptions, totalMarkets } = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const c of configs) {
-      const fam = familyOf(c);
-      counts.set(fam, (counts.get(fam) ?? 0) + c.collaterals.length);
-    }
-    const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
-    const sorted = Array.from(counts.keys()).sort((a, b) =>
-      familyLabel(a).toLowerCase().localeCompare(familyLabel(b).toLowerCase()),
-    );
-    const options: FilterOption[] = [
-      {
-        value: ALL_LENDERS,
-        label: 'All lenders',
-        count: total,
-        dotBackground: ALL_GRADIENT,
-      },
-      ...sorted.map((k) => ({
-        value: k,
-        label: familyLabel(k),
-        count: counts.get(k) ?? 0,
-        dotColor: familyDot(k),
+  const chainIdsForOptions = availableChainIds ?? DEFAULT_CHAIN_IDS;
+  // When the consumer narrowed the chain set, "All chains" actually means
+  // "all the chains the consumer allows" — relabel so the scope is obvious.
+  const allChainsLabel =
+    chainIdsForOptions.length < DEFAULT_CHAIN_IDS.length
+      ? "All selected chains"
+      : "All chains";
+
+  const chainOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: ALL_CHAINS, label: allChainsLabel, dotBackground: ALL_GRADIENT },
+      ...chainIdsForOptions.map((id) => ({
+        value: String(id),
+        label: getEpochChainById(id)?.name ?? `Chain ${id}`,
+        dotColor: CHAIN_DOT[id] ?? "var(--epoch-color-primary)",
       })),
-    ];
-    return { lenderOptions: options, totalMarkets: total };
-  }, [configs]);
-  void totalMarkets;
+    ],
+    [allChainsLabel, chainIdsForOptions],
+  );
 
-  const filtered = useMemo(() => {
-    const all = flatten(configs);
-    return sortByRate(
-      all.filter(
-        (item) =>
-          rowMatches(item, query) &&
-          (lenderKey === ALL_LENDERS || familyOf(item.config) === lenderKey),
-      ),
-      sourceChainId,
+  const lenderKeysForOptions = useMemo(() => {
+    const source =
+      availableLenders && availableLenders.length > 0
+        ? availableLenders
+        : Object.keys(FAMILY_DISPLAY);
+    // Sort by pretty label so the dropdown reads alphabetically regardless of
+    // the source order (consumer CSV / API response order is arbitrary).
+    return [...source].sort((a, b) =>
+      prettifyLender(a).localeCompare(prettifyLender(b)),
     );
-  }, [configs, query, lenderKey, sourceChainId]);
+  }, [availableLenders]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, totalPages - 1);
-  const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const lenderOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: ALL_LENDERS, label: "All lenders", dotBackground: ALL_GRADIENT },
+      ...lenderKeysForOptions.map((key) => ({
+        value: key,
+        label: prettifyLender(key),
+        dotColor: FAMILY_DOT[key] ?? "var(--epoch-color-primary)",
+      })),
+    ],
+    [lenderKeysForOptions],
+  );
+
+  const chainKey = chainFilter === "all" ? ALL_CHAINS : String(chainFilter);
+  const visible = useMemo(
+    () => rows.filter((item) => rowMatches(item, query)),
+    [rows, query],
+  );
 
   if (error) {
-    return <p className="m-0 text-[13px] text-error">Failed to load markets: {error.message}</p>;
+    return (
+      <p className="m-0 text-[13px] text-error">
+        Failed to load markets: {error.message}
+      </p>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <SearchInput
         value={query}
-        onChange={(v) => {
-          setQuery(v);
-          setPage(0);
-        }}
-        placeholder="Filter markets"
+        onChange={setQuery}
+        placeholder="Filter markets on this page"
         autoFocus
-        ariaLabel="Filter markets"
+        ariaLabel="Filter markets on this page"
       />
 
       <div className="flex flex-wrap items-center gap-2">
         <FilterDropdown
+          ariaLabel="Filter markets by chain"
+          value={chainKey}
+          onChange={(v) => onChainChange(v === ALL_CHAINS ? "all" : Number(v))}
+          options={chainOptions}
+          defaultMuted
+        />
+        <FilterDropdown
           ariaLabel="Filter markets by lender"
-          value={lenderKey}
-          onChange={(v) => {
-            setLenderKey(v);
-            setPage(0);
-          }}
+          value={lenderFilter || ALL_LENDERS}
+          onChange={(v) => onLenderChange(v === ALL_LENDERS ? ALL_LENDERS : v)}
           options={lenderOptions}
+          defaultMuted
         />
       </div>
 
-      <div className="mt-3.5 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
-        Available markets
+      <div className="flex items-center justify-between gap-2">
+        <span className={SECTION_LABEL}>Available markets</span>
+        <FilterDropdown
+          ariaLabel="Sort markets"
+          align="end"
+          variant="sort"
+          size="sm"
+          leadingIcon={<ArrowDownUpIcon />}
+          value={paramsToSortValue(sortBy, sortDir)}
+          onChange={(v) => {
+            const p = SORT_VALUE_TO_PARAMS[v];
+            if (p) onSortChange(p.sortBy, p.sortDir);
+          }}
+          options={SORT_OPTIONS}
+        />
       </div>
 
       {isLoading ? (
@@ -200,11 +304,15 @@ export function MarketPickerPage({
           <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
           <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="my-3 text-[13px] text-fg-muted">No markets match your search.</p>
+      ) : visible.length === 0 ? (
+        <p className="my-3 text-[13px] text-fg-muted">
+          {query.trim()
+            ? "No markets on this page match your search."
+            : "No markets found."}
+        </p>
       ) : (
-        <div className="flex max-h-[460px] flex-col overflow-x-hidden overflow-y-auto">
-          {pageItems.map((item) => (
+        <div className="flex flex-col overflow-x-hidden">
+          {visible.map((item) => (
             <MarketRowCard
               key={item.market.id}
               row={item.row}
@@ -217,33 +325,28 @@ export function MarketPickerPage({
         </div>
       )}
 
-      {!isLoading && filtered.length > 0 && (
-        <div className="mt-1 flex items-center justify-between border-t border-line pt-3 text-[12.5px] text-fg-muted">
+      {!isLoading && (page > 0 || hasMore || visible.length > 0) && (
+        <div className="mt-1 flex items-center justify-between gap-2 border-t border-line pt-3 text-[12.5px] text-fg-muted">
           <span>
-            Showing {filtered.length} market{filtered.length === 1 ? '' : 's'} · Page {currentPage + 1} of {totalPages}
+            {visible.length} market{visible.length === 1 ? "" : "s"} on this page
           </span>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className={cn(
-                'border-0 bg-transparent p-0 font-semibold',
-                currentPage === 0 ? 'cursor-not-allowed text-fg-muted opacity-50' : 'cursor-pointer text-fg',
-              )}
-              disabled={currentPage === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              className={PAGER_BTN}
+              disabled={page === 0}
+              onClick={onPrev}
+              aria-label="Previous page"
             >
-              Previous
+              Prev
             </button>
+            <span className="tabular-nums">Page {page + 1}</span>
             <button
               type="button"
-              className={cn(
-                'border-0 bg-transparent p-0 font-semibold',
-                currentPage >= totalPages - 1
-                  ? 'cursor-not-allowed text-fg-muted opacity-50'
-                  : 'cursor-pointer text-fg',
-              )}
-              disabled={currentPage >= totalPages - 1}
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              className={PAGER_BTN}
+              disabled={!hasMore}
+              onClick={onNext}
+              aria-label="Next page"
             >
               Next
             </button>
