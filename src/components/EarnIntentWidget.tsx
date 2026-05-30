@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
 import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
 import { useTokenBalance } from '../use-token-balance';
@@ -539,26 +539,31 @@ export function EarnIntentWidget({
   const effectiveSourceChainId =
     earnTab === 'withdraw' ? withdrawSourceChainId : selectedChainId;
 
-  useEffect(() => {
+  // Single point of entry for kicking off a quote — used both by the auto-fire
+  // effect (debounced as inputs change) and by the manual "Retry quote" CTA
+  // shown when the previous attempt failed.
+  const triggerQuote = useCallback(() => {
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken || !activeMarket || !address) return;
-    const timer = window.setTimeout(() => {
-      earnFlow.fetchQuote({
-        tab: earnTab,
-        amount: activeAmount,
-        market: activeMarket,
-        position: selectedPosition,
-        sourceChainId: effectiveSourceChainId,
-        sourceToken: effectiveSourceToken,
-        network: 'mainnet',
-        isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
-        smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
-        smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
-        smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
-      });
-    }, 250);
-    return () => window.clearTimeout(timer);
+    earnFlow.fetchQuote({
+      tab: earnTab,
+      amount: activeAmount,
+      market: activeMarket,
+      position: selectedPosition,
+      sourceChainId: effectiveSourceChainId,
+      sourceToken: effectiveSourceToken,
+      network: 'mainnet',
+      isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
+      smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
+      smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
+      smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress]);
+  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress, selectedPosition]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(triggerQuote, 250);
+    return () => window.clearTimeout(timer);
+  }, [triggerQuote]);
 
 
   const isWrongNetwork =
@@ -575,7 +580,7 @@ export function EarnIntentWidget({
     activeMarket.chainId != null &&
     selectedChainId !== activeMarket.chainId;
 
-  type CtaAction = 'connect' | 'switch' | 'submit' | 'disabled';
+  type CtaAction = 'connect' | 'switch' | 'submit' | 'disabled' | 'retry';
   const ctaState: { action: CtaAction; label: string; tone?: 'primary' | 'warning' } = (() => {
     if (earnFlow.isQuoting) return { action: 'disabled', label: 'Fetching quote…' };
     if (earnFlow.status === 'submitting') return { action: 'disabled', label: earnTab === 'deposit' ? 'Depositing…' : 'Withdrawing…' };
@@ -598,6 +603,12 @@ export function EarnIntentWidget({
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken) {
       return { action: 'disabled', label: 'Enter an amount' };
     }
+    // Quote failed → don't expose Bridge + Deposit; user must re-quote first.
+    // We keep the tone primary so the retry CTA reads as the next action, not a
+    // warning state (the inline error already carries the failure semantics).
+    if (earnFlow.quoteError) {
+      return { action: 'retry', label: 'Retry quote' };
+    }
     const baseLabel = submitButtonText ?? (earnTab === 'deposit' ? 'Deposit' : 'Withdraw');
     return {
       action: 'submit',
@@ -605,7 +616,10 @@ export function EarnIntentWidget({
     };
   })();
 
-  const ctaEnabled = ctaState.action === 'submit' || ctaState.action === 'switch';
+  const ctaEnabled =
+    ctaState.action === 'submit' ||
+    ctaState.action === 'switch' ||
+    ctaState.action === 'retry';
 
   const detailTokenSymbol = selectedPosition?.market.token.symbol;
   const modalTitle =
@@ -622,6 +636,10 @@ export function EarnIntentWidget({
           ? availableChains.find((c) => c.id === effectiveSourceChainId) ?? selectedChain
           : selectedChain;
       if (target) switchChain?.({ chainId: target.id });
+      return;
+    }
+    if (ctaState.action === 'retry') {
+      triggerQuote();
       return;
     }
     if (ctaState.action !== 'submit') return;
@@ -655,14 +673,6 @@ export function EarnIntentWidget({
 
   const depositFooter = (
     <div className="flex flex-col gap-2">
-      {inlineError && (
-        <div
-          role="alert"
-          className="rounded-sm border border-error bg-error-soft px-3 py-2 text-[12.5px] leading-snug text-error"
-        >
-          {inlineError}
-        </div>
-      )}
       <button
         type="button"
         className={twcn(
@@ -677,8 +687,38 @@ export function EarnIntentWidget({
         {(isBusy || earnFlow.isQuoting) && (
           <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin-epoch rounded-full border-2 border-white border-t-transparent" />
         )}
+        {ctaState.action === 'retry' && !earnFlow.isQuoting && (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            aria-hidden
+            className="shrink-0"
+          >
+            <path
+              d="M11.5 7a4.5 4.5 0 1 1-1.32-3.18M11.5 2.5v2.7H8.8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
         {ctaState.label}
       </button>
+      {inlineError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-sm border border-error/40 bg-error-soft px-2.5 py-1.5 text-[12px] leading-snug text-error"
+        >
+          <span
+            className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-error"
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 break-words">{inlineError}</span>
+        </div>
+      )}
     </div>
   );
 
