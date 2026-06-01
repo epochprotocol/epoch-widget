@@ -1,0 +1,58 @@
+{
+  "skill_name": "epoch-widget",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add an Epoch pay button to my React app that sends 0.15 USDC on Base to a fixed address. I use wagmi already.",
+      "expected_output": "A component rendering EpochIntentWidget in pay mode with flat props, plus a note to import styles.css and wrap in WagmiProvider + QueryClientProvider.",
+      "files": [],
+      "expectations": [
+        "Renders <EpochIntentWidget /> controlled by isOpen/onClose — does not reimplement connect/quote/sign/poll",
+        "Uses mode=\"pay\" with flat props (toAddress, toAmount as a decimal string, toChainId, toToken)",
+        "Passes api={{ baseUrl }}",
+        "Imports '@epoch-protocol/epoch-intent-widget/styles.css' at the app root",
+        "Mentions WagmiProvider + QueryClientProvider are required",
+        "Does NOT use bigint for the flat toAmount prop"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Integrate an Epoch swap widget where the user can pick both tokens, default destination 1 USDC on Base.",
+      "expected_output": "EpochIntentWidget in swap mode with a nested intent using protocol 'swap', fixedOutput true, requiredAmount as bigint atomic units.",
+      "files": [],
+      "expectations": [
+        "Uses mode=\"swap\"",
+        "Passes a nested intent={{ … }} with config.protocol = 'swap'",
+        "requiredAmount is a bigint in atomic units (e.g. 1_000_000n for 1 USDC, decimals 6)",
+        "Does not set lockDestinationToken (or notes it is forced off in swap)",
+        "Passes api={{ baseUrl }}"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add an Epoch earn/lending flow with live 1delta markets on Ethereum and Base, Aave and Morpho only.",
+      "expected_output": "EpochIntentWidget in earn mode with positionsBaseUrl set, earnChainIds and earnLenderFilter scoped.",
+      "files": [],
+      "expectations": [
+        "Uses mode=\"earn\"",
+        "Sets api.positionsBaseUrl for live data",
+        "Sets earnChainIds={[1, 8453]}",
+        "Sets earnLenderFilter to a CSV like \"AAVE_V3,MORPHO\"",
+        "Notes Earn is mainnet-only"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want Epoch's pay logic but my own custom UI, no widget. How?",
+      "expected_output": "Use the headless EpochFlowsSDK / PaySession with createPaySession, subscribe via .on(), submit(), and dispose().",
+      "files": [],
+      "expectations": [
+        "Uses EpochFlowsSDK and createPaySession (or PaySession) instead of the widget component",
+        "Subscribes to events with session.on(...) and reads that .on returns an unsubscribe function",
+        "Calls session.submit(...) and session.dispose() on teardown",
+        "Passes a viem WalletClient and the user address",
+        "Does not reimplement quoting/polling by hand"
+      ]
+    }
+  ]
+}
