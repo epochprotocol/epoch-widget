@@ -44,6 +44,20 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     earnDepositDefaults,
     earnWithdrawDefaults,
     earnMiden,
+    earnChainIds,
+    earnLenderFilter,
+    earnPoolsPerChain,
+    earnPoolsSortBy,
+    earnPoolsSortDir,
+    sourceChainIds,
+    sourceTokenFilter,
+    defaultSourceChainId,
+    defaultSourceTokenAddress,
+    lockDestinationToken,
+    ctaLabels,
+    usdPriceFor,
+    onSourceTokenChange,
+    onQuote,
   } = props;
 
   const rawMode = modeProp ?? flowProp ?? 'pay';
@@ -88,6 +102,15 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     toToken,
     toTokenDecimals,
     toTokenSymbol,
+    sourceChainIds,
+    sourceTokenFilter,
+    defaultSourceChainId,
+    defaultSourceTokenAddress,
+    lockDestinationToken,
+    ctaLabels,
+    usdPriceFor,
+    onSourceTokenChange,
+    onQuote,
   };
 
   if (!isConnected) {
@@ -126,6 +149,11 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         earnDepositDefaults={earnDepositDefaults}
         earnWithdrawDefaults={earnWithdrawDefaults}
         earnMiden={earnMiden}
+        earnChainIds={earnChainIds}
+        earnLenderFilter={earnLenderFilter}
+        earnPoolsPerChain={earnPoolsPerChain}
+        earnPoolsSortBy={earnPoolsSortBy}
+        earnPoolsSortDir={earnPoolsSortDir}
         onIntentSent={onIntentSent}
         onIntentComplete={onIntentComplete}
         onError={onError}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
 import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
 import { useTokenBalance } from '../use-token-balance';
@@ -25,10 +25,16 @@ import type {
 } from '../types';
 import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
-import { useEarnConfigs, useUserPositions } from '../earn/api';
-import { useEarnIntentFlow } from '../earn/use-earn-intent-flow';
+import { DEFAULT_EARN_CONFIGS, useEarnConfigs, useLendingPoolsPage, useUserPositions } from '../earn/api';
 import { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, isDefaultMidenFaucet } from '../earn/miden';
 import { resolveApiForNetwork } from '../resolve-api-config';
+import {
+  ALL_LENDERS,
+  MARKETS_PAGE_SIZE,
+  clientPage,
+  configsToRows,
+} from '../earn/market-rows';
+import { useEarnIntentFlow } from '../earn/use-earn-intent-flow';
 import type { OneDeltaConfig } from '../types';
 import { ArrowDownIcon, CheckIcon } from './Icons';
 import { SegmentedTabs } from './ui/SegmentedTabs';
@@ -44,13 +50,23 @@ import { WithdrawDetailPanel, WithdrawFundsButton } from './WithdrawDetailPanel'
 
 type EarnView = 'main' | 'selectToken' | 'selectMarket' | 'withdrawDetail';
 
+// Mainnet earn chains (1delta upstream). Testnet uses bundled dummy-lending configs.
+const EARN_MAINNET_CHAIN_IDS = new Set<number>([1, 8453, 42161, 10, 137]);
+const EARN_TESTNET_CHAIN_IDS = new Set<number>([84532, 11155111, 11155420]);
+
+type PoolSortBy =
+  | 'depositRate'
+  | 'variableBorrowRate'
+  | 'totalDepositsUsd'
+  | 'totalLiquidityUsd'
+  | 'utilization';
+type PoolSortDir = 'ASC' | 'DESC';
+
 interface EarnIntentWidgetProps {
   isOpen: boolean;
   onClose: () => void;
   api: ApiConfig;
-  /** Network mode. Default: `"mainnet"`. */
   network?: 'mainnet' | 'testnet';
-  /** Allow the user to toggle mainnet/testnet inside the widget. Default: true. */
   allowNetworkToggle?: boolean;
   classNames?: EpochClassNames;
   theme?: 'light' | 'dark' | EpochTheme;
@@ -67,6 +83,30 @@ interface EarnIntentWidgetProps {
   earnSolverUrl?: string;
   /** Optional Miden wallet adapter for testnet earn deposits funded from Miden. */
   earnMiden?: EarnMidenAdapter;
+  /**
+   * Chain IDs to fan /pools fetches over. Forwarded as one `chainId=` per
+   * request. Default: [1, 8453, 42161, 10, 137]. Set to a single chain to
+   * scope the picker.
+   */
+  earnChainIds?: number[];
+  /**
+   * Restrict /pools to specific lender keys. Passed verbatim as the `lender`
+   * query param — 1delta accepts CSV (e.g. `AAVE_V3,COMPOUND_V3_USDC`) and
+   * matches the granular `lenderKey` (per-market for Morpho/Fluid). Omit to
+   * include every lender on each chain.
+   */
+  earnLenderFilter?: string;
+  /** Max rows per chain on /pools (1delta `count`). Default 100. */
+  earnPoolsPerChain?: number;
+  /** /pools sort field. Default `totalDepositsUsd`. */
+  earnPoolsSortBy?:
+    | 'depositRate'
+    | 'variableBorrowRate'
+    | 'totalDepositsUsd'
+    | 'totalLiquidityUsd'
+    | 'utilization';
+  /** /pools sort direction. Default `DESC`. */
+  earnPoolsSortDir?: 'ASC' | 'DESC';
   /** @deprecated no-op — markets always come from `earnMarketsSource`. */
   earnUseMockData?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
@@ -98,6 +138,11 @@ export function EarnIntentWidget({
   earnWithdrawDefaults,
   earnSolverUrl,
   earnMiden,
+  earnChainIds,
+  earnLenderFilter,
+  earnPoolsPerChain,
+  earnPoolsSortBy,
+  earnPoolsSortDir,
   onIntentSent,
   onIntentComplete,
   onError,
@@ -128,10 +173,10 @@ export function EarnIntentWidget({
   const [smartWithdraw, setSmartWithdraw] = useState(false);
   const [smartDestChainId, setSmartDestChainId] = useState<number | null>(null);
   const [smartDestTokenAddress, setSmartDestTokenAddress] = useState('');
-  // Positions-API filters. Defaults: Base (8453), all lenders. User can switch
-  // chain or scope to a single lender via the dropdowns in WithdrawPanel.
+  // Positions-API filters. Defaults: all chains (empty → derived CSV) + all
+  // lenders. User can narrow via the dropdowns in WithdrawPanel.
   const [positionsChainId, setPositionsChainId] = useState(
-    networkProp === 'testnet' ? '84532' : '8453',
+    networkProp === 'testnet' ? '84532' : '',
   );
   const [positionsLenderKey, setPositionsLenderKey] = useState('');
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
@@ -141,6 +186,16 @@ export function EarnIntentWidget({
     DEFAULT_MIDEN_FAUCET.faucetId,
   );
   const [view, setView] = useState<EarnView>('main');
+  const [isTestnet, setIsTestnet] = useState(networkProp === 'testnet');
+  const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
+  const midenEnabled =
+    networkEnv === 'testnet' &&
+    earnMiden != null &&
+    earnMiden.enabled !== false;
+  const resolvedApi = useMemo(
+    () => resolveApiForNetwork(api, networkEnv),
+    [api, networkEnv],
+  );
 
 
   const onOpenRef = useRef(onOpen);
@@ -171,6 +226,9 @@ export function EarnIntentWidget({
       setSmartDestTokenAddress('');
       setFundingSource('evm');
       setSelectedMidenFaucetId(DEFAULT_MIDEN_FAUCET.faucetId);
+      setPickerChainId('all');
+      setPickerLenderKey(ALL_LENDERS);
+      setPickerPage(0);
     }
   }, [isOpen]);
 
@@ -200,17 +258,6 @@ export function EarnIntentWidget({
     }
   }, [smartWithdraw, selectedPosition]);
 
-  const [isTestnet, setIsTestnet] = useState(networkProp === 'testnet');
-  const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
-  const midenEnabled =
-    networkEnv === 'testnet' &&
-    earnMiden != null &&
-    earnMiden.enabled !== false;
-  const resolvedApi = useMemo(
-    () => resolveApiForNetwork(api, networkEnv),
-    [api, networkEnv],
-  );
-
   useEffect(() => {
     setIsTestnet(networkProp === 'testnet');
   }, [networkProp]);
@@ -219,27 +266,190 @@ export function EarnIntentWidget({
     setSelectedChainId(null);
     setSelectedTokenAddress('');
     setEarnSelectedMarket(null);
-    setPositionsChainId(isTestnet ? '84532' : '8453');
+    setPositionsChainId(isTestnet ? '84532' : '');
+    if (!isTestnet) setFundingSource('evm');
   }, [isTestnet]);
 
-  const configsState = useEarnConfigs({
-    enabled: isOpen,
-    source: earnMarketsSource,
+  // Chain filter state for the market picker — purely client-side; we fetch
+  // every chain in `earnChainIds` once and let MarketPickerPage narrow the
+  // visible rows. Preserved across picker opens so the selection sticks.
+  const [pickerChainId, setPickerChainId] = useState<number | 'all'>('all');
+  // Lender family filter (server `lender` param) + current page (server
+  // `start`). Single-select family; ALL_LENDERS = omit the param.
+  const [pickerLenderKey, setPickerLenderKey] = useState<string>(ALL_LENDERS);
+  const [pickerPage, setPickerPage] = useState(0);
+
+  // Market sort. Drives the /pools API (`sortBy`/`sortDir`) so each chain's
+  // rows arrive server-sorted, AND the picker's final cross-chain merge. Lifted
+  // here (rather than living in MarketPickerPage) so the sort dropdown can
+  // trigger a refetch. Seeded from the integrator props.
+  const [poolSortBy, setPoolSortBy] = useState<PoolSortBy>(
+    earnPoolsSortBy ?? 'totalDepositsUsd',
+  );
+  const [poolSortDir, setPoolSortDir] = useState<PoolSortDir>(
+    earnPoolsSortDir ?? 'DESC',
+  );
+
+  // Drop any consumer-supplied IDs that aren't in the mainnet whitelist —
+  // earn flows depend on 1delta indexing which is mainnet-only. Returning
+  // `undefined` (instead of `[]`) lets the SDK default kick in so the picker
+  // doesn't silently render zero markets.
+  const sanitizedEarnChainIds = useMemo(() => {
+    const allowed = isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS;
+    if (!earnChainIds) return undefined;
+    const ok = earnChainIds.filter((id) => allowed.has(id));
+    const dropped = earnChainIds.filter((id) => !allowed.has(id));
+    if (dropped.length) {
+      console.warn(
+        `[EpochIntentWidget] earnChainIds clamped to ${networkEnv}; dropped:`,
+        dropped,
+      );
+    }
+    return ok.length ? ok : undefined;
+  }, [earnChainIds, isTestnet, networkEnv]);
+
+  const earnChainsCsv = useMemo(
+    () =>
+      (sanitizedEarnChainIds ?? [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)]).join(','),
+    [sanitizedEarnChainIds, isTestnet],
+  );
+
+  // Live /pools only on mainnet; testnet uses bundled dummy-lending configs.
+  const useLivePools = networkEnv === 'mainnet' && !!resolvedApi.positionsBaseUrl;
+  const pickerEnabled = isOpen && view === 'selectMarket';
+
+  // "All chains" → the user-allowed subset (clamped to mainnet earn chains).
+  // Specific chain → single-element array. Either way the hook gets a list and
+  // decides single vs multi-call behavior.
+  const requestedChainIds = useMemo<number[]>(() => {
+    if (pickerChainId !== 'all') return [pickerChainId];
+    return sanitizedEarnChainIds ?? [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)];
+  }, [pickerChainId, sanitizedEarnChainIds, isTestnet]);
+
+  // Lender axis. `earnLenderFilter` is a CSV (multi-select from the consumer).
+  // The picker's single-select dropdown overrides when set; ALL_LENDERS falls
+  // back to the consumer's CSV. Empty → no `lender` filter at all.
+  const requestedLenders = useMemo<string[]>(() => {
+    if (pickerLenderKey !== ALL_LENDERS) return [pickerLenderKey];
+    if (!earnLenderFilter) return [];
+    return earnLenderFilter
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [pickerLenderKey, earnLenderFilter]);
+
+  const poolsPage = useLendingPoolsPage({
+    api: resolvedApi,
+    enabled: pickerEnabled && useLivePools,
+    chainIds: requestedChainIds,
+    lenders: requestedLenders,
+    sortBy: poolSortBy,
+    sortDir: poolSortDir,
+    start: pickerPage * MARKETS_PAGE_SIZE,
+    count: MARKETS_PAGE_SIZE,
+    // NOTE: `minTvlUsd`, `maxRiskScore`, `minUtil`, `maxUtil` are intentionally
+    // omitted — pinning them upstream caused issues on the 1delta side. Re-add
+    // once the upstream behavior is stable.
+  });
+
+  const staticConfigsState = useEarnConfigs({
+    enabled: isOpen && !useLivePools,
+    source: earnMarketsSource ?? DEFAULT_EARN_CONFIGS,
     network: networkEnv,
   });
+  const staticRowsAll = useMemo(
+    () => (useLivePools ? [] : configsToRows(staticConfigsState.configs)),
+    [useLivePools, staticConfigsState.configs],
+  );
+  const staticPage = useMemo(
+    () =>
+      clientPage(staticRowsAll, {
+        chainId: pickerChainId === 'all' ? undefined : pickerChainId,
+        lender: pickerLenderKey === ALL_LENDERS ? undefined : pickerLenderKey,
+        sortBy: poolSortBy,
+        sortDir: poolSortDir,
+        page: pickerPage,
+      }),
+    [staticRowsAll, pickerChainId, pickerLenderKey, poolSortBy, poolSortDir, pickerPage],
+  );
+
+  const picker = useLivePools
+    ? {
+        rows: poolsPage.rows,
+        hasMore: poolsPage.hasMore,
+        isLoading: poolsPage.isLoading,
+        error: poolsPage.error,
+      }
+    : {
+        rows: staticPage.rows,
+        hasMore: staticPage.hasMore,
+        isLoading: staticConfigsState.isLoading,
+        error: staticConfigsState.error,
+      };
+
+  // Lender keys to surface in the picker's lender dropdown. Combines (a) the
+  // consumer scope from `earnLenderFilter` (deterministic, doesn't shift as
+  // pages change) with (b) lender families observed in the currently loaded
+  // rows (covers anything not pre-declared by the consumer). Empty array →
+  // picker falls back to its bundled `FAMILY_DISPLAY` list.
+  const availableLenders = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    if (earnLenderFilter) {
+      for (const k of earnLenderFilter.split(',')) {
+        const trimmed = k.trim();
+        if (trimmed) set.add(trimmed);
+      }
+    }
+    for (const r of picker.rows) {
+      const fam = r.config.lenderFamily ?? r.config.lenderKey;
+      if (fam) set.add(fam);
+    }
+    return [...set];
+  }, [earnLenderFilter, picker.rows]);
+
   // legacy: callers passing `earnMarkets` directly still see them — we render
   // the configs picker but the deprecated prop is accepted for back-compat.
   void earnMarketsProp;
+  void earnPoolsPerChain;
 
   const positionsState = useUserPositions({
     address,
     network: networkEnv,
     api: resolvedApi,
-    enabled: isOpen && isConnected,
-    configs: configsState.configs,
-    chainsOverride: positionsChainId,
+    // Only fetch positions while the Withdraw tab is active AND the user is
+    // on the main list view — skips the request on deposit usage and
+    // prevents a refetch when the user enters the withdraw detail view.
+    enabled: isOpen && isConnected && earnTab === 'withdraw' && view === 'main',
+    // Scope to the earn chains directly — no longer derived from a full pool
+    // config set (the picker is now server-paginated). Empty user filter ⇒
+    // fall back to the all-chains CSV.
+    chainsOverride: positionsChainId || earnChainsCsv,
     lendersOverride: positionsLenderKey,
   });
+
+  // Auto-pick: when the user lands on the Withdraw tab and positions arrive,
+  // jump straight into the detail/amount view with positions[0] selected. The
+  // user opens the picker explicitly via the From card chevron — so we only
+  // do this once per (open × tab-entry) and never re-trigger it as long as a
+  // selection is preserved.
+  const didAutoPickRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen) {
+      didAutoPickRef.current = false;
+      return;
+    }
+    if (earnTab !== 'withdraw') {
+      didAutoPickRef.current = false;
+      return;
+    }
+    if (didAutoPickRef.current) return;
+    if (selectedPosition) return;
+    const first = positionsState.positions[0];
+    if (!first) return;
+    didAutoPickRef.current = true;
+    setSelectedPosition(first);
+    setView('withdrawDetail');
+  }, [isOpen, earnTab, positionsState.positions, selectedPosition]);
 
   const availableChains = useMemo(() => getEpochChains(isTestnet), [isTestnet]);
   const allTokens = useMemo<TokenWithChain[]>(
@@ -262,7 +472,6 @@ export function EarnIntentWidget({
     () => (earnMiden?.assets ?? []).filter((a) => isDefaultMidenFaucet(a.faucetId)),
     [earnMiden?.assets],
   );
-
   const selectedMidenAsset = useMemo(
     () =>
       midenAssets.find(
@@ -410,12 +619,8 @@ export function EarnIntentWidget({
       : fundingSource === 'miden'
         ? MIDEN_VIRTUAL_CHAIN_ID
         : selectedChainId;
-  const isWrongNetwork =
-    fundingSource === 'evm' &&
-    effectiveSourceChainId !== null &&
-    chainId !== effectiveSourceChainId;
-  const midenBalance = selectedMidenAsset?.balance ?? null;
 
+  const midenBalance = selectedMidenAsset?.balance ?? null;
   const midenQuoteSource =
     fundingSource === 'miden' &&
     earnMiden?.accountId &&
@@ -429,31 +634,39 @@ export function EarnIntentWidget({
         }
       : undefined;
 
-  useEffect(() => {
+  // Single point of entry for kicking off a quote — used both by the auto-fire
+  // effect (debounced as inputs change) and by the manual "Retry quote" CTA
+  // shown when the previous attempt failed.
+  const triggerQuote = useCallback(() => {
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken || !activeMarket || !address) return;
     if (fundingSource === 'miden' && (!earnMiden?.connected || !midenQuoteSource)) return;
-    if (isWrongNetwork) return;
-    const timer = window.setTimeout(() => {
-      earnFlow.fetchQuote({
-        tab: earnTab,
-        amount: activeAmount,
-        market: activeMarket,
-        position: selectedPosition,
-        sourceChainId: effectiveSourceChainId,
-        sourceToken: effectiveSourceToken,
-        network: networkEnv,
-        midenSource: midenQuoteSource,
-        isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
-        smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
-        smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
-        smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
-      });
-    }, 250);
-    return () => window.clearTimeout(timer);
+    earnFlow.fetchQuote({
+      tab: earnTab,
+      amount: activeAmount,
+      market: activeMarket,
+      position: selectedPosition,
+      sourceChainId: effectiveSourceChainId,
+      sourceToken: effectiveSourceToken,
+      network: networkEnv,
+      midenSource: midenQuoteSource,
+      isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
+      smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
+      smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
+      smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress, networkEnv, isWrongNetwork, chainId, fundingSource, midenQuoteSource, earnMiden?.connected]);
+  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress, selectedPosition, networkEnv, fundingSource, midenQuoteSource, earnMiden?.connected]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(triggerQuote, 250);
+    return () => window.clearTimeout(timer);
+  }, [triggerQuote]);
 
 
+  const isWrongNetwork =
+    fundingSource === 'evm' &&
+    effectiveSourceChainId !== null &&
+    chainId !== effectiveSourceChainId;
   const insufficientBalance =
     earnTab === 'deposit' &&
     fundingSource === 'evm' &&
@@ -477,7 +690,7 @@ export function EarnIntentWidget({
         activeMarket.chainId != null &&
         selectedChainId !== activeMarket.chainId));
 
-  type CtaAction = 'connect' | 'connectMiden' | 'switch' | 'submit' | 'disabled';
+  type CtaAction = 'connect' | 'connectMiden' | 'switch' | 'submit' | 'disabled' | 'retry';
   const ctaState: { action: CtaAction; label: string; tone?: 'primary' | 'warning' } = (() => {
     if (earnFlow.isQuoting) return { action: 'disabled', label: 'Fetching quote…' };
     if (earnFlow.status === 'submitting') return { action: 'disabled', label: earnTab === 'deposit' ? 'Depositing…' : 'Withdrawing…' };
@@ -506,6 +719,12 @@ export function EarnIntentWidget({
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken) {
       return { action: 'disabled', label: 'Enter an amount' };
     }
+    // Quote failed → don't expose Bridge + Deposit; user must re-quote first.
+    // We keep the tone primary so the retry CTA reads as the next action, not a
+    // warning state (the inline error already carries the failure semantics).
+    if (earnFlow.quoteError) {
+      return { action: 'retry', label: 'Retry quote' };
+    }
     const baseLabel = submitButtonText ?? (earnTab === 'deposit' ? 'Deposit' : 'Withdraw');
     const crossLabel =
       fundingSource === 'miden' && earnTab === 'deposit'
@@ -522,6 +741,7 @@ export function EarnIntentWidget({
   const ctaEnabled =
     ctaState.action === 'submit' ||
     ctaState.action === 'switch' ||
+    ctaState.action === 'retry' ||
     ctaState.action === 'connectMiden';
 
   const detailTokenSymbol = selectedPosition?.market.token.symbol;
@@ -559,6 +779,10 @@ export function EarnIntentWidget({
       if (target) switchChain?.({ chainId: target.id });
       return;
     }
+    if (ctaState.action === 'retry') {
+      triggerQuote();
+      return;
+    }
     if (ctaState.action !== 'submit') return;
     if (effectiveSourceChainId == null || !effectiveSourceToken || !activeMarket) return;
     earnFlow.submit({
@@ -591,14 +815,6 @@ export function EarnIntentWidget({
 
   const depositFooter = (
     <div className="flex flex-col gap-2">
-      {inlineError && (
-        <div
-          role="alert"
-          className="rounded-sm border border-error bg-error-soft px-3 py-2 text-[12.5px] leading-snug text-error"
-        >
-          {inlineError}
-        </div>
-      )}
       <button
         type="button"
         className={twcn(
@@ -613,8 +829,38 @@ export function EarnIntentWidget({
         {(isBusy || earnFlow.isQuoting) && (
           <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin-epoch rounded-full border-2 border-white border-t-transparent" />
         )}
+        {ctaState.action === 'retry' && !earnFlow.isQuoting && (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            aria-hidden
+            className="shrink-0"
+          >
+            <path
+              d="M11.5 7a4.5 4.5 0 1 1-1.32-3.18M11.5 2.5v2.7H8.8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
         {ctaState.label}
       </button>
+      {inlineError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-sm border border-error/40 bg-error-soft px-2.5 py-1.5 text-[12px] leading-snug text-error"
+        >
+          <span
+            className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-error"
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 break-words">{inlineError}</span>
+        </div>
+      )}
     </div>
   );
 
@@ -722,6 +968,12 @@ export function EarnIntentWidget({
             setWithdrawAmount(human);
             setWithdrawIsAll(isMax);
           }}
+          onPickAnotherPosition={() => {
+            // Open the picker without discarding the current selection — if
+            // the user backs out, they return to the same amount + position.
+            // The picker swap (onPickPosition) is what resets the amount.
+            setView('main');
+          }}
           smartWithdraw={smartWithdraw}
           onSmartWithdrawChange={setSmartWithdraw}
           smartDestChainId={smartDestChainId}
@@ -730,7 +982,7 @@ export function EarnIntentWidget({
             setSmartDestChainId(id);
             // Reset receive token to first option on the new chain so we never
             // surface a stale token from another network.
-            const firstTok = getEpochTokensByChainEnv(id, false)[0];
+            const firstTok = getEpochTokensByChainEnv(id, isTestnet)[0];
             setSmartDestTokenAddress(firstTok?.address ?? '');
           }}
           onPickDestToken={setSmartDestTokenAddress}
@@ -784,14 +1036,34 @@ export function EarnIntentWidget({
         headerAction={headerAction}
       >
         <MarketPickerPage
-          configs={configsState.configs}
+          rows={picker.rows}
           selectedId={earnSelectedMarket?.id}
-          isLoading={configsState.isLoading}
-          error={configsState.error}
-          sourceChainId={selectedChainId}
+          isLoading={picker.isLoading}
+          error={picker.error}
+          chainFilter={pickerChainId}
+          onChainChange={(c) => {
+            setPickerChainId(c);
+            setPickerPage(0);
+          }}
+          lenderFilter={pickerLenderKey}
+          onLenderChange={(l) => {
+            setPickerLenderKey(l);
+            setPickerPage(0);
+          }}
+          sortBy={poolSortBy}
+          sortDir={poolSortDir}
+          onSortChange={(by, dir) => {
+            setPoolSortBy(by);
+            setPoolSortDir(dir);
+            setPickerPage(0);
+          }}
+          page={pickerPage}
+          hasMore={picker.hasMore}
+          onPrev={() => setPickerPage((p) => Math.max(0, p - 1))}
+          onNext={() => setPickerPage((p) => p + 1)}
+          availableChainIds={sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]}
+          availableLenders={availableLenders}
           onSelect={(m) => {
-            // Keep the user's source chain/token — cross-chain deposits bridge
-            // from source chain into the market's chain via SIO.
             setEarnSelectedMarket(m);
             setView('main');
           }}
@@ -850,25 +1122,23 @@ export function EarnIntentWidget({
           walletBalance={fundingSource === 'miden' ? midenBalance : isConnected ? balance : null}
           sourceTokenDecimals={
             fundingSource === 'miden'
-              ? (selectedMidenAsset?.decimals ?? 6)
-              : (selectedToken?.decimals ?? 18)
+              ? selectedMidenAsset?.decimals ?? 18
+              : selectedToken?.decimals ?? 18
           }
-          balanceLoading={fundingSource === 'evm' && isConnected && !!selectedToken && isBalanceLoading}
+          balanceLoading={
+            fundingSource === 'miden'
+              ? false
+              : isConnected && !!selectedToken && isBalanceLoading
+          }
           midenEnabled={midenEnabled}
           fundingSource={fundingSource}
-          onFundingSourceChange={(source) => {
-            setFundingSource(source);
-            if (source === 'evm') {
-              setSelectedMidenFaucetId(DEFAULT_MIDEN_FAUCET.faucetId);
-            }
-          }}
+          onFundingSourceChange={setFundingSource}
           midenConnected={!!earnMiden?.connected}
           onConnectMiden={() => void earnMiden?.connect?.()}
         />
       ) : (
         <WithdrawPanel
           positions={positionsState.positions}
-          summary={positionsState.summary}
           isLoading={positionsState.isLoading}
           error={positionsState.error}
           walletConnected={isConnected}

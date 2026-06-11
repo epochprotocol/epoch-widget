@@ -6,6 +6,8 @@ interface Props {
   position: EpochEarnPosition;
   expanded: boolean;
   onWithdrawClick: () => void;
+  /** Per-row entry delay (ms) — used to stagger the list on first mount. */
+  entryDelayMs?: number;
 }
 
 function formatUsd(v: number | undefined): string | null {
@@ -19,12 +21,12 @@ function formatUsd(v: number | undefined): string | null {
 const LOGO_CLASSES = 'h-9 w-9 shrink-0 rounded-full bg-surface object-cover';
 
 const ROW_CLASSES =
-  'flex items-center gap-3 rounded-md border bg-canvas p-3.5 shadow-sm transition-[border-color,background-color] duration-150';
+  'flex animate-row-in items-center gap-3 rounded-md border bg-canvas p-3.5 shadow-sm transition-[border-color,background-color] duration-150';
 
 const BTN_BASE =
   'inline-flex cursor-pointer items-center justify-center rounded-md border-0 px-3.5 py-2 text-[13px] font-semibold';
 
-export function PositionRow({ position, expanded, onWithdrawClick }: Props) {
+export function PositionRow({ position, expanded, onWithdrawClick, entryDelayMs }: Props) {
   const { market } = position;
   const balanceRaw = position.withdrawableRaw ?? position.underlyingBalanceRaw;
   let underlyingHuman = '—';
@@ -42,6 +44,7 @@ export function PositionRow({ position, expanded, onWithdrawClick }: Props) {
         ROW_CLASSES,
         expanded ? 'border-primary bg-accent-soft' : 'border-line',
       )}
+      style={entryDelayMs ? { animationDelay: `${entryDelayMs}ms` } : undefined}
     >
       {market.token.logoURI ? (
         <img src={market.token.logoURI} alt={market.token.symbol} className={LOGO_CLASSES} />

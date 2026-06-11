@@ -1,0 +1,3 @@
+interface:
+  display_name: "Epoch Intent Widget"
+  short_description: "Integrates @epoch-protocol/epoch-intent-widget — drop-in React component for cross-chain Pay, Swap, and Earn intents on Epoch Protocol."

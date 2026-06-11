@@ -1,8 +1,22 @@
 import type { ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { SegmentedTabs } from '@epoch-protocol/epoch-intent-widget';
 import { Row } from '../components/Row';
 
-export function AppShell({ children }: { children: ReactNode }) {
+export type DemoNetwork = 'mainnet' | 'testnet';
+
+const NETWORK_TABS = [
+  { value: 'mainnet' as const, label: 'Mainnet' },
+  { value: 'testnet' as const, label: 'Testnet' },
+];
+
+interface Props {
+  children: ReactNode;
+  network: DemoNetwork;
+  onNetworkChange: (n: DemoNetwork) => void;
+}
+
+export function AppShell({ children, network, onNetworkChange }: Props) {
   return (
     <div className="min-h-screen bg-canvas text-fg text-sm font-sans">
       <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur-md">
@@ -16,7 +30,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-xs text-fg-muted">Integration playground</div>
             </div>
           </Row>
-          <ConnectButton />
+          <Row className="gap-3">
+            <SegmentedTabs<DemoNetwork>
+              tabs={NETWORK_TABS}
+              value={network}
+              onChange={onNetworkChange}
+              size="sm"
+            />
+            <ConnectButton />
+          </Row>
         </Row>
       </header>
       {children}

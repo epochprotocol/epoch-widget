@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { cn } from '../lib/cn';
 import type { EpochChain, EpochToken } from '../types';
 import { Avatar } from './Avatar';
-import { CheckIcon, ChevronLeftIcon, CloseIcon, SearchIcon } from './Icons';
+import { CheckIcon, CloseIcon, SearchIcon } from './Icons';
 
 export interface TokenWithChain extends EpochToken {
   chain: EpochChain;
@@ -16,12 +16,26 @@ interface TokenSelectorProps {
   onBack: () => void;
 }
 
+const ALL_GRADIENT = 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)';
+
+const CHAIN_DOT: Record<number, string> = {
+  1: '#627eea',     // Ethereum
+  10: '#ff0420',    // Optimism
+  137: '#8247e5',   // Polygon
+  8453: '#0052ff',  // Base
+  42161: '#28a0f0', // Arbitrum
+  84532: '#0052ff', // Base Sepolia
+};
+
+function chainDot(chainId: number): string {
+  return CHAIN_DOT[chainId] ?? 'var(--epoch-color-primary)';
+}
+
 export function TokenSelector({
   tokens,
   selectedTokenAddress,
   selectedChainId,
   onSelect,
-  onBack,
 }: TokenSelectorProps) {
   const [query, setQuery] = useState('');
   const [chainFilter, setChainFilter] = useState<number | null>(null);
@@ -56,19 +70,7 @@ export function TokenSelector({
 
   return (
     <div className="flex h-[440px] flex-col">
-      <div className="mb-3.5 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back"
-          className="flex h-7.5 w-7.5 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg hover:bg-surface"
-        >
-          <ChevronLeftIcon width={18} height={18} />
-        </button>
-        <h3 className="m-0 text-base font-semibold text-fg">Select Token</h3>
-      </div>
-
-      <div className="mb-2.5 flex items-center gap-2.5 rounded-sm border-[1.5px] border-line bg-canvas px-3.5 py-2.5">
+      <div className="mb-2.5 flex items-center gap-2.5 rounded-sm border-[1.5px] border-line bg-canvas px-3.5 py-2.5 transition-colors duration-150 focus-within:border-primary">
         <SearchIcon />
         <input
           ref={inputRef}
@@ -82,19 +84,22 @@ export function TokenSelector({
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="cursor-pointer border-0 bg-transparent p-0 leading-none text-fg-muted"
+            aria-label="Clear search"
+            className="cursor-pointer border-0 bg-transparent p-0 leading-none text-fg-muted transition-colors duration-150 hover:text-fg"
           >
             <CloseIcon width={14} height={14} />
           </button>
         )}
       </div>
 
-      {/* Chain filter chips — reserve vertical space so modal height stays stable. */}
-      <div className="mb-2.5 flex min-h-[22px] shrink-0 flex-nowrap gap-1 overflow-x-auto">
+      {/* Chain filter chips — wrap to additional rows when many chains are
+          present so we never spawn a horizontal scrollbar. */}
+      <div className="mb-2.5 flex min-h-[26px] shrink-0 flex-wrap gap-1.5">
         {chains.length > 1 && (
           <>
             <ChainChip
               label="All"
+              dotBackground={ALL_GRADIENT}
               active={chainFilter === null}
               onClick={() => setChainFilter(null)}
             />
@@ -103,6 +108,7 @@ export function TokenSelector({
                 key={c.id}
                 label={c.name}
                 logoURI={c.logoURI}
+                dotColor={chainDot(c.id)}
                 active={chainFilter === c.id}
                 onClick={() => setChainFilter(chainFilter === c.id ? null : c.id)}
               />
@@ -111,7 +117,7 @@ export function TokenSelector({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+      <div className="flex flex-1 animate-overlay-in flex-col overflow-x-hidden overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-[13px] text-fg-muted">No tokens found</div>
         ) : (
@@ -122,11 +128,10 @@ export function TokenSelector({
                 key={`${tk.chain.id}-${tk.address}`}
                 type="button"
                 onClick={() => onSelect(tk.address, tk.chain.id)}
+                aria-label={`Select ${tk.symbol} on ${tk.chain.name}`}
                 className={cn(
-                  'flex cursor-pointer items-center gap-3 rounded-sm border-[1.5px] px-3 py-2.5 text-left transition-colors duration-100',
-                  isSelected
-                    ? 'border-primary bg-surface'
-                    : 'border-transparent bg-transparent hover:bg-surface',
+                  'flex w-full cursor-pointer items-center gap-3.5 border-0 border-b border-line bg-transparent px-2 py-3 text-left transition-[background-color,transform] duration-150 last:border-b-0 hover:bg-surface-muted active:scale-[0.995]',
+                  isSelected && 'bg-accent-soft hover:bg-accent-soft',
                 )}
               >
                 <div className="relative h-9 w-9 shrink-0">
@@ -149,29 +154,44 @@ export function TokenSelector({
   );
 }
 
-function ChainChip({
-  label,
-  logoURI,
-  active,
-  onClick,
-}: {
+interface ChainChipProps {
   label: string;
   logoURI?: string;
   active: boolean;
   onClick: () => void;
-}) {
+  dotColor?: string;
+  dotBackground?: string;
+}
+
+function ChainChip({ label, logoURI, active, onClick, dotColor, dotBackground }: ChainChipProps) {
+  const dotStyle: React.CSSProperties = dotBackground
+    ? { background: dotBackground }
+    : dotColor
+    ? {
+        background: `radial-gradient(circle at 30% 30%, ${dotColor}cc 0%, ${dotColor} 60%, ${dotColor}80 100%)`,
+      }
+    : {};
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex h-[22px] cursor-pointer items-center gap-1 rounded-full border px-2 text-[11px] font-medium leading-none transition-colors duration-100',
+        'inline-flex h-[26px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-semibold leading-none transition-[border-color,background-color,color] duration-150',
         active
           ? 'border-primary bg-[color-mix(in_srgb,var(--epoch-color-primary)_12%,transparent)] text-primary'
-          : 'border-line bg-surface text-fg-muted',
+          : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
       )}
     >
-      {logoURI && <Avatar src={logoURI} label={label} size={12} />}
+      {logoURI ? (
+        <Avatar src={logoURI} label={label} size={14} />
+      ) : (
+        <span
+          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+          style={dotStyle}
+          aria-hidden
+        />
+      )}
       {label}
     </button>
   );

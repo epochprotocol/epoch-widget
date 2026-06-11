@@ -1,4 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  fetchLendingPools,
+  fetchLendingPoolsPage,
+  fetchLendingPoolsPageMulti,
+  fetchUserPositions,
+  flattenConfigsToMarkets,
+  HARDCODED_ONEDELTA_CONFIGS,
+} from '@epoch-protocol/epoch-flows-sdk';
+import type {
+  EarnMarketRow,
+  PoolSortBy,
+  PoolSortDir,
+} from '@epoch-protocol/epoch-flows-sdk';
 import type {
   ApiConfig,
   EpochEarnMarket,
@@ -6,20 +19,10 @@ import type {
   EpochEarnPositionsSummary,
   OneDeltaConfig,
 } from '../types';
-import { HARDCODED_ONEDELTA_CONFIGS } from './onedelta-markets';
-import { flattenConfigsToMarkets } from './onedelta-adapter';
-import { mockPositionsForAddress } from './mock-data';
 import {
   DUMMY_LENDING_CONFIGS,
   isTestnetChainId,
 } from './dummy-lending-markets';
-import {
-  deriveChainsAndLenders,
-  oneDeltaPositionsSummary,
-  oneDeltaPositionsToEpoch,
-} from './positions-adapter';
-
-const MOCK_DELAY_MS = 150;
 
 /** Bundled mainnet configs plus testnet-only dummy-lending. */
 export const DEFAULT_EARN_CONFIGS: OneDeltaConfig[] = [
@@ -58,9 +61,9 @@ interface PositionsState {
 }
 
 /**
- * Resolve the 1delta market configs to show in the Earn flow. By default the
- * widget uses the bundled `HARDCODED_ONEDELTA_CONFIGS`; consumers can pass
- * their own via the `source` option (or the `earnMarketsSource` widget prop).
+ * Resolve the 1delta market configs to show in the Earn flow. By default uses
+ * the bundled `HARDCODED_ONEDELTA_CONFIGS`; consumers can pass their own via
+ * the `source` option.
  */
 export function useEarnConfigs(opts: {
   enabled?: boolean;
@@ -72,9 +75,8 @@ export function useEarnConfigs(opts: {
     source = DEFAULT_EARN_CONFIGS,
     network = 'mainnet',
   } = opts;
-  const filtered = filterConfigsByNetwork(source, network);
   const [state, setState] = useState<ConfigsState>({
-    configs: filtered,
+    configs: filterConfigsByNetwork(source, network),
     isLoading: false,
     error: null,
   });
@@ -84,7 +86,11 @@ export function useEarnConfigs(opts: {
       setState({ configs: [], isLoading: false, error: null });
       return;
     }
-    setState({ configs: filterConfigsByNetwork(source, network), isLoading: false, error: null });
+    setState({
+      configs: filterConfigsByNetwork(source, network),
+      isLoading: false,
+      error: null,
+    });
   }, [enabled, source, network]);
 
   return state;
@@ -92,8 +98,7 @@ export function useEarnConfigs(opts: {
 
 /**
  * Legacy hook — returns flattened `EpochEarnMarket[]` derived from the bundled
- * 1delta configs (or `source` if provided). Retained for backwards-compat with
- * callers that consumed `useEarnMarkets()` directly.
+ * 1delta configs (or `source` if provided).
  */
 export function useEarnMarkets(opts: {
   network?: 'mainnet' | 'testnet';
@@ -103,8 +108,8 @@ export function useEarnMarkets(opts: {
   earnUseMockData?: boolean;
   source?: OneDeltaConfig[];
 }): MarketsState {
-  const { enabled = true, source } = opts;
-  const resolvedSource = source ?? DEFAULT_EARN_CONFIGS;
+  const { enabled = true, source, network = 'mainnet' } = opts;
+  const resolvedSource = filterConfigsByNetwork(source ?? DEFAULT_EARN_CONFIGS, network);
   const [state, setState] = useState<MarketsState>({
     markets: enabled ? flattenConfigsToMarkets(resolvedSource) : [],
     isLoading: false,
@@ -126,15 +131,250 @@ export function useEarnMarkets(opts: {
   return state;
 }
 
+interface PoolsPageState {
+  rows: EarnMarketRow[];
+  hasMore: boolean;
+  isLoading: boolean;
+  error: Error | null;
+}
+
 /**
- * Fetch the user's open positions for the current network.
- *
- * - When `api.positionsBaseUrl` is set, calls the 1delta positions proxy
- *   (`GET ${positionsBaseUrl}/positions?account=...&chains=...&lenders=...`)
- *   and maps the raw response to `EpochEarnPosition[]` via
- *   `oneDeltaPositionsToEpoch`.
- * - Otherwise falls back to bundled mock data so the widget still renders
- *   end-to-end in demos.
+ * Server-side sorted + paginated market page. Single chain → one `/pools`
+ * request (multi-lender collapses to `lender=CSV`, which upstream accepts).
+ * Multi-chain → `fetchLendingPoolsPageMulti` fans out one request per chain,
+ * each carrying the same `lender=CSV`, then merges + client-side re-sorts.
+ * Optional filter params (`minTvlUsd`, `maxRiskScore`, `minUtil`, `maxUtil`)
+ * are forwarded so cross-chain comparison is consistent.
+ */
+export function useLendingPoolsPage(opts: {
+  api: ApiConfig;
+  enabled?: boolean;
+  /** Chains to query. 1 → single request. N → fan-out + client merge. */
+  chainIds: number[];
+  /**
+   * Lenders to query. Empty → no `lender` filter (upstream returns all).
+   * Multi-element → joined as `lender=CSV` (one upstream call per chain).
+   */
+  lenders?: string[];
+  sortBy: PoolSortBy;
+  sortDir: PoolSortDir;
+  start: number;
+  count: number;
+  minTvlUsd?: number;
+  maxRiskScore?: number;
+  minUtil?: number;
+  maxUtil?: number;
+}): PoolsPageState {
+  const {
+    api,
+    enabled = true,
+    chainIds,
+    lenders,
+    sortBy,
+    sortDir,
+    start,
+    count,
+    minTvlUsd,
+    maxRiskScore,
+    minUtil,
+    maxUtil,
+  } = opts;
+  const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
+  // Stable keys so the effect doesn't refetch on array-identity churn alone.
+  const chainIdsKey = chainIds.join(',');
+  const lendersKey = (lenders ?? []).join(',');
+
+  const [state, setState] = useState<PoolsPageState>({
+    rows: [],
+    hasMore: false,
+    isLoading: !!positionsBaseUrl && enabled && chainIds.length > 0,
+    error: null,
+  });
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!enabled || !positionsBaseUrl || chainIds.length === 0) {
+      setState({ rows: [], hasMore: false, isLoading: false, error: null });
+      return;
+    }
+    const id = ++reqIdRef.current;
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    const controller = new AbortController();
+    let cancelled = false;
+    const parsedChainIds = chainIdsKey
+      .split(',')
+      .map((s) => Number(s))
+      .filter(Number.isFinite);
+    const parsedLenders = lendersKey ? lendersKey.split(',').filter(Boolean) : [];
+    // Upstream accepts `lender=CSV` so multi-lender stays a single request per
+    // chain. Multi-chain still requires fan-out (chainId is required + single).
+    const lenderCsv = parsedLenders.length ? parsedLenders.join(',') : undefined;
+
+    const promise =
+      parsedChainIds.length > 1
+        ? fetchLendingPoolsPageMulti({
+            positionsBaseUrl,
+            chainIds: parsedChainIds,
+            lenders: parsedLenders.length ? parsedLenders : undefined,
+            sortBy,
+            sortDir,
+            start,
+            count,
+            minTvlUsd,
+            maxRiskScore,
+            minUtil,
+            maxUtil,
+            signal: controller.signal,
+          })
+        : fetchLendingPoolsPage({
+            positionsBaseUrl,
+            chainId: parsedChainIds[0],
+            lender: lenderCsv,
+            sortBy,
+            sortDir,
+            start,
+            count,
+            minTvlUsd,
+            maxRiskScore,
+            minUtil,
+            maxUtil,
+            signal: controller.signal,
+          });
+
+    promise
+      .then(({ rows, hasMore }) => {
+        if (cancelled || id !== reqIdRef.current) return;
+        setState({ rows, hasMore, isLoading: false, error: null });
+      })
+      .catch((err) => {
+        if (cancelled || id !== reqIdRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setState({
+          rows: [],
+          hasMore: false,
+          isLoading: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    positionsBaseUrl,
+    enabled,
+    chainIdsKey,
+    lendersKey,
+    sortBy,
+    sortDir,
+    start,
+    count,
+    minTvlUsd,
+    maxRiskScore,
+    minUtil,
+    maxUtil,
+  ]);
+
+  return state;
+}
+
+const DEFAULT_POOL_CHAIN_IDS = [1, 8453, 42161, 10, 137];
+
+/**
+ * Fetch lending pools via the SDK `fetchLendingPools` fetcher — fans out one
+ * `/pools?chainId=…` request per chain in parallel (Promise.allSettled), so a
+ * single chain failure doesn't blank the picker. Falls back to the bundled
+ * `HARDCODED_ONEDELTA_CONFIGS` when no proxy base URL is configured.
+ */
+export function useLendingPools(opts: {
+  api: ApiConfig;
+  enabled?: boolean;
+  chainIds?: number[];
+  lender?: string;
+  sortBy?:
+    | 'depositRate'
+    | 'variableBorrowRate'
+    | 'totalDepositsUsd'
+    | 'totalLiquidityUsd'
+    | 'utilization';
+  sortDir?: 'ASC' | 'DESC';
+  count?: number;
+}): ConfigsState {
+  const {
+    api,
+    enabled = true,
+    chainIds = DEFAULT_POOL_CHAIN_IDS,
+    lender,
+    sortBy,
+    sortDir,
+    count,
+  } = opts;
+  const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
+  const chainsKey = chainIds.join(',');
+
+  const [state, setState] = useState<ConfigsState>({
+    configs: positionsBaseUrl ? [] : HARDCODED_ONEDELTA_CONFIGS,
+    isLoading: !!positionsBaseUrl && enabled,
+    error: null,
+  });
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!enabled) {
+      setState({ configs: [], isLoading: false, error: null });
+      return;
+    }
+    if (!positionsBaseUrl) {
+      setState({ configs: HARDCODED_ONEDELTA_CONFIGS, isLoading: false, error: null });
+      return;
+    }
+    const id = ++reqIdRef.current;
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    const controller = new AbortController();
+    let cancelled = false;
+    const chains = chainsKey
+      ? chainsKey.split(',').map((s) => Number(s)).filter(Number.isFinite)
+      : [];
+
+    const run = async () => {
+      try {
+        const { configs } = await fetchLendingPools({
+          positionsBaseUrl,
+          chainIds: chains,
+          lender,
+          sortBy,
+          sortDir,
+          count,
+          signal: controller.signal,
+        });
+        if (cancelled || id !== reqIdRef.current) return;
+        setState({ configs, isLoading: false, error: null });
+      } catch (err) {
+        if (cancelled || id !== reqIdRef.current) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setState({
+          configs: [],
+          isLoading: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [positionsBaseUrl, enabled, chainsKey, lender, sortBy, sortDir, count]);
+
+  return state;
+}
+
+/**
+ * Fetch the user's open positions via the SDK `fetchUserPositions` fetcher.
+ * Falls back to bundled mock data when no proxy base URL is configured.
  */
 export function useUserPositions(opts: {
   address?: string;
@@ -142,10 +382,7 @@ export function useUserPositions(opts: {
   api: ApiConfig;
   enabled?: boolean;
   configs?: OneDeltaConfig[];
-  /** Override the auto-derived `chains` CSV. Useful when the connected wallet's
-   *  positions live on chains not covered by the bundled configs. */
   chainsOverride?: string;
-  /** Override the auto-derived `lenders` CSV. Omit to let the API default to all. */
   lendersOverride?: string;
 }): PositionsState {
   const {
@@ -158,10 +395,6 @@ export function useUserPositions(opts: {
     lendersOverride,
   } = opts;
   const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
-  const resolvedConfigs = configs ?? DEFAULT_EARN_CONFIGS;
-  const derived = deriveChainsAndLenders(resolvedConfigs);
-  const chains = chainsOverride ?? derived.chains;
-  const lenders = lendersOverride ?? derived.lenders;
 
   const [state, setState] = useState<PositionsState>({
     positions: [],
@@ -176,6 +409,19 @@ export function useUserPositions(opts: {
       setState({ positions: [], summary: null, isLoading: false, error: null });
       return;
     }
+    // When a proxy URL is wired but configs failed to load (e.g. /pools 5xx),
+    // the SDK's derived chains string would be empty and it would silently
+    // fall back to bundled mock positions. Surface the proxy outage instead
+    // of rendering static positions.
+    if (positionsBaseUrl && (!configs || configs.length === 0) && !chainsOverride) {
+      setState({
+        positions: [],
+        summary: null,
+        isLoading: false,
+        error: new Error('positions unavailable: pool configs not loaded'),
+      });
+      return;
+    }
     const id = ++reqIdRef.current;
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -184,37 +430,15 @@ export function useUserPositions(opts: {
 
     const run = async () => {
       try {
-        let positions: EpochEarnPosition[];
-        let summary: EpochEarnPositionsSummary | null = null;
-        if (positionsBaseUrl && chains) {
-          const url = new URL(`${positionsBaseUrl}/positions`);
-          url.searchParams.set('account', address);
-          url.searchParams.set('chains', chains);
-          if (lenders) url.searchParams.set('lenders', lenders);
-
-          console.info('[useUserPositions] fetch start', url.toString());
-          const t0 = performance.now();
-          const res = await fetch(url.toString(), {
-            method: 'GET',
-            headers: { accept: 'application/json' },
-            signal: controller.signal,
-          });
-          if (!res.ok) {
-            const body = await res.text().catch(() => '');
-            throw new Error(
-              `positions service ${res.status} ${res.statusText}${body ? `: ${body}` : ''}`,
-            );
-          }
-          const raw = (await res.json()) as unknown;
-          positions = oneDeltaPositionsToEpoch(raw, resolvedConfigs);
-          summary = oneDeltaPositionsSummary(raw);
-          console.info(
-            `[useUserPositions] fetch done in ${Math.round(performance.now() - t0)}ms — ${positions.length} positions, summary=${summary ? 'yes' : 'no'}`,
-          );
-        } else {
-          await new Promise((r) => setTimeout(r, MOCK_DELAY_MS));
-          positions = mockPositionsForAddress(address, network);
-        }
+        const { positions, summary } = await fetchUserPositions({
+          address,
+          network,
+          positionsBaseUrl,
+          configs,
+          chainsOverride,
+          lendersOverride,
+          signal: controller.signal,
+        });
         if (cancelled || id !== reqIdRef.current) return;
         setState({ positions, summary, isLoading: false, error: null });
       } catch (err) {
@@ -233,7 +457,15 @@ export function useUserPositions(opts: {
       cancelled = true;
       controller.abort();
     };
-  }, [address, network, positionsBaseUrl, chains, lenders, enabled]);
+  }, [
+    address,
+    network,
+    positionsBaseUrl,
+    configs,
+    chainsOverride,
+    lendersOverride,
+    enabled,
+  ]);
 
   return state;
 }

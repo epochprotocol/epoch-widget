@@ -1,59 +1,148 @@
-import { RowAccordion } from 'epoch-intent-widget';
-import { PAY_SCENARIOS } from '../pay/scenarios';
+import { useEffect, useState } from 'react';
+import { PAY_SCENARIOS, PAY_TESTNET_SCENARIOS } from '../pay/scenarios';
 import type { ScenarioProps } from '../pay/scenarios';
 import { SectionLabel } from '../components/SectionLabel';
 import { ScenarioCard } from '../components/ScenarioCard';
 import { Row } from '../components/Row';
-import { Detail } from '../components/Detail';
-import { Code } from '../components/Code';
-import { fmtAmount } from '../lib/format';
+import { EditableField } from '../components/EditableField';
+import type { DemoNetwork } from '../app/AppShell';
 
 interface Props {
   apiBaseUrl: string;
   scenarioId: string;
   onChangeScenario: (id: string) => void;
-  onOpenWidget: (props: ScenarioProps, label: string) => void;
+  onOpenWidget: (props: ScenarioProps) => void;
+  network: DemoNetwork;
 }
 
-export function PaySurface({ apiBaseUrl, scenarioId, onChangeScenario, onOpenWidget }: Props) {
-  const scenario = PAY_SCENARIOS.find((s) => s.id === scenarioId) ?? PAY_SCENARIOS[0];
+interface FlatEdits {
+  shape: 'flat';
+  toAddress: string;
+  toAmount: string;
+  toChainId: string;
+  toToken: string;
+  toTokenSymbol: string;
+}
+
+interface IntentEdits {
+  shape: 'intent';
+  requiredAmount: string;
+  destinationChainId: string;
+  destinationChainName: string;
+  requiredTokenAddress: string;
+  requiredTokenSymbol: string;
+  requiredTokenDecimals: string;
+}
+
+type Edits = FlatEdits | IntentEdits;
+
+function editsFromScenario(props: ScenarioProps): Edits {
+  if (props.intent) {
+    const t = props.intent.requiredToken;
+    return {
+      shape: 'intent',
+      requiredAmount: props.intent.requiredAmount.toString(),
+      destinationChainId: String(props.intent.config.destinationChainId ?? ''),
+      destinationChainName: props.intent.destinationChainName ?? '',
+      requiredTokenAddress: t.address,
+      requiredTokenSymbol: t.symbol,
+      requiredTokenDecimals: String(t.decimals),
+    };
+  }
+  return {
+    shape: 'flat',
+    toAddress: props.toAddress ?? '',
+    toAmount: props.toAmount ?? '',
+    toChainId: String(props.toChainId ?? ''),
+    toToken: props.toToken ?? '',
+    toTokenSymbol: props.toTokenSymbol ?? '',
+  };
+}
+
+function applyEdits(props: ScenarioProps, edits: Edits): ScenarioProps {
+  if (edits.shape === 'flat') {
+    const addressTrim = edits.toAddress.trim();
+    const tokenTrim = edits.toToken.trim();
+    return {
+      ...props,
+      toAddress: addressTrim ? (addressTrim as `0x${string}`) : props.toAddress,
+      toAmount: edits.toAmount.trim() || props.toAmount,
+      toChainId: edits.toChainId.trim() ? Number(edits.toChainId) : props.toChainId,
+      toToken: tokenTrim ? (tokenTrim as `0x${string}`) : props.toToken,
+      toTokenSymbol: edits.toTokenSymbol.trim() || props.toTokenSymbol,
+    };
+  }
+  if (!props.intent) return props;
+  const t = props.intent.requiredToken;
+  // Parse amount as bigint when valid; fall back to scenario default otherwise.
+  let nextAmount = props.intent.requiredAmount;
+  const trimmed = edits.requiredAmount.trim();
+  if (trimmed) {
+    try {
+      nextAmount = BigInt(trimmed);
+    } catch {
+      // keep default
+    }
+  }
+  return {
+    ...props,
+    intent: {
+      ...props.intent,
+      requiredAmount: nextAmount,
+      destinationChainName: edits.destinationChainName.trim() || props.intent.destinationChainName,
+      requiredToken: {
+        ...t,
+        address: edits.requiredTokenAddress.trim()
+          ? (edits.requiredTokenAddress.trim() as `0x${string}`)
+          : t.address,
+        symbol: edits.requiredTokenSymbol.trim() || t.symbol,
+        decimals: edits.requiredTokenDecimals.trim()
+          ? Number(edits.requiredTokenDecimals)
+          : t.decimals,
+      },
+      config: {
+        ...props.intent.config,
+        destinationChainId: edits.destinationChainId.trim()
+          ? Number(edits.destinationChainId)
+          : props.intent.config.destinationChainId,
+      },
+    },
+  };
+}
+
+export function PaySurface({ scenarioId, onChangeScenario, onOpenWidget, network }: Props) {
+  const scenarios = network === 'testnet' ? PAY_TESTNET_SCENARIOS : PAY_SCENARIOS;
+  const scenario = scenarios.find((s) => s.id === scenarioId) ?? scenarios[0];
+
+  const [edits, setEdits] = useState<Edits>(() => editsFromScenario(scenario.props));
+
+  useEffect(() => {
+    setEdits(editsFromScenario(scenario.props));
+  }, [scenario.id, scenario.props]);
+
+  const setFlat = <K extends keyof FlatEdits>(key: K, value: string) => {
+    setEdits((prev) =>
+      prev.shape === 'flat' ? ({ ...prev, [key]: value } as FlatEdits) : prev,
+    );
+  };
+  const setIntent = <K extends keyof IntentEdits>(key: K, value: string) => {
+    setEdits((prev) =>
+      prev.shape === 'intent' ? ({ ...prev, [key]: value } as IntentEdits) : prev,
+    );
+  };
+
+  const handleOpen = () => onOpenWidget(applyEdits(scenario.props, edits));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <header>
         <h1 className="m-0 text-3xl font-[650] -tracking-tight text-fg">Pay</h1>
-        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-fg-secondary">
-          Accept payments in any token, on any supported chain.
-        </p>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg-muted">
-          Send the widget your destination address, amount, and the token you want to receive. The
-          user picks whatever they hold — USDC on Optimism, ETH on Arbitrum, anything supported — and
-          the intent network handles the conversion and delivery.
-        </p>
-        <div className="mt-4 max-w-2xl">
-          <RowAccordion
-            header={
-              <span className="text-[12.5px] font-semibold text-fg-muted">For developers</span>
-            }
-          >
-            <p className="m-0 text-[13px] leading-relaxed text-fg-secondary">
-              Pay mode accepts either flat props (<Code>toAddress</Code> / <Code>toAmount</Code> /{' '}
-              <Code>toToken</Code> / <Code>toChainId</Code>) for simple transfers, or a nested{' '}
-              <Code>intent</Code> object when you need a structured action routed by the allocator at{' '}
-              <Code>{apiBaseUrl}</Code>.
-            </p>
-          </RowAccordion>
-        </div>
       </header>
 
       <section>
-        <SectionLabel>Try a scenario</SectionLabel>
-        <p className="-mt-1 mb-3 text-[13px] text-fg-muted">
-          Each card shows a different shape of <Code>{'<EpochIntentWidget />'}</Code> props. Click to
-          load — the widget opens with that scenario&apos;s data.
-        </p>
+        <SectionLabel>Scenarios</SectionLabel>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-3">
-          {PAY_SCENARIOS.map((sc) => (
+          {scenarios.map((sc) => (
             <ScenarioCard
               key={sc.id}
               scenario={sc}
@@ -66,12 +155,14 @@ export function PaySurface({ apiBaseUrl, scenarioId, onChangeScenario, onOpenWid
         <div className="mt-6 rounded-md border border-line bg-surface p-5 shadow-sm">
           <Row className="justify-between">
             <div>
-              <SectionLabel className="mb-0.5">Selected</SectionLabel>
-              <div className="text-base font-semibold text-fg">{scenario.name}</div>
+              <SectionLabel className="mb-0.5">Customize {scenario.name}</SectionLabel>
+              <div className="text-[12px] text-fg-muted">
+                Edit any field before opening the widget. Blank fields fall back to scenario defaults.
+              </div>
             </div>
             <button
               type="button"
-              onClick={() => onOpenWidget(scenario.props, scenario.name)}
+              onClick={handleOpen}
               className="cursor-pointer rounded-md border-0 bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover"
             >
               Open widget →
@@ -79,28 +170,82 @@ export function PaySurface({ apiBaseUrl, scenarioId, onChangeScenario, onOpenWid
           </Row>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            {scenario.props.intent ? (
+            {edits.shape === 'flat' ? (
               <>
-                <Detail
-                  label="Required"
-                  value={`${fmtAmount(
-                    scenario.props.intent.requiredAmount,
-                    scenario.props.intent.requiredToken.decimals,
-                  )} ${scenario.props.intent.requiredToken.symbol}`}
+                <EditableField
+                  label="To address"
+                  value={edits.toAddress}
+                  placeholder="0x…"
+                  onChange={(v) => setFlat('toAddress', v)}
                 />
-                <Detail label="Destination" value={scenario.props.intent.destinationChainName ?? '—'} />
-                <Detail label="Protocol" value={scenario.props.intent.config.protocol} />
-                <Detail label="Action" value={scenario.props.intent.config.action} />
+                <EditableField
+                  label="Amount"
+                  value={edits.toAmount}
+                  placeholder="0.15"
+                  onChange={(v) => setFlat('toAmount', v)}
+                />
+                <EditableField
+                  label="Chain ID"
+                  value={edits.toChainId}
+                  placeholder="8453"
+                  inputMode="numeric"
+                  onChange={(v) => setFlat('toChainId', v)}
+                />
+                <EditableField
+                  label="Token address"
+                  value={edits.toToken}
+                  placeholder="0x…"
+                  onChange={(v) => setFlat('toToken', v)}
+                />
+                <EditableField
+                  label="Token symbol"
+                  value={edits.toTokenSymbol}
+                  placeholder="USDC"
+                  onChange={(v) => setFlat('toTokenSymbol', v)}
+                />
               </>
             ) : (
               <>
-                <Detail label="To address" value={scenario.props.toAddress ?? '—'} />
-                <Detail
-                  label="Amount"
-                  value={`${scenario.props.toAmount ?? '—'} ${scenario.props.toTokenSymbol ?? ''}`}
+                <EditableField
+                  label="Required amount (raw)"
+                  value={edits.requiredAmount}
+                  placeholder="5000000"
+                  inputMode="numeric"
+                  hint="Atomic units, not decimal"
+                  onChange={(v) => setIntent('requiredAmount', v)}
                 />
-                <Detail label="Chain ID" value={String(scenario.props.toChainId ?? '—')} />
-                <Detail label="Token" value={scenario.props.toToken ?? '—'} />
+                <EditableField
+                  label="Destination chain ID"
+                  value={edits.destinationChainId}
+                  placeholder="8453"
+                  inputMode="numeric"
+                  onChange={(v) => setIntent('destinationChainId', v)}
+                />
+                <EditableField
+                  label="Destination chain name"
+                  value={edits.destinationChainName}
+                  placeholder="Base"
+                  onChange={(v) => setIntent('destinationChainName', v)}
+                />
+                <EditableField
+                  label="Required token address"
+                  value={edits.requiredTokenAddress}
+                  placeholder="0x…"
+                  onChange={(v) => setIntent('requiredTokenAddress', v)}
+                />
+                <EditableField
+                  label="Required token symbol"
+                  value={edits.requiredTokenSymbol}
+                  placeholder="USDC"
+                  onChange={(v) => setIntent('requiredTokenSymbol', v)}
+                />
+                <EditableField
+                  label="Required token decimals"
+                  value={edits.requiredTokenDecimals}
+                  placeholder="6"
+                  inputMode="numeric"
+                  onChange={(v) => setIntent('requiredTokenDecimals', v)}
+                />
               </>
             )}
           </div>

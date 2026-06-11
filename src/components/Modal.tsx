@@ -31,7 +31,7 @@ const OVERLAY_CLASSES =
   'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-overlay backdrop-blur-md animate-overlay-in';
 
 const CONTAINER_CLASSES =
-  'flex w-full max-w-[420px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
+  'flex w-full max-w-[480px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
 
 const HEADER_CLASSES = 'flex items-center justify-between px-6 pt-5 pb-3';
 
@@ -41,7 +41,7 @@ const ICON_BUTTON_CLASSES =
   'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg-muted transition-colors hover:bg-line hover:text-fg';
 
 const BODY_CLASSES =
-  'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 pt-1 pb-5';
+  'flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-6 pt-1 pb-5';
 
 const FOOTER_CLASSES = 'px-6 pt-4 pb-5';
 

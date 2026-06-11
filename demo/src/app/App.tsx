@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { EpochIntentWidget, SegmentedTabs } from 'epoch-intent-widget';
+import { useEffect, useMemo, useState } from 'react';
+import { EpochIntentWidget, SegmentedTabs } from '@epoch-protocol/epoch-intent-widget';
 import type { ScenarioProps } from '../pay/scenarios';
-import { PAY_SCENARIOS } from '../pay/scenarios';
+import { PAY_SCENARIOS, PAY_TESTNET_SCENARIOS } from '../pay/scenarios';
 import { getApiBaseUrl } from '../lib/apiBaseUrl';
-import { shorten } from '../lib/format';
 import { AppShell } from './AppShell';
-import { Hero } from './Hero';
+import type { DemoNetwork } from './AppShell';
 import type { DemoSurface } from '../types/surface';
-import type { LogEntry } from './log';
 import { PaySurface } from '../surfaces/PaySurface';
 import { SwapSurface } from '../surfaces/SwapSurface';
 import { EarnSurface } from '../surfaces/EarnSurface';
 import { AdvancedSurface } from '../surfaces/AdvancedSurface';
-import { EventLog } from '../components/EventLog';
 import { useEarnMidenAdapter } from '../earn/useEarnMidenAdapter';
 
 /**
@@ -27,11 +24,9 @@ function useAdvancedFlag(): boolean {
   }, []);
 }
 
-const BASE_TABS = [
-  { value: 'pay'  as const, label: 'Pay' },
-  { value: 'swap' as const, label: 'Swap' },
-  { value: 'earn' as const, label: 'Earn' },
-];
+const PAY_TAB = { value: 'pay'  as const, label: 'Pay' };
+const SWAP_TAB = { value: 'swap' as const, label: 'Swap' };
+const EARN_TAB = { value: 'earn' as const, label: 'Earn' };
 const ADVANCED_TAB = { value: 'advanced' as const, label: 'Advanced' };
 
 export default function App() {
@@ -42,32 +37,22 @@ export default function App() {
     (import.meta.env.VITE_POSITIONS_API_BASE_URL as string | undefined) ?? 'http://localhost:4023';
 
   const showAdvanced = useAdvancedFlag();
-  const tabs = showAdvanced ? [...BASE_TABS, ADVANCED_TAB] : BASE_TABS;
   const earnMiden = useEarnMidenAdapter();
+
+  const [network, setNetwork] = useState<DemoNetwork>('mainnet');
+  const tabs = useMemo(() => {
+    const base = [PAY_TAB, SWAP_TAB, EARN_TAB];
+    return showAdvanced ? [...base, ADVANCED_TAB] : base;
+  }, [showAdvanced]);
 
   const [surface, setSurface] = useState<DemoSurface>('pay');
   const [payScenarioId, setPayScenarioId] = useState(PAY_SCENARIOS[0].id);
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [widgetProps, setWidgetProps] = useState<ScenarioProps>(PAY_SCENARIOS[0].props);
-  const [log, setLog] = useState<LogEntry[]>([]);
 
-  const tabsRef = useRef<HTMLDivElement>(null);
-
-  const addLog = (level: LogEntry['level'], msg: string) =>
-    setLog((prev) => [{ ts: new Date(), level, msg }, ...prev].slice(0, 50));
-
-  const openWidget = (props: ScenarioProps, label: string) => {
+  const openWidget = (props: ScenarioProps) => {
     setWidgetProps(props);
     setWidgetOpen(true);
-    addLog('info', `Opened widget: ${label}`);
-  };
-
-  // Hero CTA → Pay tab + scroll to the tab strip.
-  const handleTryPay = () => {
-    setSurface('pay');
-    requestAnimationFrame(() => {
-      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
   };
 
   // Defensive: if `?advanced=1` is removed mid-session and the saved surface
@@ -76,11 +61,16 @@ export default function App() {
     if (surface === 'advanced' && !showAdvanced) setSurface('pay');
   }, [surface, showAdvanced]);
 
-  return (
-    <AppShell>
-      <Hero onTryPay={handleTryPay} />
+  // Reset pay scenario when network flips — testnet + mainnet have disjoint
+  // scenario ids so the previously selected id won't match anything.
+  useEffect(() => {
+    const scenarios = network === 'testnet' ? PAY_TESTNET_SCENARIOS : PAY_SCENARIOS;
+    setPayScenarioId(scenarios[0].id);
+  }, [network]);
 
-      <div ref={tabsRef} className="mx-auto max-w-6xl px-6">
+  return (
+    <AppShell network={network} onNetworkChange={setNetwork}>
+      <div className="mx-auto max-w-3xl px-6 pt-6">
         <SegmentedTabs<DemoSurface>
           tabs={tabs}
           value={surface}
@@ -89,66 +79,58 @@ export default function App() {
         />
       </div>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section>
-          {surface === 'pay' && (
-            <PaySurface
-              apiBaseUrl={apiBaseUrl}
-              scenarioId={payScenarioId}
-              onChangeScenario={setPayScenarioId}
-              onOpenWidget={openWidget}
-            />
-          )}
-          {surface === 'swap' && (
-            <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
-          )}
-          {surface === 'earn' && (
-            <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
-          )}
-          {surface === 'advanced' && showAdvanced && (
-            <AdvancedSurface api={apiBaseUrl} />
-          )}
-        </section>
-
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <EventLog entries={log} />
-        </aside>
+      <main className="mx-auto max-w-3xl px-6 py-8">
+        {surface === 'pay' && (
+          <PaySurface
+            apiBaseUrl={apiBaseUrl}
+            scenarioId={payScenarioId}
+            onChangeScenario={setPayScenarioId}
+            onOpenWidget={openWidget}
+            network={network}
+          />
+        )}
+        {surface === 'swap' && (
+          <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} network={network} />
+        )}
+        {surface === 'earn' && (
+          <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />
+        )}
+        {surface === 'advanced' && showAdvanced && <AdvancedSurface api={apiBaseUrl} />}
       </main>
 
-      <EpochIntentWidget
-        {...widgetProps}
-        earnSolverUrl={earnSolverUrl}
-        earnMiden={widgetProps.mode === 'earn' ? earnMiden : undefined}
-        isOpen={widgetOpen}
-        onClose={() => {
-          setWidgetOpen(false);
-          addLog('info', 'Widget closed');
-        }}
-        api={{
-          baseUrl: apiBaseUrl,
-          positionsBaseUrl,
-          testnetBaseUrl:
-            (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
-            'http://localhost:3000',
-          testnetPositionsBaseUrl:
-            (import.meta.env.VITE_TESTNET_POSITIONS_API_BASE_URL as string | undefined) ??
-            'http://localhost:4024',
-        }}
-        onIntentSent={({ nonce }) => addLog('info', `Intent sent — nonce ${shorten(nonce)}`)}
-        onIntentComplete={({ nonce }) => addLog('success', `Intent complete — nonce ${shorten(nonce)}`)}
-        onError={({ error }) => addLog('error', error.message)}
-        onStart={({ sessionId, mode }) =>
-          addLog('info', `onStart — mode=${mode} session=${shorten(sessionId)}`)
-        }
-        onSign={({ sessionId }) => addLog('info', `onSign — session=${shorten(sessionId)}`)}
-        onSuccess={({ sessionId, nonce }) =>
-          addLog('success', `onSuccess — nonce=${shorten(nonce)} session=${shorten(sessionId)}`)
-        }
-        onStatus={({ status, progress, activeStep }) =>
-          addLog('info', `status=${status} step=${activeStep} progress=${progress}`)
-        }
-        onOpen={() => addLog('info', 'Widget opened')}
-      />
+      {(() => {
+        const widgetMode = widgetProps.mode ?? widgetProps.flow ?? 'pay';
+        const isEarnMode = widgetMode === 'earn';
+        return (
+          <EpochIntentWidget
+            {...widgetProps}
+            {...(isEarnMode ? { earnSolverUrl } : {})}
+            earnMiden={isEarnMode ? earnMiden : undefined}
+            isOpen={widgetOpen}
+            onClose={() => setWidgetOpen(false)}
+            network={network}
+            api={
+              isEarnMode
+                ? {
+                    baseUrl: apiBaseUrl,
+                    positionsBaseUrl,
+                    testnetBaseUrl:
+                      (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
+                      'http://localhost:3000',
+                    testnetPositionsBaseUrl:
+                      (import.meta.env.VITE_TESTNET_POSITIONS_API_BASE_URL as string | undefined) ??
+                      'http://localhost:4024',
+                  }
+                : {
+                    baseUrl: apiBaseUrl,
+                    testnetBaseUrl:
+                      (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
+                      'http://localhost:3000',
+                  }
+            }
+          />
+        );
+      })()}
     </AppShell>
   );
 }

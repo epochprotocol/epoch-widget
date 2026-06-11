@@ -15,7 +15,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     // Avoid stale pre-bundles of the linked workspace package when iterating on the widget.
-    exclude: ['@miden-sdk/miden-sdk', 'epoch-intent-widget'],
+    exclude: ['@miden-sdk/miden-sdk', '@epoch-protocol/epoch-intent-widget'],
   },
   build: {
     target: 'esnext',
