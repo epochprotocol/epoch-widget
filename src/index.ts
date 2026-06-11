@@ -27,6 +27,8 @@ export type {
   EpochEarnPosition,
   EarnDepositIntentDefaults,
   EarnWithdrawIntentDefaults,
+  EarnMidenAdapter,
+  EarnMidenAsset,
   OneDeltaConfig,
   OneDeltaMarketRow,
   OneDeltaUnderlyingAsset,
@@ -39,6 +41,7 @@ export type {
 } from './types';
 export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
 export { cn } from './lib/cn';
+export { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, midenFaucetKey, isDefaultMidenFaucet } from './earn/miden';
 export { useEarnMarkets, useUserPositions, useEarnConfigs } from './earn/api';
 export { HARDCODED_ONEDELTA_CONFIGS, chainLabelFor } from './earn/onedelta-markets';
 export { toEpochEarnMarket, flattenConfigsToMarkets } from './earn/onedelta-adapter';
@@ -46,7 +49,13 @@ export { buildPayIntentFromFlatProps } from './pay/build-pay-intent';
 export { buildEarnDepositIntent } from './earn/build-deposit-intent';
 export { buildEarnWithdrawIntent } from './earn/build-withdraw-intent';
 export { formatAmount, truncateAddress } from './utils';
+export {
+  resolveApiForNetwork,
+  DEFAULT_TESTNET_API_BASE_URL,
+  DEFAULT_TESTNET_POSITIONS_BASE_URL,
+} from './resolve-api-config';
 // UI primitives — exported so consumers can compose against the same design
 // system without re-importing from internal paths.
+export { NetworkToggle } from './components/NetworkToggle';
 export { Card, Pill, TokenAvatar, Skeleton, Stat, SegmentedTabs, RowAccordion, SearchInput } from './components/ui';
 export type { PillVariant, PillSize, SegmentedTab } from './components/ui';

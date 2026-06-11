@@ -13,9 +13,12 @@ import { normalizeMidenIdToHex } from '../services/epoch-bridge';
  * (e.g. `mtst1qxxxxxxxxxxxxx_xxxxxx`) resolve correctly.
  */
 const MIDEN_FAUCET_DECIMALS: Record<string, number> = {
-  // USDC on Miden testnet
+  // USDC on Miden testnet — canonical earn / bridge faucet for now
   '0a7d175ed63ec5200fb2ced86f6aa5': 6,
 };
+
+/** @deprecated Prefer `DEFAULT_MIDEN_FAUCET` from `epoch-intent-widget`. */
+export const MIDEN_USDC_FAUCET_ID = '0x0a7d175ed63ec5200fb2ced86f6aa5';
 
 function toMapKey(faucetId: string): string {
   const hex = normalizeMidenIdToHex(faucetId);

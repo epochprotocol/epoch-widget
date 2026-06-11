@@ -10,12 +10,33 @@ import { HARDCODED_ONEDELTA_CONFIGS } from './onedelta-markets';
 import { flattenConfigsToMarkets } from './onedelta-adapter';
 import { mockPositionsForAddress } from './mock-data';
 import {
+  DUMMY_LENDING_CONFIGS,
+  isTestnetChainId,
+} from './dummy-lending-markets';
+import {
   deriveChainsAndLenders,
   oneDeltaPositionsSummary,
   oneDeltaPositionsToEpoch,
 } from './positions-adapter';
 
 const MOCK_DELAY_MS = 150;
+
+/** Bundled mainnet configs plus testnet-only dummy-lending. */
+export const DEFAULT_EARN_CONFIGS: OneDeltaConfig[] = [
+  ...HARDCODED_ONEDELTA_CONFIGS,
+  ...DUMMY_LENDING_CONFIGS,
+];
+
+function filterConfigsByNetwork(
+  configs: OneDeltaConfig[],
+  network: 'mainnet' | 'testnet',
+): OneDeltaConfig[] {
+  const wantTestnet = network === 'testnet';
+  return configs.filter((cfg) => {
+    const onTestnet = isTestnetChainId(cfg.chainId);
+    return wantTestnet ? onTestnet : !onTestnet;
+  });
+}
 
 interface MarketsState {
   markets: EpochEarnMarket[];
@@ -44,10 +65,16 @@ interface PositionsState {
 export function useEarnConfigs(opts: {
   enabled?: boolean;
   source?: OneDeltaConfig[];
+  network?: 'mainnet' | 'testnet';
 }): ConfigsState {
-  const { enabled = true, source = HARDCODED_ONEDELTA_CONFIGS } = opts;
+  const {
+    enabled = true,
+    source = DEFAULT_EARN_CONFIGS,
+    network = 'mainnet',
+  } = opts;
+  const filtered = filterConfigsByNetwork(source, network);
   const [state, setState] = useState<ConfigsState>({
-    configs: source,
+    configs: filtered,
     isLoading: false,
     error: null,
   });
@@ -57,8 +84,8 @@ export function useEarnConfigs(opts: {
       setState({ configs: [], isLoading: false, error: null });
       return;
     }
-    setState({ configs: source, isLoading: false, error: null });
-  }, [enabled, source]);
+    setState({ configs: filterConfigsByNetwork(source, network), isLoading: false, error: null });
+  }, [enabled, source, network]);
 
   return state;
 }
@@ -77,8 +104,9 @@ export function useEarnMarkets(opts: {
   source?: OneDeltaConfig[];
 }): MarketsState {
   const { enabled = true, source } = opts;
+  const resolvedSource = source ?? DEFAULT_EARN_CONFIGS;
   const [state, setState] = useState<MarketsState>({
-    markets: enabled ? flattenConfigsToMarkets(source ?? HARDCODED_ONEDELTA_CONFIGS) : [],
+    markets: enabled ? flattenConfigsToMarkets(resolvedSource) : [],
     isLoading: false,
     error: null,
   });
@@ -89,11 +117,11 @@ export function useEarnMarkets(opts: {
       return;
     }
     setState({
-      markets: flattenConfigsToMarkets(source ?? HARDCODED_ONEDELTA_CONFIGS),
+      markets: flattenConfigsToMarkets(resolvedSource),
       isLoading: false,
       error: null,
     });
-  }, [enabled, source]);
+  }, [enabled, resolvedSource]);
 
   return state;
 }
@@ -130,7 +158,7 @@ export function useUserPositions(opts: {
     lendersOverride,
   } = opts;
   const positionsBaseUrl = api.positionsBaseUrl?.replace(/\/$/, '');
-  const resolvedConfigs = configs ?? HARDCODED_ONEDELTA_CONFIGS;
+  const resolvedConfigs = configs ?? DEFAULT_EARN_CONFIGS;
   const derived = deriveChainsAndLenders(resolvedConfigs);
   const chains = chainsOverride ?? derived.chains;
   const lenders = lendersOverride ?? derived.lenders;

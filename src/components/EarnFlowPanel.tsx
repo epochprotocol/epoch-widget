@@ -3,6 +3,7 @@ import type { EpochEarnMarket } from '../types';
 import { formatAmount, formatBalancePortionForInput, truncateAddress } from '../utils';
 import { Avatar } from './Avatar';
 import { MarketSelectButton } from './MarketSelectButton';
+import { SegmentedTabs } from './ui/SegmentedTabs';
 import { TokenChainPill } from './TokenChainPill';
 
 const SECTION_LABEL = 'text-xs font-semibold tracking-[0.02em] text-fg-muted';
@@ -32,6 +33,12 @@ interface Props {
   walletBalance: bigint | null;
   sourceTokenDecimals: number;
   balanceLoading?: boolean;
+  /** When true, show EVM / Miden funding toggle (testnet + adapter provided). */
+  midenEnabled?: boolean;
+  fundingSource?: 'evm' | 'miden';
+  onFundingSourceChange?: (source: 'evm' | 'miden') => void;
+  midenConnected?: boolean;
+  onConnectMiden?: () => void;
 }
 
 export function EarnFlowPanel({
@@ -51,6 +58,11 @@ export function EarnFlowPanel({
   walletBalance,
   sourceTokenDecimals,
   balanceLoading,
+  midenEnabled = false,
+  fundingSource = 'evm',
+  onFundingSourceChange,
+  midenConnected = false,
+  onConnectMiden,
 }: Props) {
   const balanceHuman =
     walletBalance !== null && walletConnected
@@ -68,10 +80,35 @@ export function EarnFlowPanel({
 
   return (
     <div className="flex flex-col">
+      {midenEnabled && onFundingSourceChange && (
+        <div className="mb-3">
+          <SegmentedTabs<'evm' | 'miden'>
+            tabs={[
+              { value: 'evm', label: 'EVM wallet' },
+              { value: 'miden', label: 'Miden' },
+            ]}
+            value={fundingSource}
+            onChange={onFundingSourceChange}
+            size="sm"
+          />
+        </div>
+      )}
       <div className={PAY_CARD}>
         <div className="mb-3 flex items-center justify-between gap-2.5">
           <span className={SECTION_LABEL}>You pay with</span>
-          {walletConnected && walletAddress ? (
+          {fundingSource === 'miden' ? (
+            midenConnected ? (
+              <span className="text-xs font-semibold text-fg-secondary">Miden connected</span>
+            ) : (
+              <button
+                type="button"
+                className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-primary"
+                onClick={() => onConnectMiden?.()}
+              >
+                Connect Miden
+              </button>
+            )
+          ) : walletConnected && walletAddress ? (
             <div
               className="flex items-center gap-1.5 rounded-full border border-[rgba(124,58,237,0.22)] py-1 pl-1.25 pr-2.5 text-xs font-semibold text-[#5b21b6]"
               style={{
@@ -84,9 +121,9 @@ export function EarnFlowPanel({
               <span className="tabular-nums">{truncateAddress(walletAddress, 4)}</span>
               <span className="ml-0.5 opacity-65">›</span>
             </div>
-          ) : (
+          ) : fundingSource === 'evm' ? (
             <span className={cn(SECTION_LABEL, 'font-medium')}>Connect wallet</span>
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center justify-between gap-2.5">

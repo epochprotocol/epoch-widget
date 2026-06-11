@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { keccak256, parseUnits, toBytes } from 'viem';
 import type { WalletClient } from 'viem';
 import { TaskType } from '@epoch-protocol/epoch-commons-sdk';
-import { EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
+import { CollateralType, EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
 import type {
+  EarnMidenCreateP2IDNote,
   EpochEarnMarket,
   EpochEarnPosition,
   EpochToken,
@@ -14,6 +15,11 @@ import type {
   OnStartCtx,
   OnSuccessCtx,
 } from '../types';
+import {
+  EARN_MIDEN_EXTRA_FIELDS,
+  EVM_ZERO_ADDRESS,
+  normalizeMidenId,
+} from './miden';
 
 export type EarnIntentFlowStatus =
   | 'idle'
@@ -47,6 +53,14 @@ interface EarnQuoteInput {
   sourceChainId: number;
   sourceToken: EpochToken;
   network: 'mainnet' | 'testnet';
+  /** When set, collateral is locked in a Miden P2IDE note instead of EVM Compact. */
+  midenSource?: {
+    accountId: string;
+    faucetId: string;
+    decimals: number;
+    createP2IDNote: EarnMidenCreateP2IDNote;
+    reclaimHeight?: number;
+  };
   /** Withdraw-only. When true, signals the 1delta API to use protocol-level max-withdraw
    *  mechanisms (maxUint256 / share-based redemption) where supported. */
   isAll?: boolean;
@@ -82,10 +96,16 @@ interface UseEarnIntentFlowParams {
 const POLL_INTERVAL_MS = 3000;
 const AUTO_CLOSE_DELAY_MS = 2500;
 
-// All earn intents route to the 1delta aggregator. 1delta itself dispatches
-// to the underlying lender (Aave, Morpho, etc.) based on `marketUid`, so the
-// SIO-level protocol name is always `1delta` regardless of the chosen lender.
+// All earn intents route through the Epoch graph protocol name embedded in
+// `marketUid` (e.g. `DUMMY_LENDING:84532:0x…` → `dummy-lending`). Falls back
+// to 1delta for bundled mainnet markets.
 const ONEDELTA_PROTOCOL_NAME = '1delta';
+
+function earnProtocolName(marketUid: string): string {
+  const prefix = marketUid.split(':')[0]?.toUpperCase();
+  if (prefix === 'DUMMY_LENDING') return 'dummy-lending';
+  return ONEDELTA_PROTOCOL_NAME;
+}
 
 export function useEarnIntentFlow({
   apiBaseUrl,
@@ -211,26 +231,19 @@ export function useEarnIntentFlow({
         );
       }
 
-      const tokenInAmount = parseUnits(
-        input.amount.trim().replace(/,/g, ''),
-        sourceToken.decimals,
-      ).toString();
-
       const isWithdraw = input.tab === 'withdraw';
+      const isMidenDeposit = !isWithdraw && !!input.midenSource;
       const isSmartWithdraw =
         isWithdraw &&
         input.smartWithdraw === true &&
         input.smartDestChainId != null &&
         !!input.smartDestTokenAddress;
 
-      const protocolHashIdentifier = keccak256(toBytes(ONEDELTA_PROTOCOL_NAME));
+      const protocolHashIdentifier = keccak256(toBytes(earnProtocolName(marketUid)));
       const underlyingAddress = market.token.address as string;
       const actionChainId =
         market.chainId != null ? String(market.chainId) : muidChain ?? '1';
 
-      // For deposit + plain withdraw, destinationChainId == position chain.
-      // For Smart Withdraw, destinationChainId is where the user wants the
-      // proceeds delivered, distinct from the action chain.
       const destinationChainId = isSmartWithdraw
         ? String(input.smartDestChainId)
         : actionChainId;
@@ -239,21 +252,15 @@ export function useEarnIntentFlow({
         ? (input.smartDestTokenAddress as `0x${string}`)
         : (underlyingAddress as `0x${string}`);
 
-      // SIO chains the swap/bridge step before 1delta on deposit, so 1delta
-      // always receives the underlying. `payAsset` is the underlying. Solver
-      // forces direct path internally — no `mode` field needed on the wire.
-      const isSameChain = input.sourceChainId === Number(destinationChainId);
+      const isSameChain = isMidenDeposit
+        ? false
+        : input.sourceChainId === Number(destinationChainId);
       const payAsset = underlyingAddress;
 
-      // For withdrawals, surface `isAll` + `simulate` so the 1delta API can use
-      // protocol-level max-withdraw mechanisms (e.g. maxUint256 / share redemption)
-      // and return projected post-trade metrics. Smart Withdraw adds
-      // `actionChainId` + `actionOutputToken` so the SIO path-finder knows
-      // the protocol-interaction leg lives on the position chain and produces
-      // the underlying, which feeds the subsequent bridge/swap leg.
       const extraDataFields = ['string marketUid', 'string action', 'string payAsset'];
       if (isWithdraw) extraDataFields.push('bool isAll', 'bool simulate');
       if (isSmartWithdraw) extraDataFields.push('string actionChainId', 'string actionOutputToken');
+      if (isMidenDeposit) extraDataFields.push(...EARN_MIDEN_EXTRA_FIELDS);
       const extraDataTypestring = extraDataFields.join(',');
 
       const extraData: Record<string, string | boolean> = {
@@ -269,17 +276,38 @@ export function useEarnIntentFlow({
         extraData.actionChainId = actionChainId;
         extraData.actionOutputToken = underlyingAddress;
       }
+      if (isMidenDeposit && input.midenSource) {
+        extraData.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
+        extraData.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
+        extraData.midenNoteType = 'P2IDE';
+        extraData.midenNoteId = '';
+        extraData.midenReclaimHeight = String(input.midenSource.reclaimHeight ?? 1000);
+      }
+
+      const tokenInDecimals = isMidenDeposit
+        ? input.midenSource!.decimals
+        : sourceToken.decimals;
+      const tokenInAmount = parseUnits(
+        input.amount.trim().replace(/,/g, ''),
+        tokenInDecimals,
+      ).toString();
+
+      const tokenInAddress = isMidenDeposit
+        ? (EVM_ZERO_ADDRESS as `0x${string}`)
+        : (sourceToken.address as `0x${string}`);
 
       return {
         tokenInAmount,
         destinationChainId,
         protocolHashIdentifier,
-        tokenInAddress: sourceToken.address as `0x${string}`,
+        tokenInAddress,
         tokenOutAddress,
         recipient: (address ?? '0x0000000000000000000000000000000000000000') as `0x${string}`,
         extraDataTypestring,
         extraData,
         isSameChain,
+        isMidenDeposit,
+        midenSource: input.midenSource,
       };
     },
     [address],
@@ -467,13 +495,23 @@ export function useEarnIntentFlow({
         setStatusProgress(45);
         onSignRef.current?.({ sessionId });
 
-        const data = await sdk.solveIntent({
+        const submitParams = buildParams(input);
+        const solvePayload: Record<string, unknown> = {
           isNative: false,
           sponsorAddress: address as `0x${string}`,
           taskTypeString,
           intentData,
           quoteResult,
-        } as any);
+        };
+
+        if (submitParams.isMidenDeposit && input.midenSource) {
+          solvePayload.collateralType = CollateralType.Miden;
+          solvePayload.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
+          solvePayload.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
+          solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
+        }
+
+        const data = await sdk.solveIntent(solvePayload as never);
 
         if (!mountedRef.current) return;
 

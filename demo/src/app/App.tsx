@@ -13,6 +13,7 @@ import { SwapSurface } from '../surfaces/SwapSurface';
 import { EarnSurface } from '../surfaces/EarnSurface';
 import { AdvancedSurface } from '../surfaces/AdvancedSurface';
 import { EventLog } from '../components/EventLog';
+import { useEarnMidenAdapter } from '../earn/useEarnMidenAdapter';
 
 /**
  * Read `?advanced=1` once on mount. When set, the Advanced (Miden → EVM)
@@ -42,6 +43,7 @@ export default function App() {
 
   const showAdvanced = useAdvancedFlag();
   const tabs = showAdvanced ? [...BASE_TABS, ADVANCED_TAB] : BASE_TABS;
+  const earnMiden = useEarnMidenAdapter();
 
   const [surface, setSurface] = useState<DemoSurface>('pay');
   const [payScenarioId, setPayScenarioId] = useState(PAY_SCENARIOS[0].id);
@@ -116,12 +118,22 @@ export default function App() {
       <EpochIntentWidget
         {...widgetProps}
         earnSolverUrl={earnSolverUrl}
+        earnMiden={widgetProps.mode === 'earn' ? earnMiden : undefined}
         isOpen={widgetOpen}
         onClose={() => {
           setWidgetOpen(false);
           addLog('info', 'Widget closed');
         }}
-        api={{ baseUrl: apiBaseUrl, positionsBaseUrl }}
+        api={{
+          baseUrl: apiBaseUrl,
+          positionsBaseUrl,
+          testnetBaseUrl:
+            (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
+            'http://localhost:3000',
+          testnetPositionsBaseUrl:
+            (import.meta.env.VITE_TESTNET_POSITIONS_API_BASE_URL as string | undefined) ??
+            'http://localhost:4024',
+        }}
         onIntentSent={({ nonce }) => addLog('info', `Intent sent — nonce ${shorten(nonce)}`)}
         onIntentComplete={({ nonce }) => addLog('success', `Intent complete — nonce ${shorten(nonce)}`)}
         onError={({ error }) => addLog('error', error.message)}

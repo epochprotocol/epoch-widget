@@ -43,6 +43,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     earnHideTabs,
     earnDepositDefaults,
     earnWithdrawDefaults,
+    earnMiden,
   } = props;
 
   const rawMode = modeProp ?? flowProp ?? 'pay';
@@ -111,7 +112,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         onClose={onClose}
         api={api}
         network={network}
-        allowNetworkToggle={allowNetworkToggle}
+        allowNetworkToggle={allowNetworkToggle ?? true}
         classNames={cn}
         theme={theme}
         renderInline={renderInline}
@@ -124,6 +125,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         earnHideTabs={earnHideTabs}
         earnDepositDefaults={earnDepositDefaults}
         earnWithdrawDefaults={earnWithdrawDefaults}
+        earnMiden={earnMiden}
         onIntentSent={onIntentSent}
         onIntentComplete={onIntentComplete}
         onError={onError}

@@ -1,7 +1,9 @@
 import { cn } from '../../lib/cn';
 import type { OneDeltaConfig, OneDeltaMarketRow } from '../../types';
+import { chainLabelFor } from '../../earn/onedelta-markets';
 import { TrendingUpIcon } from '../Icons';
 import { TokenAvatar } from '../ui/TokenAvatar';
+import { Pill } from '../ui/Pill';
 
 interface Props {
   row: OneDeltaMarketRow;
@@ -44,6 +46,7 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
   const tvlUsd = kind === 'lend' ? row.totalDepositsUsd : row.borrowLiquidityUsd;
   const lender = lenderShort(config.lenderKey);
   const dotColor = LENDER_DOT[config.lenderKey] ?? 'var(--epoch-color-primary)';
+  const chainLabel = chainLabelFor(asset.chainId ?? config.chainId);
   const title = `${lender} v3 ${asset.symbol} ${kind === 'lend' ? 'Lending' : 'Borrowing'}`;
 
   return (
@@ -62,7 +65,7 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
         <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold leading-tight text-fg">
           {title}
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex flex-wrap items-center gap-1.5">
           <span
             className="inline-block h-3.5 w-3.5 shrink-0 rounded-full"
             style={{
@@ -71,6 +74,9 @@ export function MarketRowCard({ row, config, kind, selected, onClick }: Props) {
             aria-hidden
           />
           <span className="text-[12.5px] font-medium text-fg-muted">{lender}</span>
+          <Pill variant="neutral" size="xs">
+            {chainLabel}
+          </Pill>
         </span>
       </div>
 

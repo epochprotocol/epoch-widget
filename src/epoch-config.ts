@@ -67,6 +67,7 @@ export const EPOCH_SUPPORTED_TOKENS: EpochToken[] = [
   { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', name: 'USD Coin', decimals: 6, chainId: 8453, logoURI: tokenLogo('USDC') },
   { address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 8453, logoURI: tokenLogo('DAI') },
   { address: '0x4200000000000000000000000000000000000006', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18, chainId: 8453, logoURI: tokenLogo('WETH') },
+  { address: '0x63706e401c06ac8513145b7687a14804d17f814b', symbol: 'AAVE', name: 'Aave', decimals: 18, chainId: 8453 },
   // Optimism
   { address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', symbol: 'USDC', name: 'USD Coin', decimals: 6, chainId: 10, logoURI: tokenLogo('USDC') },
   { address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', symbol: 'USDT', name: 'Tether USD', decimals: 6, chainId: 10, logoURI: tokenLogo('USDT') },
@@ -84,19 +85,28 @@ export const EPOCH_SUPPORTED_TOKENS: EpochToken[] = [
 ];
 
 export const EPOCH_TESTNET_TOKENS: EpochToken[] = [
-  // Ethereum Sepolia
-  { address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69', symbol: 'USDC', name: 'USD Coin', decimals: 18, chainId: 11155111, logoURI: tokenLogo('USDC') },
-  { address: '0xc04d2869665Be874881133943523723Be5782720', symbol: 'USDT', name: 'Tether USD', decimals: 18, chainId: 11155111, logoURI: tokenLogo('USDT') },
-  { address: '0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 11155111, logoURI: tokenLogo('DAI') },
-  // Base Sepolia
-  { address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69', symbol: 'USDC', name: 'USD Coin', decimals: 18, chainId: 84532, logoURI: tokenLogo('USDC') },
-  { address: '0xc04d2869665Be874881133943523723Be5782720', symbol: 'USDT', name: 'Tether USD', decimals: 18, chainId: 84532, logoURI: tokenLogo('USDT') },
-  { address: '0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 84532, logoURI: tokenLogo('DAI') },
+  // ── Ethereum Sepolia (new-gen) ──────────────────────────────────────────
+  { address: '0x3b8bA5DF76689f704d4C16f2011223AEf525F288', symbol: 'USDC', name: 'USD Coin', decimals: 18, chainId: 11155111, logoURI: tokenLogo('USDC') },
+  { address: '0x2591d4C1760CDa6FC4fb51eAc1c4B0998D1F295A', symbol: 'USDT', name: 'Tether USD', decimals: 18, chainId: 11155111, logoURI: tokenLogo('USDT') },
+  { address: '0x64B02aA7C8befBc814505BB94Ea616bCA1B381d9', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 11155111, logoURI: tokenLogo('DAI') },
+  { address: '0x7946dd86eE310D0aC16804A37787289Fa5b88A8A', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18, chainId: 11155111, logoURI: tokenLogo('WETH') },
+  { address: '0x9b2a2754a9182fD65360E23afCDf3BeFF51796E9', symbol: 'WBTC', name: 'Wrapped BTC', decimals: 18, chainId: 11155111 },
+  { address: '0xEA7dC9849206Ce73b11c465d37b85eC06B11Cf2C', symbol: 'PENGU', name: 'PENGU', decimals: 18, chainId: 11155111 },
+  { address: '0xB588418c0f90F07Bc9587d0050845a90C23C7502', symbol: 'OSWALD', name: 'OSWALD', decimals: 18, chainId: 11155111 },
+  { address: '0x512Ee6Bd7A4be5Ba4796F15Df080c4D0F89a38eD', symbol: 'KICK', name: 'KICK', decimals: 18, chainId: 11155111 },
+  { address: '0x145e03A80c19ad1b9d0429d06b6d52707de724A0', symbol: 'FERB', name: 'FERB', decimals: 18, chainId: 11155111 },
+  // ── Base Sepolia (new-gen) ──────────────────────────────────────────────
+  { address: '0x3b8bA5DF76689f704d4C16f2011223AEf525F288', symbol: 'USDC', name: 'USD Coin', decimals: 18, chainId: 84532, logoURI: tokenLogo('USDC') },
+  { address: '0x2591d4C1760CDa6FC4fb51eAc1c4B0998D1F295A', symbol: 'USDT', name: 'Tether USD', decimals: 18, chainId: 84532, logoURI: tokenLogo('USDT') },
+  { address: '0x64B02aA7C8befBc814505BB94Ea616bCA1B381d9', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 84532, logoURI: tokenLogo('DAI') },
   { address: '0x7946dd86eE310D0aC16804A37787289Fa5b88A8A', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18, chainId: 84532, logoURI: tokenLogo('WETH') },
-  // Optimism Sepolia
+  { address: '0x9b2a2754a9182fD65360E23afCDf3BeFF51796E9', symbol: 'WBTC', name: 'Wrapped BTC', decimals: 18, chainId: 84532 },
+  // ── Optimism Sepolia (old-gen) ──────────────────────────────────────────
   { address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69', symbol: 'USDC', name: 'USD Coin', decimals: 18, chainId: 11155420, logoURI: tokenLogo('USDC') },
   { address: '0xc04d2869665Be874881133943523723Be5782720', symbol: 'USDT', name: 'Tether USD', decimals: 18, chainId: 11155420, logoURI: tokenLogo('USDT') },
   { address: '0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a', symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18, chainId: 11155420, logoURI: tokenLogo('DAI') },
+  { address: '0x7946dd86eE310D0aC16804A37787289Fa5b88A8A', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18, chainId: 11155420, logoURI: tokenLogo('WETH') },
+  { address: '0x9b2a2754a9182fD65360E23afCDf3BeFF51796E9', symbol: 'WBTC', name: 'Wrapped BTC', decimals: 18, chainId: 11155420 },
 ];
 
 // ---------------------------------------------------------------------------
