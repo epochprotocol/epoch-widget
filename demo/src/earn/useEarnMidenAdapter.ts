@@ -1,7 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { SendTransaction } from '@miden-sdk/miden-wallet-adapter-base';
 import { useMidenFiWallet } from '@miden-sdk/miden-wallet-adapter-react';
-import { DEFAULT_MIDEN_FAUCET, isDefaultMidenFaucet, type EarnMidenAdapter } from 'epoch-intent-widget';
+import {
+  DEFAULT_MIDEN_FAUCET,
+  isDefaultMidenFaucet,
+  type EarnMidenAdapter,
+} from '@epoch-protocol/epoch-intent-widget';
 import { useMidenWalletAdapter } from '../miden/hooks/useMidenWalletAdapter';
 
 /**
@@ -13,7 +17,13 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
   const { requestSend, waitForTransaction, connect } = useMidenFiWallet();
 
   const assets = useMemo(() => {
-    const walletAsset = midenWallet.assets.find((a) => isDefaultMidenFaucet(a.assetId));
+    // Prefer the asset whose faucet id matches the default faucet. The wallet
+    // can report faucet ids in a different encoding (bech32 vs hex), so a strict
+    // match may miss even when the balance exists — fall back to the wallet's
+    // single asset so the default token balance is still surfaced.
+    const walletAsset =
+      midenWallet.assets.find((a) => isDefaultMidenFaucet(a.assetId)) ??
+      midenWallet.assets[0];
     return [
       {
         faucetId: DEFAULT_MIDEN_FAUCET.faucetId,

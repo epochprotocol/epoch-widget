@@ -27,6 +27,12 @@ import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
 import { DEFAULT_EARN_CONFIGS, useEarnConfigs, useLendingPoolsPage, useUserPositions } from '../earn/api';
 import { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, isDefaultMidenFaucet } from '../earn/miden';
+import {
+  DUMMY_LENDING_DESTINATION_CHAIN_IDS,
+  DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS,
+  DUMMY_LENDING_SUPPORTED_ADDRESSES,
+  DEPRECATED_DUMMY_LENDING_USDC_ADDRESS,
+} from '../earn/dummy-lending-markets';
 import { resolveApiForNetwork } from '../resolve-api-config';
 import {
   ALL_LENDERS,
@@ -52,7 +58,8 @@ type EarnView = 'main' | 'selectToken' | 'selectMarket' | 'withdrawDetail';
 
 // Mainnet earn chains (1delta upstream). Testnet uses bundled dummy-lending configs.
 const EARN_MAINNET_CHAIN_IDS = new Set<number>([1, 8453, 42161, 10, 137]);
-const EARN_TESTNET_CHAIN_IDS = new Set<number>([84532, 11155111, 11155420]);
+const EARN_TESTNET_CHAIN_IDS = new Set<number>(DUMMY_LENDING_DESTINATION_CHAIN_IDS);
+const EARN_TESTNET_SOURCE_EVM_CHAIN_IDS = new Set<number>(DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS);
 
 type PoolSortBy =
   | 'depositRate'
@@ -451,14 +458,25 @@ export function EarnIntentWidget({
     setView('withdrawDetail');
   }, [isOpen, earnTab, positionsState.positions, selectedPosition]);
 
-  const availableChains = useMemo(() => getEpochChains(isTestnet), [isTestnet]);
-  const allTokens = useMemo<TokenWithChain[]>(
-    () =>
-      availableChains.flatMap((chain) =>
+  const availableChains = useMemo(() => {
+    const chains = getEpochChains(isTestnet);
+    if (!isTestnet) return chains;
+    return chains.filter((c) => EARN_TESTNET_SOURCE_EVM_CHAIN_IDS.has(c.id));
+  }, [isTestnet]);
+  const allTokens = useMemo<TokenWithChain[]>(() => {
+    const allowed = new Set(DUMMY_LENDING_SUPPORTED_ADDRESSES);
+    const deprecated = DEPRECATED_DUMMY_LENDING_USDC_ADDRESS.toLowerCase();
+    return availableChains
+      .flatMap((chain) =>
         getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({ ...tok, chain })),
-      ),
-    [availableChains, isTestnet],
-  );
+      )
+      .filter(
+        (tok) =>
+          !isTestnet ||
+          (allowed.has(tok.address.toLowerCase()) &&
+            tok.address.toLowerCase() !== deprecated),
+      );
+  }, [availableChains, isTestnet]);
   const availableTokens = useMemo(
     () => (selectedChainId ? getEpochTokensByChainEnv(selectedChainId, isTestnet) : []),
     [selectedChainId, isTestnet],
@@ -621,18 +639,28 @@ export function EarnIntentWidget({
         : selectedChainId;
 
   const midenBalance = selectedMidenAsset?.balance ?? null;
-  const midenQuoteSource =
-    fundingSource === 'miden' &&
-    earnMiden?.accountId &&
-    selectedMidenAsset
-      ? {
-          accountId: earnMiden.accountId,
-          faucetId: selectedMidenAsset.faucetId,
-          decimals: selectedMidenAsset.decimals,
-          createP2IDNote: earnMiden.createP2IDNote,
-          reclaimHeight: earnMiden.reclaimHeight,
-        }
-      : undefined;
+  // Memoized so its reference is stable across renders — it feeds the
+  // `triggerQuote` callback deps, and an inline object would make that callback
+  // (and the auto-quote effect) re-fire every render, looping quote fetches.
+  const midenQuoteSource = useMemo(
+    () =>
+      fundingSource === 'miden' && earnMiden?.accountId && selectedMidenAsset
+        ? {
+            accountId: earnMiden.accountId,
+            faucetId: selectedMidenAsset.faucetId,
+            decimals: selectedMidenAsset.decimals,
+            createP2IDNote: earnMiden.createP2IDNote,
+            reclaimHeight: earnMiden.reclaimHeight,
+          }
+        : undefined,
+    [
+      fundingSource,
+      earnMiden?.accountId,
+      earnMiden?.createP2IDNote,
+      earnMiden?.reclaimHeight,
+      selectedMidenAsset,
+    ],
+  );
 
   // Single point of entry for kicking off a quote — used both by the auto-fire
   // effect (debounced as inputs change) and by the manual "Retry quote" CTA
@@ -1061,7 +1089,10 @@ export function EarnIntentWidget({
           hasMore={picker.hasMore}
           onPrev={() => setPickerPage((p) => Math.max(0, p - 1))}
           onNext={() => setPickerPage((p) => p + 1)}
-          availableChainIds={sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]}
+          availableChainIds={
+            sanitizedEarnChainIds ??
+            [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)]
+          }
           availableLenders={availableLenders}
           onSelect={(m) => {
             setEarnSelectedMarket(m);
