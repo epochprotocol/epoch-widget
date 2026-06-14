@@ -518,7 +518,10 @@ export function useEarnIntentFlow({
         setActiveStep(3);
         setStatusProgress(75);
 
+        // Prefer decimal nonce from solveIntent — SIO indexes queue rows by
+        // intent.nonce.toString(), while /compact returns 0x-padded hex.
         const responseNonce: string | null =
+          (data as { nonce?: string })?.nonce ??
           (data as { allocationResponse?: { nonce?: string } })?.allocationResponse?.nonce ??
           (data as { submittedIntentData?: { nonce?: string } })?.submittedIntentData?.nonce ??
           (data as { intentNonce?: string })?.intentNonce ??
