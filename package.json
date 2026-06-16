@@ -34,7 +34,8 @@
     "dev:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/index.css --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
-    "demo": "cd demo && npm run dev"
+    "predemo": "npm run build:css",
+    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
   },
   "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",

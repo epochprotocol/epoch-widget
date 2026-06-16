@@ -21,6 +21,7 @@ import { Banner } from "./Banner";
 import { TokenChainPill } from "./TokenChainPill";
 import { CheckIcon } from "./Icons";
 import { buildPayIntentFromFlatProps } from "../pay/build-pay-intent";
+import { resolveApiForNetwork } from "../resolve-api-config";
 import type { EpochIntentWidgetProps, IntentProps } from "../types";
 
 type WidgetView = "main" | "selectToken" | "selectDestToken";
@@ -178,7 +179,12 @@ export function PaySwapIntentWidget({
 
   const resolvedAllowNetworkToggle = allowNetworkToggle;
 
-  const { baseUrl: apiBaseUrl, rpcUrls } = api;
+  const networkEnv: "mainnet" | "testnet" = isTestnet ? "testnet" : "mainnet";
+  const resolvedApi = useMemo(
+    () => resolveApiForNetwork(api, networkEnv),
+    [api, networkEnv],
+  );
+  const { baseUrl: apiBaseUrl, rpcUrls } = resolvedApi;
 
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
   const [selectedTokenAddress, setSelectedTokenAddress] = useState("");

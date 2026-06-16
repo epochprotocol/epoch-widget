@@ -110,6 +110,15 @@ export function EarnSurface({ onOpenWidget }: Props) {
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="m-0 text-3xl font-[650] -tracking-tight text-fg">Earn</h1>
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-fg-secondary">
+          Deposit into yield markets, withdraw on demand.
+        </p>
+        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg-muted">
+          Show a list of lending and yield markets right inside your app. Users deposit with any
+          token they hold; withdrawals come back to the same wallet. Use the Mainnet / Testnet toggle
+          in the modal header to try dummy-lending on Base Sepolia and Ethereum Sepolia, with
+          optional Miden as a deposit source on testnet.
+        </p>
       </header>
 
       <section className="rounded-md border border-line bg-surface p-5 shadow-sm">
@@ -142,7 +151,12 @@ export function EarnSurface({ onOpenWidget }: Props) {
 
       <section className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-md border border-line bg-surface p-5 shadow-sm">
-          <div className="mb-4 text-base font-semibold text-fg">Deposit</div>
+          <div className="mb-2 text-base font-semibold text-fg">Deposit</div>
+          <p className="mb-4 text-[13px] text-fg-muted">
+            Pick a lending market and deposit from an EVM wallet or Miden (testnet). Toggle{' '}
+            <strong>Testnet</strong> in the modal, then use the EVM / Miden source switch on the
+            deposit form.
+          </p>
           <button
             type="button"
             onClick={() => open(EARN_DEPOSIT_PROPS)}

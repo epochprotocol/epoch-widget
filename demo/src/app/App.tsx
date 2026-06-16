@@ -10,6 +10,7 @@ import { PaySurface } from '../surfaces/PaySurface';
 import { SwapSurface } from '../surfaces/SwapSurface';
 import { EarnSurface } from '../surfaces/EarnSurface';
 import { AdvancedSurface } from '../surfaces/AdvancedSurface';
+import { useEarnMidenAdapter } from '../earn/useEarnMidenAdapter';
 
 /**
  * Read `?advanced=1` once on mount. When set, the Advanced (Miden → EVM)
@@ -36,14 +37,13 @@ export default function App() {
     (import.meta.env.VITE_POSITIONS_API_BASE_URL as string | undefined) ?? 'http://localhost:4023';
 
   const showAdvanced = useAdvancedFlag();
+  const earnMiden = useEarnMidenAdapter();
 
   const [network, setNetwork] = useState<DemoNetwork>('mainnet');
-  // Earn is mainnet-only (1delta upstream doesn't index testnet pools) — hide
-  // the tab whenever the demo is set to testnet.
   const tabs = useMemo(() => {
-    const base = network === 'testnet' ? [PAY_TAB, SWAP_TAB] : [PAY_TAB, SWAP_TAB, EARN_TAB];
+    const base = [PAY_TAB, SWAP_TAB, EARN_TAB];
     return showAdvanced ? [...base, ADVANCED_TAB] : base;
-  }, [network, showAdvanced]);
+  }, [showAdvanced]);
 
   const [surface, setSurface] = useState<DemoSurface>('pay');
   const [payScenarioId, setPayScenarioId] = useState(PAY_SCENARIOS[0].id);
@@ -60,12 +60,6 @@ export default function App() {
   useEffect(() => {
     if (surface === 'advanced' && !showAdvanced) setSurface('pay');
   }, [surface, showAdvanced]);
-
-  // Earn tab disappears on testnet — flip surface back to Pay so we never
-  // render a surface whose tab isn't in the strip.
-  useEffect(() => {
-    if (network === 'testnet' && surface === 'earn') setSurface('pay');
-  }, [network, surface]);
 
   // Reset pay scenario when network flips — testnet + mainnet have disjoint
   // scenario ids so the previously selected id won't match anything.
@@ -105,22 +99,34 @@ export default function App() {
       </main>
 
       {(() => {
-        // Earn-only props (`earnSolverUrl`, `api.positionsBaseUrl`) only
-        // travel when an Earn scenario is open. Keeps Pay/Swap surfaces
-        // visibly free of 1delta wiring — even though the router already
-        // ignored those props for non-Earn modes.
         const widgetMode = widgetProps.mode ?? widgetProps.flow ?? 'pay';
         const isEarnMode = widgetMode === 'earn';
         return (
           <EpochIntentWidget
             {...widgetProps}
             {...(isEarnMode ? { earnSolverUrl } : {})}
+            earnMiden={isEarnMode ? earnMiden : undefined}
             isOpen={widgetOpen}
             onClose={() => setWidgetOpen(false)}
+            network={network}
             api={
               isEarnMode
-                ? { baseUrl: apiBaseUrl, positionsBaseUrl }
-                : { baseUrl: apiBaseUrl }
+                ? {
+                    baseUrl: apiBaseUrl,
+                    positionsBaseUrl,
+                    testnetBaseUrl:
+                      (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
+                      'http://localhost:3000',
+                    testnetPositionsBaseUrl:
+                      (import.meta.env.VITE_TESTNET_POSITIONS_API_BASE_URL as string | undefined) ??
+                      'http://localhost:4024',
+                  }
+                : {
+                    baseUrl: apiBaseUrl,
+                    testnetBaseUrl:
+                      (import.meta.env.VITE_TESTNET_API_BASE_URL as string | undefined) ??
+                      'http://localhost:3000',
+                  }
             }
           />
         );

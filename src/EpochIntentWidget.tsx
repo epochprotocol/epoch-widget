@@ -43,6 +43,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     earnHideTabs,
     earnDepositDefaults,
     earnWithdrawDefaults,
+    earnMiden,
     earnChainIds,
     earnLenderFilter,
     earnPoolsPerChain,
@@ -134,7 +135,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         onClose={onClose}
         api={api}
         network={network}
-        allowNetworkToggle={allowNetworkToggle}
+        allowNetworkToggle={allowNetworkToggle ?? true}
         classNames={cn}
         theme={theme}
         renderInline={renderInline}
@@ -147,6 +148,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         earnHideTabs={earnHideTabs}
         earnDepositDefaults={earnDepositDefaults}
         earnWithdrawDefaults={earnWithdrawDefaults}
+        earnMiden={earnMiden}
         earnChainIds={earnChainIds}
         earnLenderFilter={earnLenderFilter}
         earnPoolsPerChain={earnPoolsPerChain}

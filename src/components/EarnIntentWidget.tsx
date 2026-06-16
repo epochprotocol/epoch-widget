@@ -7,8 +7,10 @@ import { cn as twcn } from '../lib/cn';
 import type {
   ApiConfig,
   EarnDepositIntentDefaults,
+  EarnMidenAdapter,
   EarnWithdrawIntentDefaults,
   EpochClassNames,
+  EpochChain,
   EpochEarnMarket,
   EpochEarnPosition,
   EpochTheme,
@@ -23,7 +25,15 @@ import type {
 } from '../types';
 import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
-import { useEarnConfigs, useLendingPoolsPage, useUserPositions } from '../earn/api';
+import { DEFAULT_EARN_CONFIGS, useEarnConfigs, useLendingPoolsPage, useUserPositions } from '../earn/api';
+import { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, isDefaultMidenFaucet } from '../earn/miden';
+import {
+  DUMMY_LENDING_DESTINATION_CHAIN_IDS,
+  DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS,
+  DUMMY_LENDING_SUPPORTED_ADDRESSES,
+  DEPRECATED_DUMMY_LENDING_USDC_ADDRESS,
+} from '../earn/dummy-lending-markets';
+import { resolveApiForNetwork } from '../resolve-api-config';
 import {
   ALL_LENDERS,
   MARKETS_PAGE_SIZE,
@@ -38,6 +48,7 @@ import { Banner } from './Banner';
 import { EarnFlowPanel } from './EarnFlowPanel';
 import { MarketPickerPage } from './MarketPickerPage';
 import { Modal } from './Modal';
+import { NetworkToggle } from './NetworkToggle';
 import { ProgressStepper } from './ProgressStepper';
 import { TokenSelector, type TokenWithChain } from './TokenSelector';
 import { WithdrawPanel } from './WithdrawPanel';
@@ -45,11 +56,10 @@ import { WithdrawDetailPanel, WithdrawFundsButton } from './WithdrawDetailPanel'
 
 type EarnView = 'main' | 'selectToken' | 'selectMarket' | 'withdrawDetail';
 
-// Earn is mainnet-only by design (1delta upstream doesn't index testnet pools).
-// Any consumer-supplied `earnChainIds` is clamped to this set; testnet IDs are
-// dropped with a dev warning rather than silently producing empty /pools
-// results.
+// Mainnet earn chains (1delta upstream). Testnet uses bundled dummy-lending configs.
 const EARN_MAINNET_CHAIN_IDS = new Set<number>([1, 8453, 42161, 10, 137]);
+const EARN_TESTNET_CHAIN_IDS = new Set<number>(DUMMY_LENDING_DESTINATION_CHAIN_IDS);
+const EARN_TESTNET_SOURCE_EVM_CHAIN_IDS = new Set<number>(DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS);
 
 type PoolSortBy =
   | 'depositRate'
@@ -63,9 +73,7 @@ interface EarnIntentWidgetProps {
   isOpen: boolean;
   onClose: () => void;
   api: ApiConfig;
-  /** @deprecated earn is mainnet-only; prop ignored. */
   network?: 'mainnet' | 'testnet';
-  /** @deprecated earn is mainnet-only; prop ignored. */
   allowNetworkToggle?: boolean;
   classNames?: EpochClassNames;
   theme?: 'light' | 'dark' | EpochTheme;
@@ -80,6 +88,8 @@ interface EarnIntentWidgetProps {
   earnWithdrawDefaults?: EarnWithdrawIntentDefaults;
   /** Override the 1delta-solver base URL (`POST /earn/quote`). Defaults to `api.baseUrl`. */
   earnSolverUrl?: string;
+  /** Optional Miden wallet adapter for testnet earn deposits funded from Miden. */
+  earnMiden?: EarnMidenAdapter;
   /**
    * Chain IDs to fan /pools fetches over. Forwarded as one `chainId=` per
    * request. Default: [1, 8453, 42161, 10, 137]. Set to a single chain to
@@ -120,6 +130,8 @@ export function EarnIntentWidget({
   isOpen,
   onClose,
   api,
+  network: networkProp = 'mainnet',
+  allowNetworkToggle = true,
   classNames: cn,
   theme,
   renderInline = false,
@@ -132,6 +144,7 @@ export function EarnIntentWidget({
   earnDepositDefaults,
   earnWithdrawDefaults,
   earnSolverUrl,
+  earnMiden,
   earnChainIds,
   earnLenderFilter,
   earnPoolsPerChain,
@@ -169,11 +182,27 @@ export function EarnIntentWidget({
   const [smartDestTokenAddress, setSmartDestTokenAddress] = useState('');
   // Positions-API filters. Defaults: all chains (empty → derived CSV) + all
   // lenders. User can narrow via the dropdowns in WithdrawPanel.
-  const [positionsChainId, setPositionsChainId] = useState('');
+  const [positionsChainId, setPositionsChainId] = useState(
+    networkProp === 'testnet' ? '84532' : '',
+  );
   const [positionsLenderKey, setPositionsLenderKey] = useState('');
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
   const [selectedTokenAddress, setSelectedTokenAddress] = useState('');
+  const [fundingSource, setFundingSource] = useState<'evm' | 'miden'>('evm');
+  const [selectedMidenFaucetId, setSelectedMidenFaucetId] = useState<string>(
+    DEFAULT_MIDEN_FAUCET.faucetId,
+  );
   const [view, setView] = useState<EarnView>('main');
+  const [isTestnet, setIsTestnet] = useState(networkProp === 'testnet');
+  const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
+  const midenEnabled =
+    networkEnv === 'testnet' &&
+    earnMiden != null &&
+    earnMiden.enabled !== false;
+  const resolvedApi = useMemo(
+    () => resolveApiForNetwork(api, networkEnv),
+    [api, networkEnv],
+  );
 
 
   const onOpenRef = useRef(onOpen);
@@ -202,6 +231,8 @@ export function EarnIntentWidget({
       setSmartWithdraw(false);
       setSmartDestChainId(null);
       setSmartDestTokenAddress('');
+      setFundingSource('evm');
+      setSelectedMidenFaucetId(DEFAULT_MIDEN_FAUCET.faucetId);
       setPickerChainId('all');
       setPickerLenderKey(ALL_LENDERS);
       setPickerPage(0);
@@ -234,6 +265,18 @@ export function EarnIntentWidget({
     }
   }, [smartWithdraw, selectedPosition]);
 
+  useEffect(() => {
+    setIsTestnet(networkProp === 'testnet');
+  }, [networkProp]);
+
+  useEffect(() => {
+    setSelectedChainId(null);
+    setSelectedTokenAddress('');
+    setEarnSelectedMarket(null);
+    setPositionsChainId(isTestnet ? '84532' : '');
+    if (!isTestnet) setFundingSource('evm');
+  }, [isTestnet]);
+
   // Chain filter state for the market picker — purely client-side; we fetch
   // every chain in `earnChainIds` once and let MarketPickerPage narrow the
   // visible rows. Preserved across picker opens so the selection sticks.
@@ -259,31 +302,27 @@ export function EarnIntentWidget({
   // `undefined` (instead of `[]`) lets the SDK default kick in so the picker
   // doesn't silently render zero markets.
   const sanitizedEarnChainIds = useMemo(() => {
+    const allowed = isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS;
     if (!earnChainIds) return undefined;
-    const ok = earnChainIds.filter((id) => EARN_MAINNET_CHAIN_IDS.has(id));
-    const dropped = earnChainIds.filter((id) => !EARN_MAINNET_CHAIN_IDS.has(id));
+    const ok = earnChainIds.filter((id) => allowed.has(id));
+    const dropped = earnChainIds.filter((id) => !allowed.has(id));
     if (dropped.length) {
       console.warn(
-        '[EpochIntentWidget] earnChainIds clamped to mainnet; dropped:',
+        `[EpochIntentWidget] earnChainIds clamped to ${networkEnv}; dropped:`,
         dropped,
       );
     }
     return ok.length ? ok : undefined;
-  }, [earnChainIds]);
+  }, [earnChainIds, isTestnet, networkEnv]);
 
-  // The chains the earn flow covers — used to scope the positions query (now
-  // decoupled from the pool page, which only loads one server page at a time).
   const earnChainsCsv = useMemo(
-    () => (sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]).join(','),
-    [sanitizedEarnChainIds],
+    () =>
+      (sanitizedEarnChainIds ?? [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)]).join(','),
+    [sanitizedEarnChainIds, isTestnet],
   );
 
-  // Market picker data. When a 1delta proxy is wired (`api.positionsBaseUrl`):
-  // single-chain selection → server-paginated page. "All chains" selection →
-  // fan-out across the user-selected chain subset, merged + re-sorted on the
-  // client (upstream requires `chainId` per request). Without a proxy, fall
-  // back to client sort/filter/paginate over the bundled configs.
-  const useLivePools = !!api.positionsBaseUrl;
+  // Live /pools only on mainnet; testnet uses bundled dummy-lending configs.
+  const useLivePools = networkEnv === 'mainnet' && !!resolvedApi.positionsBaseUrl;
   const pickerEnabled = isOpen && view === 'selectMarket';
 
   // "All chains" → the user-allowed subset (clamped to mainnet earn chains).
@@ -291,8 +330,8 @@ export function EarnIntentWidget({
   // decides single vs multi-call behavior.
   const requestedChainIds = useMemo<number[]>(() => {
     if (pickerChainId !== 'all') return [pickerChainId];
-    return sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS];
-  }, [pickerChainId, sanitizedEarnChainIds]);
+    return sanitizedEarnChainIds ?? [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)];
+  }, [pickerChainId, sanitizedEarnChainIds, isTestnet]);
 
   // Lender axis. `earnLenderFilter` is a CSV (multi-select from the consumer).
   // The picker's single-select dropdown overrides when set; ALL_LENDERS falls
@@ -307,7 +346,7 @@ export function EarnIntentWidget({
   }, [pickerLenderKey, earnLenderFilter]);
 
   const poolsPage = useLendingPoolsPage({
-    api,
+    api: resolvedApi,
     enabled: pickerEnabled && useLivePools,
     chainIds: requestedChainIds,
     lenders: requestedLenders,
@@ -322,7 +361,8 @@ export function EarnIntentWidget({
 
   const staticConfigsState = useEarnConfigs({
     enabled: isOpen && !useLivePools,
-    source: earnMarketsSource,
+    source: earnMarketsSource ?? DEFAULT_EARN_CONFIGS,
+    network: networkEnv,
   });
   const staticRowsAll = useMemo(
     () => (useLivePools ? [] : configsToRows(staticConfigsState.configs)),
@@ -381,8 +421,8 @@ export function EarnIntentWidget({
 
   const positionsState = useUserPositions({
     address,
-    network: 'mainnet',
-    api,
+    network: networkEnv,
+    api: resolvedApi,
     // Only fetch positions while the Withdraw tab is active AND the user is
     // on the main list view — skips the request on deposit usage and
     // prevents a refetch when the user enters the withdraw detail view.
@@ -418,28 +458,78 @@ export function EarnIntentWidget({
     setView('withdrawDetail');
   }, [isOpen, earnTab, positionsState.positions, selectedPosition]);
 
-  const availableChains = useMemo(() => getEpochChains(false), []);
-  const allTokens = useMemo<TokenWithChain[]>(
-    () =>
-      availableChains.flatMap((chain) =>
-        getEpochTokensByChainEnv(chain.id, false).map((tok) => ({ ...tok, chain })),
-      ),
-    [availableChains],
-  );
+  const availableChains = useMemo(() => {
+    const chains = getEpochChains(isTestnet);
+    if (!isTestnet) return chains;
+    return chains.filter((c) => EARN_TESTNET_SOURCE_EVM_CHAIN_IDS.has(c.id));
+  }, [isTestnet]);
+  const allTokens = useMemo<TokenWithChain[]>(() => {
+    const allowed = new Set(DUMMY_LENDING_SUPPORTED_ADDRESSES);
+    const deprecated = DEPRECATED_DUMMY_LENDING_USDC_ADDRESS.toLowerCase();
+    return availableChains
+      .flatMap((chain) =>
+        getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({ ...tok, chain })),
+      )
+      .filter(
+        (tok) =>
+          !isTestnet ||
+          (allowed.has(tok.address.toLowerCase()) &&
+            tok.address.toLowerCase() !== deprecated),
+      );
+  }, [availableChains, isTestnet]);
   const availableTokens = useMemo(
-    () => (selectedChainId ? getEpochTokensByChainEnv(selectedChainId, false) : []),
-    [selectedChainId],
+    () => (selectedChainId ? getEpochTokensByChainEnv(selectedChainId, isTestnet) : []),
+    [selectedChainId, isTestnet],
   );
   const selectedToken = useMemo(
     () => availableTokens.find((tok) => tok.address === selectedTokenAddress) ?? null,
     [availableTokens, selectedTokenAddress],
   );
   const selectedChain = availableChains.find((c) => c.id === selectedChainId);
-  const pillToken = selectedToken ?? allTokens[0] ?? null;
-  const pillChain = selectedChain ?? availableChains[0] ?? null;
+  const midenAssets = useMemo(
+    () => (earnMiden?.assets ?? []).filter((a) => isDefaultMidenFaucet(a.faucetId)),
+    [earnMiden?.assets],
+  );
+  const selectedMidenAsset = useMemo(
+    () =>
+      midenAssets.find(
+        (a) => a.faucetId.toLowerCase() === selectedMidenFaucetId.toLowerCase(),
+      ) ??
+      midenAssets[0] ??
+      null,
+    [midenAssets, selectedMidenFaucetId],
+  );
+  const midenSourceToken = useMemo((): EpochToken | null => {
+    if (!selectedMidenAsset) return null;
+    return {
+      address: '0x0000000000000000000000000000000000000000',
+      symbol: selectedMidenAsset.symbol,
+      name: selectedMidenAsset.symbol,
+      decimals: selectedMidenAsset.decimals,
+      chainId: MIDEN_VIRTUAL_CHAIN_ID,
+      logoURI: selectedMidenAsset.logoURI,
+    };
+  }, [selectedMidenAsset]);
+  const midenChain = useMemo(
+    (): EpochChain => ({ id: MIDEN_VIRTUAL_CHAIN_ID, name: 'Miden', network: 'miden-testnet' }),
+    [],
+  );
+  const pillToken =
+    fundingSource === 'miden' && midenSourceToken
+      ? midenSourceToken
+      : selectedToken ?? allTokens[0] ?? null;
+  const pillChain =
+    fundingSource === 'miden' ? midenChain : selectedChain ?? availableChains[0] ?? null;
+
+  useEffect(() => {
+    if (!midenEnabled || fundingSource !== 'miden') return;
+    if (selectedMidenAsset) return;
+    setSelectedMidenFaucetId(DEFAULT_MIDEN_FAUCET.faucetId);
+  }, [midenEnabled, fundingSource, selectedMidenAsset]);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (fundingSource === 'miden') return;
     if (selectedChainId !== null) return;
     const first = allTokens[0];
     if (!first) return;
@@ -508,7 +598,7 @@ export function EarnIntentWidget({
   const activeBuildOk = earnTab === 'deposit' ? depositBuild?.ok === true : withdrawBuild?.ok === true;
 
   const earnFlow = useEarnIntentFlow({
-    apiBaseUrl: api.baseUrl,
+    apiBaseUrl: resolvedApi.baseUrl,
     earnSolverUrl,
     walletClient,
     address,
@@ -535,15 +625,49 @@ export function EarnIntentWidget({
     });
   }, [sessionId, earnFlow.status, earnFlow.statusProgress, earnFlow.activeStep]);
 
-  const effectiveSourceToken = earnTab === 'withdraw' ? withdrawSourceToken : selectedToken;
+  const effectiveSourceToken =
+    earnTab === 'withdraw'
+      ? withdrawSourceToken
+      : fundingSource === 'miden'
+        ? midenSourceToken
+        : selectedToken;
   const effectiveSourceChainId =
-    earnTab === 'withdraw' ? withdrawSourceChainId : selectedChainId;
+    earnTab === 'withdraw'
+      ? withdrawSourceChainId
+      : fundingSource === 'miden'
+        ? MIDEN_VIRTUAL_CHAIN_ID
+        : selectedChainId;
+
+  const midenBalance = selectedMidenAsset?.balance ?? null;
+  // Memoized so its reference is stable across renders — it feeds the
+  // `triggerQuote` callback deps, and an inline object would make that callback
+  // (and the auto-quote effect) re-fire every render, looping quote fetches.
+  const midenQuoteSource = useMemo(
+    () =>
+      fundingSource === 'miden' && earnMiden?.accountId && selectedMidenAsset
+        ? {
+            accountId: earnMiden.accountId,
+            faucetId: selectedMidenAsset.faucetId,
+            decimals: selectedMidenAsset.decimals,
+            createP2IDNote: earnMiden.createP2IDNote,
+            reclaimHeight: earnMiden.reclaimHeight,
+          }
+        : undefined,
+    [
+      fundingSource,
+      earnMiden?.accountId,
+      earnMiden?.createP2IDNote,
+      earnMiden?.reclaimHeight,
+      selectedMidenAsset,
+    ],
+  );
 
   // Single point of entry for kicking off a quote — used both by the auto-fire
   // effect (debounced as inputs change) and by the manual "Retry quote" CTA
   // shown when the previous attempt failed.
   const triggerQuote = useCallback(() => {
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken || !activeMarket || !address) return;
+    if (fundingSource === 'miden' && (!earnMiden?.connected || !midenQuoteSource)) return;
     earnFlow.fetchQuote({
       tab: earnTab,
       amount: activeAmount,
@@ -551,14 +675,15 @@ export function EarnIntentWidget({
       position: selectedPosition,
       sourceChainId: effectiveSourceChainId,
       sourceToken: effectiveSourceToken,
-      network: 'mainnet',
+      network: networkEnv,
+      midenSource: midenQuoteSource,
       isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
       smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
       smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
       smartDestTokenAddress: earnTab === 'withdraw' ? smartDestTokenAddress : undefined,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress, selectedPosition]);
+  }, [activeBuildOk, activeAmount, activeMarket, effectiveSourceChainId, effectiveSourceToken?.address, address, earnTab, withdrawIsAll, smartWithdraw, smartDestChainId, smartDestTokenAddress, selectedPosition, networkEnv, fundingSource, midenQuoteSource, earnMiden?.connected]);
 
   useEffect(() => {
     const timer = window.setTimeout(triggerQuote, 250);
@@ -567,8 +692,19 @@ export function EarnIntentWidget({
 
 
   const isWrongNetwork =
-    effectiveSourceChainId !== null && chainId !== effectiveSourceChainId;
-  const insufficientBalance = earnTab === 'deposit' && balance !== null && balance === 0n;
+    fundingSource === 'evm' &&
+    effectiveSourceChainId !== null &&
+    chainId !== effectiveSourceChainId;
+  const insufficientBalance =
+    earnTab === 'deposit' &&
+    fundingSource === 'evm' &&
+    balance !== null &&
+    balance === 0n;
+  const insufficientMidenBalance =
+    earnTab === 'deposit' &&
+    fundingSource === 'miden' &&
+    midenBalance !== null &&
+    midenBalance === 0n;
   const isBusy = earnFlow.isBusy;
 
   // Cross-chain = the market lives on a different chain than the source the
@@ -576,16 +712,21 @@ export function EarnIntentWidget({
   // 1delta deposit, so the CTA hints at that.
   const isCrossChain =
     !!activeMarket &&
-    selectedChainId !== null &&
-    activeMarket.chainId != null &&
-    selectedChainId !== activeMarket.chainId;
+    earnTab === 'deposit' &&
+    (fundingSource === 'miden' ||
+      (selectedChainId !== null &&
+        activeMarket.chainId != null &&
+        selectedChainId !== activeMarket.chainId));
 
-  type CtaAction = 'connect' | 'switch' | 'submit' | 'disabled' | 'retry';
+  type CtaAction = 'connect' | 'connectMiden' | 'switch' | 'submit' | 'disabled' | 'retry';
   const ctaState: { action: CtaAction; label: string; tone?: 'primary' | 'warning' } = (() => {
     if (earnFlow.isQuoting) return { action: 'disabled', label: 'Fetching quote…' };
     if (earnFlow.status === 'submitting') return { action: 'disabled', label: earnTab === 'deposit' ? 'Depositing…' : 'Withdrawing…' };
     if (earnFlow.status === 'complete') return { action: 'disabled', label: 'Completed' };
     if (!isConnected) return { action: 'connect', label: 'Connect wallet' };
+    if (earnTab === 'deposit' && fundingSource === 'miden' && !earnMiden?.connected) {
+      return { action: 'connectMiden', label: 'Connect Miden wallet' };
+    }
     if (earnTab === 'deposit' && !earnSelectedMarket) return { action: 'disabled', label: 'Select market' };
     if (earnTab === 'deposit' && !earnAmount.trim()) return { action: 'disabled', label: 'Enter an amount' };
     if (earnTab === 'withdraw' && !selectedPosition) return { action: 'disabled', label: 'Select a position' };
@@ -600,6 +741,9 @@ export function EarnIntentWidget({
     if (insufficientBalance && selectedToken) {
       return { action: 'disabled', label: `Insufficient ${selectedToken.symbol} balance` };
     }
+    if (insufficientMidenBalance && selectedMidenAsset) {
+      return { action: 'disabled', label: `Insufficient ${selectedMidenAsset.symbol} balance` };
+    }
     if (!activeBuildOk || effectiveSourceChainId == null || !effectiveSourceToken) {
       return { action: 'disabled', label: 'Enter an amount' };
     }
@@ -610,16 +754,23 @@ export function EarnIntentWidget({
       return { action: 'retry', label: 'Retry quote' };
     }
     const baseLabel = submitButtonText ?? (earnTab === 'deposit' ? 'Deposit' : 'Withdraw');
+    const crossLabel =
+      fundingSource === 'miden' && earnTab === 'deposit'
+        ? `Bridge from Miden + ${baseLabel}`
+        : isCrossChain && earnTab === 'deposit'
+          ? `Bridge + ${baseLabel}`
+          : baseLabel;
     return {
       action: 'submit',
-      label: isCrossChain && earnTab === 'deposit' ? `Bridge + ${baseLabel}` : baseLabel,
+      label: crossLabel,
     };
   })();
 
   const ctaEnabled =
     ctaState.action === 'submit' ||
     ctaState.action === 'switch' ||
-    ctaState.action === 'retry';
+    ctaState.action === 'retry' ||
+    ctaState.action === 'connectMiden';
 
   const detailTokenSymbol = selectedPosition?.market.token.symbol;
   const modalTitle =
@@ -627,9 +778,27 @@ export function EarnIntentWidget({
       ? `Withdraw ${detailTokenSymbol}`
       : title ?? (earnTab === 'deposit' ? 'Earn' : 'Withdraw');
 
-  const headerAction = null;
+  const headerAction = allowNetworkToggle ? (
+    <NetworkToggle
+      isTestnet={isTestnet}
+      onChange={(checked) => {
+        setIsTestnet(checked);
+        setSelectedChainId(null);
+        setSelectedTokenAddress('');
+        setEarnSelectedMarket(null);
+        setSelectedPosition(null);
+        setEarnAmount('');
+        setWithdrawAmount('');
+        if (!checked) setFundingSource('evm');
+      }}
+    />
+  ) : null;
 
   const handleCtaClick = () => {
+    if (ctaState.action === 'connectMiden') {
+      void earnMiden?.connect?.();
+      return;
+    }
     if (ctaState.action === 'switch') {
       const target =
         earnTab === 'withdraw'
@@ -651,8 +820,9 @@ export function EarnIntentWidget({
       position: selectedPosition,
       sourceChainId: effectiveSourceChainId,
       sourceToken: effectiveSourceToken,
-      network: 'mainnet',
+      network: networkEnv,
       quote: earnFlow.quote,
+      midenSource: midenQuoteSource,
       isAll: earnTab === 'withdraw' ? withdrawIsAll : undefined,
       smartWithdraw: earnTab === 'withdraw' ? smartWithdraw : undefined,
       smartDestChainId: earnTab === 'withdraw' ? smartDestChainId : undefined,
@@ -749,27 +919,48 @@ export function EarnIntentWidget({
       : undefined;
 
   if (view === 'selectToken') {
+    const isMidenPicker = fundingSource === 'miden' && midenEnabled;
     return (
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title="Select source token"
+        title={isMidenPicker ? 'Select Miden asset' : 'Select source token'}
         theme={theme}
         classNames={cn}
         onBack={() => setView('main')}
         renderInline={renderInline}
       >
-        <TokenSelector
-          tokens={allTokens}
-          selectedTokenAddress={selectedTokenAddress}
-          selectedChainId={selectedChainId}
-          onSelect={(addr, cid) => {
-            setSelectedChainId(cid);
-            setSelectedTokenAddress(addr);
-            setView('main');
-          }}
-          onBack={() => setView('main')}
-        />
+        {isMidenPicker ? (
+          <ul className="m-0 flex list-none flex-col gap-1 p-0">
+            {(midenAssets.length > 0 ? midenAssets : [DEFAULT_MIDEN_FAUCET]).map((asset) => (
+              <li key={asset.faucetId}>
+                <button
+                  type="button"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-md border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-line-strong"
+                  onClick={() => {
+                    setSelectedMidenFaucetId(asset.faucetId);
+                    setView('main');
+                  }}
+                >
+                  <span className="text-sm font-semibold text-fg">{asset.symbol}</span>
+                  <span className="text-xs text-fg-muted">Miden</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <TokenSelector
+            tokens={allTokens}
+            selectedTokenAddress={selectedTokenAddress}
+            selectedChainId={selectedChainId}
+            onSelect={(addr, cid) => {
+              setSelectedChainId(cid);
+              setSelectedTokenAddress(addr);
+              setView('main');
+            }}
+            onBack={() => setView('main')}
+          />
+        )}
       </Modal>
     );
   }
@@ -819,7 +1010,7 @@ export function EarnIntentWidget({
             setSmartDestChainId(id);
             // Reset receive token to first option on the new chain so we never
             // surface a stale token from another network.
-            const firstTok = getEpochTokensByChainEnv(id, false)[0];
+            const firstTok = getEpochTokensByChainEnv(id, isTestnet)[0];
             setSmartDestTokenAddress(firstTok?.address ?? '');
           }}
           onPickDestToken={setSmartDestTokenAddress}
@@ -898,7 +1089,10 @@ export function EarnIntentWidget({
           hasMore={picker.hasMore}
           onPrev={() => setPickerPage((p) => Math.max(0, p - 1))}
           onNext={() => setPickerPage((p) => p + 1)}
-          availableChainIds={sanitizedEarnChainIds ?? [...EARN_MAINNET_CHAIN_IDS]}
+          availableChainIds={
+            sanitizedEarnChainIds ??
+            [...(isTestnet ? EARN_TESTNET_CHAIN_IDS : EARN_MAINNET_CHAIN_IDS)]
+          }
           availableLenders={availableLenders}
           onSelect={(m) => {
             setEarnSelectedMarket(m);
@@ -956,9 +1150,22 @@ export function EarnIntentWidget({
           sourceTokenLogoURI={pillToken?.logoURI}
           sourceChainLogoURI={pillChain?.logoURI}
           onSelectSourceToken={() => setView('selectToken')}
-          walletBalance={isConnected ? balance : null}
-          sourceTokenDecimals={selectedToken?.decimals ?? 18}
-          balanceLoading={isConnected && !!selectedToken && isBalanceLoading}
+          walletBalance={fundingSource === 'miden' ? midenBalance : isConnected ? balance : null}
+          sourceTokenDecimals={
+            fundingSource === 'miden'
+              ? selectedMidenAsset?.decimals ?? 18
+              : selectedToken?.decimals ?? 18
+          }
+          balanceLoading={
+            fundingSource === 'miden'
+              ? false
+              : isConnected && !!selectedToken && isBalanceLoading
+          }
+          midenEnabled={midenEnabled}
+          fundingSource={fundingSource}
+          onFundingSourceChange={setFundingSource}
+          midenConnected={!!earnMiden?.connected}
+          onConnectMiden={() => void earnMiden?.connect?.()}
         />
       ) : (
         <WithdrawPanel

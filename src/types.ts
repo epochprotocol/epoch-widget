@@ -7,7 +7,6 @@ import type { EpochTheme } from './theme';
 // ---------------------------------------------------------------------------
 
 export type {
-  ApiConfig,
   EarnDepositIntentDefaults,
   EarnWithdrawIntentDefaults,
   EpochChain,
@@ -33,7 +32,7 @@ export type {
 } from '@epoch-protocol/epoch-flows-sdk';
 
 import type {
-  ApiConfig,
+  ApiConfig as SdkApiConfig,
   EarnDepositIntentDefaults,
   EarnWithdrawIntentDefaults,
   EpochChain,
@@ -51,6 +50,20 @@ import type {
   WidgetFlow,
   WidgetMode,
 } from '@epoch-protocol/epoch-flows-sdk';
+
+/** SDK config plus widget-only testnet endpoint overrides. */
+export interface ApiConfig extends SdkApiConfig {
+  /**
+   * Allocator base URL when the widget is on testnet. Defaults to
+   * `http://localhost:3000` when unset.
+   */
+  testnetBaseUrl?: string;
+  /**
+   * Positions service base URL when the widget is on testnet. Defaults to
+   * `http://localhost:4024` (dummy-lending positions) when unset.
+   */
+  testnetPositionsBaseUrl?: string;
+}
 
 /**
  * Token + originating chain combo used by the source-token picker and by
@@ -115,6 +128,49 @@ export interface OnStatusCtx extends SessionCtx {
   status: WidgetLifecycleStatus;
   progress: number;
   activeStep: number;
+}
+
+// ---------------------------------------------------------------------------
+// Earn — Miden funding (optional, testnet)
+// ---------------------------------------------------------------------------
+
+/** Miden faucet asset surfaced in the earn deposit source picker. */
+export interface EarnMidenAsset {
+  faucetId: string;
+  symbol: string;
+  decimals: number;
+  /** Raw balance in base units, when known. */
+  balance?: bigint;
+  logoURI?: string;
+}
+
+export interface EarnMidenP2IDNoteResult {
+  success: boolean;
+  noteId?: string;
+  error?: string;
+}
+
+/** Creates a P2IDE note on Miden during earn deposit submit (SDK callback). */
+export type EarnMidenCreateP2IDNote = (
+  faucetId: string,
+  amount: string,
+  allocatorAccountId: string,
+) => Promise<EarnMidenP2IDNoteResult>;
+
+/**
+ * Injected Miden wallet adapter for earn deposits funded from Miden.
+ * Keep `@miden-sdk/*` in the host app — the widget only consumes this shape.
+ */
+export interface EarnMidenAdapter {
+  /** When false, the EVM/Miden source toggle is hidden. Default: true when passed. */
+  enabled?: boolean;
+  connected: boolean;
+  accountId?: string | null;
+  assets: EarnMidenAsset[];
+  connect?: () => void | Promise<void>;
+  createP2IDNote: EarnMidenCreateP2IDNote;
+  /** Block height after which the P2IDE note can be reclaimed. Default: 1000. */
+  reclaimHeight?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -239,6 +295,11 @@ export interface EpochIntentWidgetProps {
   earnPoolsSortDir?: 'ASC' | 'DESC';
   /** @deprecated retained for backwards compatibility. */
   earnUseMockData?: boolean;
+  /**
+   * Optional Miden wallet adapter for funding earn deposits from Miden (testnet).
+   * Requires a connected EVM wallet as intent sponsor; Miden supplies collateral via P2IDE note.
+   */
+  earnMiden?: EarnMidenAdapter;
 
   // ---- API ------------------------------------------------------------------
 
@@ -247,6 +308,7 @@ export interface EpochIntentWidgetProps {
   // ---- Network --------------------------------------------------------------
 
   network?: 'mainnet' | 'testnet';
+  /** Allow the user to toggle mainnet/testnet inside the widget. Default: false for pay/swap; earn defaults to true. */
   allowNetworkToggle?: boolean;
 
   // ---- Rendering ------------------------------------------------------------

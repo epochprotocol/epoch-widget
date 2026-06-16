@@ -32,7 +32,7 @@ export function useIntentTransactionStatus(userAddress?: string, intentNonce?: s
     const apiBaseUrl =
       import.meta.env.VITE_EPOCH_API_BASE_URL ||
       import.meta.env.VITE_ALLOCATOR_URL ||
-      'http://0.0.0.0:3000';
+      'http://localhost:3000';
     console.log(`${LOG} loading SDK, apiBaseUrl=${apiBaseUrl}`);
     import('@epoch-protocol/epoch-intents-sdk')
       .then(({ EpochIntentSDK }) => {

@@ -30,7 +30,7 @@ export function useEpochIntent() {
       const apiBaseUrl =
         import.meta.env.VITE_EPOCH_API_BASE_URL ||
         import.meta.env.VITE_ALLOCATOR_URL ||
-        'http://0.0.0.0:3000';
+        'http://localhost:3000';
       console.log('apiBaseUrl: ', apiBaseUrl);
       const midenWalletClient = {
         ...(walletClient as any),
