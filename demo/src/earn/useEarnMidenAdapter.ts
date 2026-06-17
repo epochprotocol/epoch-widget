@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { SendTransaction } from '@miden-sdk/miden-wallet-adapter-base';
 import { useMidenFiWallet } from '@miden-sdk/miden-wallet-adapter-react';
+import { toast } from 'sonner';
 import {
   DEFAULT_MIDEN_FAUCET,
   isDefaultMidenFaucet,
@@ -14,13 +15,13 @@ import { useMidenWalletAdapter } from '../miden/hooks/useMidenWalletAdapter';
  */
 export function useEarnMidenAdapter(): EarnMidenAdapter {
   const midenWallet = useMidenWalletAdapter({ enabled: true });
-  const { requestSend, waitForTransaction, connect } = useMidenFiWallet();
+  const { requestSend, waitForTransaction } = useMidenFiWallet();
 
   const assets = useMemo(() => {
     // Prefer the asset whose faucet id matches the default faucet. The wallet
     // can report faucet ids in a different encoding (bech32 vs hex), so a strict
     // match may miss even when the balance exists — fall back to the wallet's
-    // single asset so the default token balance is still surfaced.
+    // first asset so the default token balance is still surfaced.
     const walletAsset =
       midenWallet.assets.find((a) => isDefaultMidenFaucet(a.assetId)) ??
       midenWallet.assets[0];
@@ -77,13 +78,32 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
     [midenWallet.accountId?.hex, requestSend, waitForTransaction],
   );
 
-  return {
-    enabled: true,
-    connected: midenWallet.connected,
-    accountId: midenWallet.accountId?.hex ?? null,
-    assets,
-    connect,
-    createP2IDNote,
-    reclaimHeight: 1000,
-  };
+  const connect = useCallback(async () => {
+    try {
+      await midenWallet.connect();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error(`Miden connect failed: ${message}`);
+      throw err;
+    }
+  }, [midenWallet.connect]);
+
+  return useMemo(
+    (): EarnMidenAdapter => ({
+      enabled: true,
+      connected: midenWallet.connected,
+      accountId: midenWallet.accountId?.hex ?? null,
+      assets,
+      connect,
+      createP2IDNote,
+      reclaimHeight: 1000,
+    }),
+    [
+      assets,
+      connect,
+      createP2IDNote,
+      midenWallet.accountId?.hex,
+      midenWallet.connected,
+    ],
+  );
 }
