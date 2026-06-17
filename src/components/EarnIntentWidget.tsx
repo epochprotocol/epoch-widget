@@ -794,9 +794,15 @@ export function EarnIntentWidget({
     />
   ) : null;
 
+  const handleConnectMiden = useCallback(() => {
+    void earnMiden?.connect?.().catch(() => {
+      // useEarnMidenAdapter surfaces a toast; swallow to avoid unhandled rejection.
+    });
+  }, [earnMiden]);
+
   const handleCtaClick = () => {
     if (ctaState.action === 'connectMiden') {
-      void earnMiden?.connect?.();
+      handleConnectMiden();
       return;
     }
     if (ctaState.action === 'switch') {
@@ -1165,7 +1171,7 @@ export function EarnIntentWidget({
           fundingSource={fundingSource}
           onFundingSourceChange={setFundingSource}
           midenConnected={!!earnMiden?.connected}
-          onConnectMiden={() => void earnMiden?.connect?.()}
+          onConnectMiden={handleConnectMiden}
         />
       ) : (
         <WithdrawPanel
