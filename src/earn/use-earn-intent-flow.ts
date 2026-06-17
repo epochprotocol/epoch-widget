@@ -96,6 +96,31 @@ interface UseEarnIntentFlowParams {
 const POLL_INTERVAL_MS = 3000;
 const AUTO_CLOSE_DELAY_MS = 2500;
 
+/**
+ * Compact quote/submit uses `walletClient.chain.id` as the intent origin chain.
+ * Miden-funded earn deposits must override this to the virtual Miden chain id even
+ * when the connected EVM wallet is on Sepolia (same pattern as demo Miden bridge).
+ */
+function createEarnIntentSdk(
+  apiBaseUrl: string,
+  walletClient: WalletClient,
+  originChainId?: number,
+): EpochIntentSDK {
+  const effectiveChainId = originChainId ?? walletClient.chain?.id;
+  const client =
+    effectiveChainId != null && effectiveChainId !== walletClient.chain?.id
+      ? ({
+          ...walletClient,
+          chain: { ...(walletClient.chain ?? {}), id: effectiveChainId },
+        } as WalletClient)
+      : walletClient;
+
+  return new EpochIntentSDK({
+    apiBaseUrl,
+    walletClient: client as unknown as never,
+  });
+}
+
 // All earn intents route through the Epoch graph protocol name embedded in
 // `marketUid` (e.g. `DUMMY_LENDING:84532:0x…` → `dummy-lending`). Falls back
 // to 1delta for bundled mainnet markets.
@@ -137,6 +162,8 @@ export function useEarnIntentFlow({
     taskTypeString: string;
     intentData: any;
     quoteResult: any;
+    /** Origin chain forwarded to Compact/SIO (Miden virtual id for P2ID deposits). */
+    originChainId?: number;
   } | null>(null);
 
   const onIntentSentRef = useRef(onIntentSent);
@@ -334,10 +361,8 @@ export function useEarnIntentFlow({
       pendingQuoteRef.current = null;
 
       try {
-        const sdk = new EpochIntentSDK({
-          apiBaseUrl,
-          walletClient: walletClient as unknown as never,
-        });
+        const originChainId = params.isMidenDeposit ? input.sourceChainId : undefined;
+        const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         const { taskTypeString, intentData } = await sdk.getTaskData({
           taskType: TaskType.ProtocolInteraction,
@@ -381,7 +406,12 @@ export function useEarnIntentFlow({
           resourceLockRequired: !!quoteResult.resourceLockRequired,
           raw: quoteResult,
         });
-        pendingQuoteRef.current = { taskTypeString, intentData, quoteResult };
+        pendingQuoteRef.current = {
+          taskTypeString,
+          intentData,
+          quoteResult,
+          originChainId,
+        };
         setStatus('idle');
       } catch (err) {
         if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
@@ -449,10 +479,11 @@ export function useEarnIntentFlow({
       onStartRef.current?.({ sessionId, mode: 'earn' });
 
       try {
-        const sdk = new EpochIntentSDK({
-          apiBaseUrl,
-          walletClient: walletClient as unknown as never,
-        });
+        const submitParams = buildParams(input);
+        const originChainId =
+          pendingQuoteRef.current?.originChainId ??
+          (submitParams.isMidenDeposit ? input.sourceChainId : undefined);
+        const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         let taskTypeString: string;
         let intentData: any;
@@ -461,7 +492,7 @@ export function useEarnIntentFlow({
         if (pendingQuoteRef.current) {
           ({ taskTypeString, intentData, quoteResult } = pendingQuoteRef.current);
         } else {
-          const params = buildParams(input);
+          const params = submitParams;
           const td = await sdk.getTaskData({
             taskType: TaskType.ProtocolInteraction,
             intentData: {
@@ -495,7 +526,6 @@ export function useEarnIntentFlow({
         setStatusProgress(45);
         onSignRef.current?.({ sessionId });
 
-        const submitParams = buildParams(input);
         const solvePayload: Record<string, unknown> = {
           isNative: false,
           sponsorAddress: address as `0x${string}`,
