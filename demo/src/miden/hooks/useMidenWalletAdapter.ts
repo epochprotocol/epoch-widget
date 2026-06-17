@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
+import {
+  AllowedPrivateData,
+  PrivateDataPermission,
+  WalletAdapterNetwork,
+  WalletReadyState,
+} from "@miden-sdk/miden-wallet-adapter-base";
 import { useAssetMetadata, toBech32AccountId } from "@miden-sdk/react";
 import { AccountId, Address } from "@miden-sdk/miden-sdk";
 import type { Asset } from "@miden-sdk/miden-wallet-adapter-base";
@@ -89,6 +95,9 @@ export function useMidenWalletAdapter(
     connect: adapterConnect,
     address,
     requestAssets,
+    select,
+    wallet,
+    wallets,
   } = useMidenFiWallet();
 
   const accountId = useMemo(() => normalizeAccountId(address), [address]);
@@ -141,9 +150,38 @@ export function useMidenWalletAdapter(
   );
 
   const connect = useCallback(async () => {
-    if (!connected) await adapterConnect();
+    if (connected) {
+      await refreshAssets();
+      return;
+    }
+
+    // MidenFiSignerProvider auto-selects a single wallet on the next render,
+    // but connect() throws WalletNotSelectedError if called before that lands.
+    // Connect through the adapter directly when the context wallet isn't ready.
+    const target = wallet ?? wallets[0] ?? null;
+    if (!target) {
+      throw new Error('No Miden wallet adapter available');
+    }
+
+    if (!wallet) {
+      select(target.adapter.name);
+    }
+
+    if (
+      target.readyState === WalletReadyState.Installed ||
+      target.readyState === WalletReadyState.Loadable
+    ) {
+      await target.adapter.connect(
+        PrivateDataPermission.UponRequest,
+        WalletAdapterNetwork.Testnet,
+        AllowedPrivateData.Assets,
+      );
+    } else {
+      await adapterConnect();
+    }
+
     await refreshAssets();
-  }, [connected, adapterConnect, refreshAssets]);
+  }, [connected, adapterConnect, refreshAssets, wallet, wallets, select]);
 
   useEffect(() => {
     if (!enabled || !connected) {

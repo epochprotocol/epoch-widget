@@ -64,8 +64,10 @@ export function EarnFlowPanel({
   midenConnected = false,
   onConnectMiden,
 }: Props) {
+  const fundingWalletReady =
+    fundingSource === 'miden' ? midenConnected : walletConnected;
   const balanceHuman =
-    walletBalance !== null && walletConnected
+    walletBalance !== null && fundingWalletReady
       ? formatAmount(walletBalance, sourceTokenDecimals, 8)
       : null;
 
