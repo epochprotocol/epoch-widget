@@ -84,7 +84,7 @@ Built-in registry (flat-pay can omit `toTokenSymbol`/`toTokenDecimals` for these
 | Env | Chains (id) | Tokens |
 |-----|-------------|--------|
 | mainnet | Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161) | USDC, USDT, DAI, WETH |
-| testnet | Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420) | USDC, USDT, DAI (+WETH on Base Sepolia) |
+| testnet | Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420), Polygon Amoy (80002) | USDC, USDT, DAI (+WETH on Base Sepolia) |
 
 Read them programmatically:
 

@@ -338,7 +338,7 @@ Useful Earn props: `earnDefaultTab` (`'deposit'`|`'withdraw'`), `earnHideTabs`, 
 
 **Built-in registry.** The widget bundles common stablecoins + WETH across Ethereum, Base, Optimism, Polygon, Arbitrum (and Sepolia testnets). For flat-pay with a registry token you can omit `toTokenSymbol`/`toTokenDecimals`. For anything else, pass them.
 
-Supported mainnet chains: **Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161)**. Testnet: **Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420)**.
+Supported mainnet chains: **Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161)**. Testnet: **Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420), Polygon Amoy (80002)**.
 
 You can read the registries yourself:
 

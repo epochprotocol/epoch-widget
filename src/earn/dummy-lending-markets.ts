@@ -12,12 +12,16 @@ export const DUMMY_STAKING_CONTRACT_ADDRESS =
 export const DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS = [
   84532, // Base Sepolia
   11155111, // Ethereum Sepolia
+  11155420, // Optimism Sepolia
+  80002, // Polygon Amoy
 ] as const;
 
 /** Chains where dummy-lending earn markets can be selected (deposit destination). */
 export const DUMMY_LENDING_DESTINATION_CHAIN_IDS = [
   84532, // Base Sepolia
   11155111, // Ethereum Sepolia
+  11155420, // Optimism Sepolia
+  80002, // Polygon Amoy
 ] as const;
 
 /** @deprecated Alias — markets are deployed only on destination chains. */
