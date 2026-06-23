@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@epoch-protocol/epoch-intent-widget':
-        specifier: file:../
-        version: file:..(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
+        specifier: ^0.1.0
+        version: 0.1.0(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
       '@epoch-protocol/epoch-intents-sdk':
-        specifier: file:../../smallocator/sdk
-        version: file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+        specifier: ^1.0.26
+        version: 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       '@miden-sdk/miden-sdk':
         specifier: ^0.14.5
         version: 0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)
@@ -198,19 +198,19 @@ packages:
   '@emotion/hash@0.9.2':
     resolution: {integrity: sha512-MyqliTZGuOm3+5ZRSaaBGP3USLw6+EGykkwZns2EPC5g8jJ4z9OrdZY9apkl3+UP9+sdz76YYkwCKP5gh8iY3g==}
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.11':
-    resolution: {integrity: sha512-4UvhAHpL/llcrONfuyffoZtnaCNf6D60A/gfHbz1tkpcfrq8pPynZbRL1jknU4YdOYQ+K+ZL4NaQb4mFOnS8QQ==}
+  '@epoch-protocol/epoch-commons-sdk@0.1.12':
+    resolution: {integrity: sha512-+dQJouzUHiRVcT2NE3TW6EawRdZ4Q49b1pR9+8G3JJ0vyFkeTCzXYlS8L6yJbZrwADzZi3NjvjhMMql4ZxMk5Q==}
 
-  '@epoch-protocol/epoch-commons-sdk@file:../../epoch-commons-sdk':
-    resolution: {directory: ../../epoch-commons-sdk, type: directory}
+  '@epoch-protocol/epoch-commons-sdk@0.1.13':
+    resolution: {integrity: sha512-Uum+1ldaJgnt2yCB80HFfs8WSMN0p4oo4AevfC1III+dti0N6Ytvw/xpn8GFpUD09mHh54xt6gqVt30nO42edQ==}
 
-  '@epoch-protocol/epoch-flows-sdk@file:../../epoch-flows-sdk':
-    resolution: {directory: ../../epoch-flows-sdk, type: directory}
+  '@epoch-protocol/epoch-flows-sdk@0.1.1':
+    resolution: {integrity: sha512-POB+1PbDw1usc2a/6QMkCRPdR0l1Q1qEAMmKtYRUkyN44Vg9CaWwA6n396XKXFlAWUcCTPnZGTYq+IH+AUmGaw==}
     peerDependencies:
       viem: ^2.x
 
-  '@epoch-protocol/epoch-intent-widget@file:..':
-    resolution: {directory: .., type: directory}
+  '@epoch-protocol/epoch-intent-widget@0.1.0':
+    resolution: {integrity: sha512-crftcZOixWnBlsup6F2s80jGxEAtGOJZ8Owq4KIpKYFLSKTccTT8JzgULsRaSRYhImC2+WKLv/ESwrzUo4tD7Q==}
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       lucide-react: ^1.14.0
@@ -219,8 +219,8 @@ packages:
       viem: ^2.0.0
       wagmi: ^2.0.0
 
-  '@epoch-protocol/epoch-intents-sdk@file:../../smallocator/sdk':
-    resolution: {directory: ../../smallocator/sdk, type: directory}
+  '@epoch-protocol/epoch-intents-sdk@1.0.26':
+    resolution: {integrity: sha512-hy3uyRhwst28Vk9clrA/VLidaI6KZiEJsCrojlYiR095miPqT2t7iZMvfEKmQ5+wNE0vw0SlA78iMmTY72zHow==}
     peerDependencies:
       viem: ^2.x
 
@@ -3415,7 +3415,7 @@ snapshots:
 
   '@emotion/hash@0.9.2': {}
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.11(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@epoch-protocol/epoch-commons-sdk@0.1.12(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
@@ -3425,7 +3425,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-commons-sdk@file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@epoch-protocol/epoch-commons-sdk@0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
@@ -3435,10 +3435,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@file:../../epoch-flows-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-flows-sdk@0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@epoch-protocol/epoch-intents-sdk': file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       viem: 2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - bufferutil
@@ -3446,11 +3446,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intent-widget@file:..(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-intent-widget@0.1.0(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@epoch-protocol/epoch-flows-sdk': file:../../epoch-flows-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
-      '@epoch-protocol/epoch-intents-sdk': file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-flows-sdk': 0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       '@tanstack/react-query': 5.99.0(react@18.3.1)
       clsx: 2.1.1
       lucide-react: 1.16.0(react@18.3.1)
@@ -3465,9 +3465,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intents-sdk@file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-intents-sdk@1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.11(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.12(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       viem: 2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - bufferutil
