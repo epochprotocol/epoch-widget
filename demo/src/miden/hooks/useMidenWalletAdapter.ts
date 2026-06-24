@@ -37,9 +37,23 @@ export interface UseMidenWalletAdapterResult {
   refreshAssets: () => Promise<void>;
 }
 
-const normalizeAccountId = (rawAddress: string | null): NormalizedMidenAccountId | null => {
+/** Strip `miden:` prefix and `_BasicWallet`-style interface suffixes before parsing. */
+const stripMidenIdDecorators = (raw: string): string => {
+  const trimmed = raw.replace(/\s+/g, "").trim().replace(/^miden:/i, "");
+  const underscore = trimmed.indexOf("_");
+  if (underscore > 0 && (trimmed.startsWith("m") || trimmed.startsWith("M"))) {
+    return trimmed.slice(0, underscore);
+  }
+  return trimmed;
+};
+
+/**
+ * Parse a Miden account id to canonical hex. Requires WASM — returns null when
+ * the SDK is not ready or the format is unrecognized.
+ */
+const resolveAccountId = (rawAddress: string | null): NormalizedMidenAccountId | null => {
   if (!rawAddress) return null;
-  const input = rawAddress.replace(/\s+/g, "").trim();
+  const input = stripMidenIdDecorators(rawAddress);
   if (!input) return null;
 
   let id: AccountId | null = null;
@@ -54,26 +68,13 @@ const normalizeAccountId = (rawAddress: string | null): NormalizedMidenAccountId
   }
 
   if (!id) {
-    if (input.includes("_")) {
-      try {
-        id = Address.fromBech32(input).accountId();
-      } catch {
-        const accountBech32 = input.slice(0, input.indexOf("_"));
-        try {
-          id = AccountId.fromBech32(accountBech32);
-        } catch {
-          id = null;
-        }
-      }
-    } else {
+    try {
+      id = Address.fromBech32(input).accountId();
+    } catch {
       try {
         id = AccountId.fromBech32(input);
       } catch {
-        try {
-          id = Address.fromBech32(input).accountId();
-        } catch {
-          id = null;
-        }
+        id = null;
       }
     }
   }
@@ -100,8 +101,46 @@ export function useMidenWalletAdapter(
     wallets,
   } = useMidenFiWallet();
 
-  const accountId = useMemo(() => normalizeAccountId(address), [address]);
+  const [accountId, setAccountId] = useState<NormalizedMidenAccountId | null>(null);
   const [rawAssets, setRawAssets] = useState<Asset[]>([]);
+
+  // AccountId parsing touches WASM and often fails on first render. Keep the raw
+  // wallet address usable immediately, then upgrade to canonical hex once ready.
+  useEffect(() => {
+    if (!address?.trim()) {
+      setAccountId(null);
+      return;
+    }
+
+    const trimmed = address.trim();
+    const parsed = resolveAccountId(trimmed);
+    if (parsed) {
+      setAccountId(parsed);
+      return;
+    }
+
+    if (connected) {
+      setAccountId({ hex: trimmed });
+    } else {
+      setAccountId(null);
+    }
+
+    let cancelled = false;
+    void import("@miden-sdk/miden-sdk/lazy")
+      .then(({ MidenClient }) => MidenClient.ready())
+      .then(() => {
+        if (cancelled) return;
+        const retry = resolveAccountId(trimmed);
+        if (retry) setAccountId(retry);
+      })
+      .catch(() => {
+        // Keep fallback raw id when WASM never becomes available.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, connected]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [assetsError, setAssetsError] = useState<string | null>(null);
 

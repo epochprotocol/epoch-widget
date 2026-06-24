@@ -38,7 +38,7 @@
     "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.13",
+    "@epoch-protocol/epoch-commons-sdk": "^0.1.14",
     "@epoch-protocol/epoch-flows-sdk": "^0.1.1",
     "@epoch-protocol/epoch-intents-sdk": "^1.0.26",
     "clsx": "^2.1.1",

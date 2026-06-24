@@ -1,4 +1,4 @@
-import { normalizeMidenIdToHex } from '../services/epoch-bridge';
+import { normalizeMidenIdToHex } from "../services/epoch-bridge";
 
 /**
  * Hardcoded Miden faucet → decimals map.
@@ -14,16 +14,16 @@ import { normalizeMidenIdToHex } from '../services/epoch-bridge';
  */
 const MIDEN_FAUCET_DECIMALS: Record<string, number> = {
   // USDC on Miden testnet — canonical earn / bridge faucet for now
-  '0a7d175ed63ec5200fb2ced86f6aa5': 6,
+  "2458e5446128e6b150b75b8ebd9ce1": 6,
 };
 
 /** @deprecated Prefer `DEFAULT_MIDEN_FAUCET` from `@epoch-protocol/epoch-intent-widget`. */
-export const MIDEN_USDC_FAUCET_ID = '0x0a7d175ed63ec5200fb2ced86f6aa5';
+export const MIDEN_USDC_FAUCET_ID = "0x2458e5446128e6b150b75b8ebd9ce1";
 
 function toMapKey(faucetId: string): string {
   const hex = normalizeMidenIdToHex(faucetId);
   const lower = hex.trim().toLowerCase();
-  return lower.startsWith('0x') ? lower.slice(2) : lower;
+  return lower.startsWith("0x") ? lower.slice(2) : lower;
 }
 
 /** Returns Miden faucet decimals, or `undefined` if the faucet is unknown. */

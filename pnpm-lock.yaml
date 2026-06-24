@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@epoch-protocol/epoch-commons-sdk':
-        specifier: ^0.1.13
-        version: 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
+        specifier: ^0.1.14
+        version: 0.1.14(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-flows-sdk':
         specifier: ^0.1.1
         version: 0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
@@ -97,8 +97,8 @@ packages:
   '@epoch-protocol/epoch-commons-sdk@0.1.12':
     resolution: {integrity: sha512-+dQJouzUHiRVcT2NE3TW6EawRdZ4Q49b1pR9+8G3JJ0vyFkeTCzXYlS8L6yJbZrwADzZi3NjvjhMMql4ZxMk5Q==}
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.13':
-    resolution: {integrity: sha512-Uum+1ldaJgnt2yCB80HFfs8WSMN0p4oo4AevfC1III+dti0N6Ytvw/xpn8GFpUD09mHh54xt6gqVt30nO42edQ==}
+  '@epoch-protocol/epoch-commons-sdk@0.1.14':
+    resolution: {integrity: sha512-2NOxV72idFNaXtoczyIzHFfbLZmdtBEYjj7e60jH7f26zox6tdg04/9/YtQsVFrst7Nazici/dHycmh3vMlIDw==}
 
   '@epoch-protocol/epoch-flows-sdk@0.1.1':
     resolution: {integrity: sha512-POB+1PbDw1usc2a/6QMkCRPdR0l1Q1qEAMmKtYRUkyN44Vg9CaWwA6n396XKXFlAWUcCTPnZGTYq+IH+AUmGaw==}
@@ -3348,7 +3348,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)':
+  '@epoch-protocol/epoch-commons-sdk@0.1.14(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)':
     dependencies:
       ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
@@ -3360,7 +3360,7 @@ snapshots:
 
   '@epoch-protocol/epoch-flows-sdk@0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.14(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk': 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       viem: 2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
     transitivePeerDependencies:
