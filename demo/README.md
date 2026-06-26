@@ -1,6 +1,6 @@
 # Epoch Intent Widget — demo app
 
-This directory is a **reference shell** for integrators. The product you ship to partners is the **`epoch-intent-widget`** package (`../`), which exports `EpochIntentWidget` and types. This Vite app shows how to:
+This directory is a **standalone reference shell** for integrators. It depends on the published **`@epoch-protocol/epoch-intent-widget`** npm package, which exports `EpochIntentWidget` and types. This Vite app shows how to:
 
 - **Pay** — map static or dynamic “scenarios” to `intent` props and open the widget.
 - **Earn** — collect amount + market selection, show an APR-only yield preview, then open the widget with a vault-style deposit intent.
