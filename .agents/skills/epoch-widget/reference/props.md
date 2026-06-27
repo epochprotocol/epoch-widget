@@ -20,6 +20,7 @@ Required: `isOpen`, `onClose`, `api`. Everything else optional.
 | `lockDestinationToken` | `boolean` | `true` | Pay-only; `false` lets user re-pick destination. Forced off in swap. |
 | `usdPriceFor` | `(t:{chainId,address,symbol}) => number\|null\|Promise<number\|null>` | — | Resolver for "≈ $…" line. |
 | `ctaLabels` | `Partial<{submit, switchNetwork, quoting, preparing, signing, submitting, polling, complete, insufficientBalance, configureRequired}>` | — | Per-state CTA copy. |
+| `routingAndLiquidityOptions` | `RoutingAndLiquidityOptions` | `{ preset: "any" }` | Restrict solver routing for quote + submit. Presets: `any`, `filler-single-transaction`, `external-multi-transactions`, `custom`. |
 | `earnDefaultTab` | `'deposit' \| 'withdraw'` | `'deposit'` | Earn starting tab. |
 | `earnHideTabs` | `boolean` | `false` | Hide deposit/withdraw tabs. |
 | `earnMarketsSource` | `OneDeltaConfig[]` | — | Static market configs (e.g. `HARDCODED_ONEDELTA_CONFIGS`). |

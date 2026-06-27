@@ -22,6 +22,7 @@ import type {
   OnStartCtx,
   OnStatusCtx,
   OnSuccessCtx,
+  RoutingAndLiquidityOptions,
 } from '../types';
 import { buildEarnDepositIntent } from '../earn/build-deposit-intent';
 import { buildEarnWithdrawIntent } from '../earn/build-withdraw-intent';
@@ -124,6 +125,7 @@ interface EarnIntentWidgetProps {
   onSign?: (ctx: OnSignCtx) => void;
   onSuccess?: (ctx: OnSuccessCtx) => void;
   onStatus?: (ctx: OnStatusCtx) => void;
+  routingAndLiquidityOptions?: RoutingAndLiquidityOptions;
 }
 
 export function EarnIntentWidget({
@@ -158,6 +160,7 @@ export function EarnIntentWidget({
   onSign,
   onSuccess,
   onStatus,
+  routingAndLiquidityOptions,
 }: EarnIntentWidgetProps) {
   const sessionId = useSessionId(isOpen);
   const { address, isConnected, connector } = useAccount();
@@ -603,6 +606,7 @@ export function EarnIntentWidget({
     walletClient,
     address,
     sessionId,
+    routingAndLiquidityOptions,
     onIntentSent,
     onIntentComplete,
     onError,

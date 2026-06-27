@@ -38,6 +38,7 @@ export type {
   OnErrorCtx,
   OnStatusCtx,
   WidgetLifecycleStatus,
+  RoutingAndLiquidityOptions,
 } from './types';
 export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
 export { cn } from './lib/cn';

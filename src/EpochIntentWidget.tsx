@@ -58,6 +58,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     usdPriceFor,
     onSourceTokenChange,
     onQuote,
+    routingAndLiquidityOptions,
   } = props;
 
   const rawMode = modeProp ?? flowProp ?? 'pay';
@@ -111,6 +112,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     usdPriceFor,
     onSourceTokenChange,
     onQuote,
+    routingAndLiquidityOptions,
   };
 
   if (!isConnected) {
@@ -162,6 +164,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         onSign={onSign}
         onSuccess={onSuccess}
         onStatus={onStatus}
+        routingAndLiquidityOptions={routingAndLiquidityOptions}
       />
     );
   }

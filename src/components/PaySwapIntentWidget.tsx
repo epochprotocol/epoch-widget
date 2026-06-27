@@ -75,6 +75,7 @@ export type PaySwapIntentWidgetProps = Pick<
   | "usdPriceFor"
   | "onSourceTokenChange"
   | "onQuote"
+  | "routingAndLiquidityOptions"
 > & {
   /** `pay` vs `swap` — same SDK path; affects copy and `onStart` / internal `mode`. */
   variant: "pay" | "swap";
@@ -115,6 +116,7 @@ export function PaySwapIntentWidget({
   usdPriceFor,
   onSourceTokenChange,
   onQuote,
+  routingAndLiquidityOptions,
 }: PaySwapIntentWidgetProps) {
   // `lockDestinationToken` is a Pay-only concept — Swap UX always lets the
   // user pick what they receive. Force-disable for Swap regardless of the
@@ -379,6 +381,7 @@ export function PaySwapIntentWidget({
     sessionId,
     mode: variant,
     receiver,
+    routingAndLiquidityOptions,
     onIntentSent,
     onIntentComplete,
     onRequestClose: onClose,

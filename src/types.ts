@@ -26,6 +26,7 @@ export type {
   OneDeltaMarketRow,
   OneDeltaTokenRisk,
   OneDeltaUnderlyingAsset,
+  RoutingAndLiquidityOptions,
   SessionCtx,
   WidgetFlow,
   WidgetMode,
@@ -49,6 +50,7 @@ import type {
   OneDeltaConfig,
   WidgetFlow,
   WidgetMode,
+  RoutingAndLiquidityOptions,
 } from '@epoch-protocol/epoch-flows-sdk';
 
 /** SDK config plus widget-only testnet endpoint overrides. */
@@ -295,11 +297,16 @@ export interface EpochIntentWidgetProps {
   earnPoolsSortDir?: 'ASC' | 'DESC';
   /** @deprecated retained for backwards compatibility. */
   earnUseMockData?: boolean;
-  /**
-   * Optional Miden wallet adapter for funding earn deposits from Miden (testnet).
+  /** Optional Miden wallet adapter for funding earn deposits from Miden (testnet).
    * Requires a connected EVM wallet as intent sponsor; Miden supplies collateral via P2IDE note.
    */
   earnMiden?: EarnMidenAdapter;
+
+  /**
+   * Restrict which solver liquidity paths SIO may quote for pay, swap, and earn flows.
+   * Use the same value for quote and submit. Defaults to `{ preset: "any" }` when omitted.
+   */
+  routingAndLiquidityOptions?: RoutingAndLiquidityOptions;
 
   // ---- API ------------------------------------------------------------------
 

@@ -39,8 +39,8 @@
   },
   "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "^0.1.14",
-    "@epoch-protocol/epoch-flows-sdk": "^0.1.1",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.26",
+    "@epoch-protocol/epoch-flows-sdk": "^0.1.2",
+    "@epoch-protocol/epoch-intents-sdk": "^1.0.27",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
