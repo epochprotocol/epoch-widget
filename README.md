@@ -4,13 +4,17 @@ A drop-in React widget for sending **cross-chain intents** through the Epoch Pro
 
 The widget covers three flows out of the box:
 
-| Mode | What the user does | Typical use |
-|------|--------------------|-------------|
-| `pay` | Pays a fixed amount **you** specify, in any token they hold on any supported chain | Checkout, top-ups, "buy this", donations |
-| `swap` | Picks both the source and destination token — classic exchange UX | In-app swaps / bridging |
-| `earn` | Deposits into (or withdraws from) a lending market, sourced from 1delta | Yield / lending integrations |
+| Mode   | What the user does                                                                 | Typical use                              |
+| ------ | ---------------------------------------------------------------------------------- | ---------------------------------------- |
+| `pay`  | Pays a fixed amount **you** specify, in any token they hold on any supported chain | Checkout, top-ups, "buy this", donations |
+| `swap` | Picks both the source and destination token — classic exchange UX                  | In-app swaps / bridging                  |
+| `earn` | Deposits into (or withdraws from) a lending market, sourced from 1delta            | Yield / lending integrations             |
 
 Under the hood the widget consumes the headless [`@epoch-protocol/epoch-flows-sdk`](../epoch-flows-sdk). If you want the business logic without the React UI, use that package directly — see [Headless escape hatch](#headless-escape-hatch).
+
+> **Deeper docs:**
+>
+> - [`docs/INTEGRATION.md`](docs/INTEGRATION.md) — step-by-step guide to embedding the widget in your own app.
 
 ---
 
@@ -47,13 +51,13 @@ This package ships with **peer dependencies** you must already have (or install)
 pnpm add react react-dom wagmi viem @tanstack/react-query lucide-react
 ```
 
-| Peer | Range | Why |
-|------|-------|-----|
-| `react`, `react-dom` | `^18` | The widget is a React component |
-| `wagmi` | `^2` | Wallet account + wallet client + connectors |
-| `viem` | `^2` | Signing, RPC reads, unit math |
-| `@tanstack/react-query` | `^5` | Required by wagmi v2 |
-| `lucide-react` | `^1.14` | Icons used inside the widget |
+| Peer                    | Range   | Why                                         |
+| ----------------------- | ------- | ------------------------------------------- |
+| `react`, `react-dom`    | `^18`   | The widget is a React component             |
+| `wagmi`                 | `^2`    | Wallet account + wallet client + connectors |
+| `viem`                  | `^2`    | Signing, RPC reads, unit math               |
+| `@tanstack/react-query` | `^5`    | Required by wagmi v2                        |
+| `lucide-react`          | `^1.14` | Icons used inside the widget                |
 
 ---
 
@@ -67,32 +71,32 @@ The widget assumes your app is already a wagmi app. You need **three** things in
 
 ```tsx
 // main.tsx
-import ReactDOM from 'react-dom/client';
-import { WagmiProvider, http, createConfig } from 'wagmi';
-import { base, optimism, arbitrum, polygon, mainnet } from 'wagmi/chains';
-import { injected } from 'wagmi/connectors';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ReactDOM from "react-dom/client";
+import { WagmiProvider, http, createConfig } from "wagmi";
+import { base, optimism, arbitrum, polygon, mainnet } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // 👇 Import the widget styles once. Without this the widget renders unstyled.
-import '@epoch-protocol/epoch-intent-widget/styles.css';
+import "@epoch-protocol/epoch-intent-widget/styles.css";
 
-import App from './App';
+import App from "./App";
 
 const config = createConfig({
   chains: [mainnet, base, optimism, arbitrum, polygon],
   connectors: [injected()], // or RainbowKit / Web3Modal connectors
   transports: {
-    [mainnet.id]:  http(),
-    [base.id]:     http('https://mainnet.base.org'),
-    [optimism.id]: http('https://mainnet.optimism.io'),
-    [arbitrum.id]: http('https://arb1.arbitrum.io/rpc'),
-    [polygon.id]:  http('https://polygon.lava.build'),
+    [mainnet.id]: http(),
+    [base.id]: http("https://mainnet.base.org"),
+    [optimism.id]: http("https://mainnet.optimism.io"),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
+    [polygon.id]: http("https://polygon.lava.build"),
   },
 });
 
 const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <WagmiProvider config={config}>
     <QueryClientProvider client={queryClient}>
       <App />
@@ -112,8 +116,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 The simplest integration — send a fixed amount of USDC to an address. The user pays in whatever token they hold; Epoch routes it to the destination.
 
 ```tsx
-import { useState } from 'react';
-import { EpochIntentWidget } from '@epoch-protocol/epoch-intent-widget';
+import { useState } from "react";
+import { EpochIntentWidget } from "@epoch-protocol/epoch-intent-widget";
 
 export default function PayButton() {
   const [open, setOpen] = useState(false);
@@ -125,7 +129,7 @@ export default function PayButton() {
       <EpochIntentWidget
         isOpen={open}
         onClose={() => setOpen(false)}
-        api={{ baseUrl: 'https://your-allocator.example.com' }}
+        api={{ baseUrl: "https://your-allocator.example.com" }}
         mode="pay"
         title="Send USDC"
         submitButtonText="Send"
@@ -133,7 +137,7 @@ export default function PayButton() {
         toAmount="0.15"
         toChainId={8453}
         toToken="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-        onSuccess={({ nonce }) => console.log('settled', nonce)}
+        onSuccess={({ nonce }) => console.log("settled", nonce)}
       />
     </>
   );
@@ -188,9 +192,9 @@ Good for plain "send X token to an address" flows. The widget looks up token met
   api={{ baseUrl }}
   mode="pay"
   toAddress="0x4235…89a9"
-  toAmount="0.15"          // decimal string (human units)
+  toAmount="0.15" // decimal string (human units)
   toChainId={8453}
-  toToken="0x8335…2913"    // destination token address
+  toToken="0x8335…2913" // destination token address
   // toTokenSymbol="USDC"  // needed only for unknown tokens
   // toTokenDecimals={6}
 />
@@ -209,22 +213,22 @@ Use this when you need a custom protocol interaction (buy a raffle ticket, mint,
   submitButtonText="Buy ticket"
   intent={{
     requiredToken: {
-      address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-      symbol: 'USDC',
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      symbol: "USDC",
       decimals: 6,
     },
-    requiredAmount: 5_000_000n,        // 5 USDC, atomic units
-    destinationChainName: 'Base',
-    positionLabel: '1 Raffle Ticket',  // shown in the summary
+    requiredAmount: 5_000_000n, // 5 USDC, atomic units
+    destinationChainName: "Base",
+    positionLabel: "1 Raffle Ticket", // shown in the summary
     config: {
-      protocol: 'raffles',
-      action: 'buyTicket',
-      fixedOutput: true,               // user pays whatever it costs to deliver exactly this
+      protocol: "raffles",
+      action: "buyTicket",
+      fixedOutput: true, // user pays whatever it costs to deliver exactly this
       destinationChainId: 8453,
-      extraDataTypestring: 'address raffleAddress,uint256 numberOfTickets',
+      extraDataTypestring: "address raffleAddress,uint256 numberOfTickets",
       extraData: {
-        raffleAddress: '0x0000000000000000000000000000000000000001',
-        numberOfTickets: '1',
+        raffleAddress: "0x0000000000000000000000000000000000000001",
+        numberOfTickets: "1",
       },
     },
   }}
@@ -259,18 +263,18 @@ sourceTokenFilter={(t) => t.symbol !== 'DAI'}       // hide candidates by predic
   api={{ baseUrl }}
   mode="swap"
   title="Swap"
-  usdPriceFor={({ symbol }) => (symbol === 'USDC' ? 1 : null)} // optional "≈ $…" line
+  usdPriceFor={({ symbol }) => (symbol === "USDC" ? 1 : null)} // optional "≈ $…" line
   intent={{
     requiredToken: {
-      address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-      symbol: 'USDC',
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      symbol: "USDC",
       decimals: 6,
     },
     requiredAmount: 1_000_000n,
-    destinationChainName: 'Base',
+    destinationChainName: "Base",
     config: {
-      protocol: 'swap',     // routes through DEX/bridge solvers, not a protocol interaction
-      action: 'swap',
+      protocol: "swap", // routes through DEX/bridge solvers, not a protocol interaction
+      action: "swap",
       fixedOutput: true,
       destinationChainId: 8453,
     },
@@ -292,7 +296,7 @@ sourceTokenFilter={(t) => t.symbol !== 'DAI'}       // hide candidates by predic
 import {
   EpochIntentWidget,
   HARDCODED_ONEDELTA_CONFIGS,
-} from '@epoch-protocol/epoch-intent-widget';
+} from "@epoch-protocol/epoch-intent-widget";
 
 <EpochIntentWidget
   isOpen={open}
@@ -302,7 +306,7 @@ import {
   earnDefaultTab="deposit"
   earnMarketsSource={HARDCODED_ONEDELTA_CONFIGS}
   title="Earn"
-/>
+/>;
 ```
 
 **B. Live data.** Set `api.positionsBaseUrl` to your 1delta pools/positions proxy. The widget fetches `/pools` (one request per chain, in parallel) and the user's open positions for withdraw.
@@ -311,13 +315,13 @@ import {
 <EpochIntentWidget
   isOpen={open}
   onClose={close}
-  api={{ baseUrl, positionsBaseUrl: 'https://positions.example.com' }}
+  api={{ baseUrl, positionsBaseUrl: "https://positions.example.com" }}
   mode="earn"
-  earnChainIds={[1, 8453, 42161]}              // chains to fan /pools over
-  earnLenderFilter="AAVE_V3,MORPHO"            // CSV of 1delta lender keys
-  earnPoolsSortBy="totalDepositsUsd"           // default
-  earnPoolsSortDir="DESC"                      // default
-  earnPoolsPerChain={100}                      // max rows per chain
+  earnChainIds={[1, 8453, 42161]} // chains to fan /pools over
+  earnLenderFilter="AAVE_V3,MORPHO" // CSV of 1delta lender keys
+  earnPoolsSortBy="totalDepositsUsd" // default
+  earnPoolsSortDir="DESC" // default
+  earnPoolsPerChain={100} // max rows per chain
 />
 ```
 
@@ -331,14 +335,14 @@ Useful Earn props: `earnDefaultTab` (`'deposit'`|`'withdraw'`), `earnHideTabs`, 
 
 **Two amount conventions — don't mix them up:**
 
-| Prop | Type | Units | Example |
-|------|------|-------|---------|
-| `toAmount` (flat pay) | `string` | Human / decimal | `"0.15"` |
+| Prop                    | Type     | Units                  | Example               |
+| ----------------------- | -------- | ---------------------- | --------------------- |
+| `toAmount` (flat pay)   | `string` | Human / decimal        | `"0.15"`              |
 | `intent.requiredAmount` | `bigint` | Atomic (smallest unit) | `5_000_000n` (5 USDC) |
 
 **Built-in registry.** The widget bundles common stablecoins + WETH across Ethereum, Base, Optimism, Polygon, Arbitrum (and Sepolia testnets). For flat-pay with a registry token you can omit `toTokenSymbol`/`toTokenDecimals`. For anything else, pass them.
 
-Supported mainnet chains: **Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161)**. Testnet: **Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420)**.
+Supported mainnet chains: **Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161)**. Testnet: **Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420), Polygon Amoy (80002)**.
 
 You can read the registries yourself:
 
@@ -348,22 +352,22 @@ import {
   EPOCH_SUPPORTED_TOKENS,
   getEpochTokensByChainEnv,
   getChainName,
-} from '@epoch-protocol/epoch-intent-widget';
+} from "@epoch-protocol/epoch-intent-widget";
 ```
 
 ### IntentConfig
 
 ```ts
 interface IntentConfig {
-  protocol: string;                  // 'transfer' | 'swap' | 'bridge' → simple route; else protocol interaction
-  action: string;                    // e.g. 'pay', 'swap', 'buyTicket', 'deposit'
-  protocolHashIdentifier?: string;   // override the keccak256(protocol) hash
-  extraDataTypestring?: string;      // ABI-style typestring for extraData fields
+  protocol: string; // 'transfer' | 'swap' | 'bridge' → simple route; else protocol interaction
+  action: string; // e.g. 'pay', 'swap', 'buyTicket', 'deposit'
+  protocolHashIdentifier?: string; // override the keccak256(protocol) hash
+  extraDataTypestring?: string; // ABI-style typestring for extraData fields
   extraData?: Record<string, string | boolean | number | bigint>;
-  fixedOutput?: boolean;             // true → "deliver exactly requiredAmount", user pays the quoted input
-  destinationChainId?: number;       // mainnet destination
-  destinationTestnetChainId?: number;// testnet destination (used when network === 'testnet')
-  slippageBps?: number;              // output slippage tolerance, default 100 (1%); 0 = strict
+  fixedOutput?: boolean; // true → "deliver exactly requiredAmount", user pays the quoted input
+  destinationChainId?: number; // mainnet destination
+  destinationTestnetChainId?: number; // testnet destination (used when network === 'testnet')
+  slippageBps?: number; // output slippage tolerance, default 100 (1%); 0 = strict
 }
 ```
 
@@ -376,7 +380,7 @@ Three layers, smallest-to-largest effort:
 ### 1. Preset
 
 ```tsx
-theme="light"   // or "dark"
+theme = "light"; // or "dark"
 ```
 
 ### 2. Token overrides (`EpochTheme`)
@@ -413,7 +417,10 @@ Slots: `overlay`, `container`, `header`, `body`, `footer`, `receiveCard`, `recei
 If you build surrounding UI against the same tokens and need them on `:root` (so portalled modal children resolve them), project the theme yourself:
 
 ```ts
-import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
+import {
+  themeToCssVars,
+  LIGHT_THEME,
+} from "@epoch-protocol/epoch-intent-widget";
 
 const vars = themeToCssVars(LIGHT_THEME) as Record<string, string>;
 for (const [k, v] of Object.entries(vars)) {
@@ -446,15 +453,13 @@ The widget drives the whole flow and reports progress through callbacks.
 <EpochIntentWidget
   // …
   onOpen={() => {}}
-  onStart={({ sessionId, mode }) => {}}            // user hit submit
-  onSign={({ sessionId }) => {}}                   // signature requested
+  onStart={({ sessionId, mode }) => {}} // user hit submit
+  onSign={({ sessionId }) => {}} // signature requested
   onSuccess={({ sessionId, nonce, status }) => {}} // settled on-chain
   onError={({ sessionId, error }) => {}}
   onStatus={({ status, progress, activeStep }) => {}} // every transition
-
-  onIntentSent={({ nonce }) => {}}                 // intent submitted, before settle
-  onIntentComplete={({ nonce, status }) => {}}     // settle finished
-
+  onIntentSent={({ nonce }) => {}} // intent submitted, before settle
+  onIntentComplete={({ nonce, status }) => {}} // settle finished
   onSourceTokenChange={({ chainId, tokenAddress }) => {}}
   onQuote={({ payAmount, payAmountRaw, error }) => {}} // fires on each quote (fixedOutput intents)
 />
@@ -474,8 +479,8 @@ idle → submitting → sent → polling → complete
 ## Testnet
 
 ```tsx
-network="testnet"          // default 'mainnet'
-allowNetworkToggle         // optionally let the user flip in-widget
+network = "testnet"; // default 'mainnet'
+allowNetworkToggle; // optionally let the user flip in-widget
 ```
 
 In testnet mode the widget uses the Sepolia chain/token registries and reads `intent.config.destinationTestnetChainId`. Base Sepolia USDC for testing: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Note Earn has no testnet (see [Mode: Earn](#mode-earn)).
@@ -486,41 +491,41 @@ In testnet mode the widget uses the Sepolia chain/token registries and reads `in
 
 `EpochIntentWidgetProps` — only `isOpen`, `onClose`, and `api` are required.
 
-| Prop | Type | Default | Notes |
-|------|------|---------|-------|
-| `isOpen` | `boolean` | — | **Required.** Controls visibility. |
-| `onClose` | `() => void` | — | **Required.** Dismiss handler. |
-| `api` | `ApiConfig` | — | **Required.** See [The `api` prop](#the-api-prop). |
-| `mode` | `'pay' \| 'swap' \| 'earn'` | `'pay'` | Flow selector. |
-| `flow` | same | — | Legacy alias for `mode`. |
-| `intent` | `IntentProps` | — | Nested pay/swap intent. |
-| `toAddress` / `toAmount` / `toChainId` / `toToken` / `toTokenDecimals` / `toTokenSymbol` | flat | — | Flat-pay shorthand (alternative to `intent`). |
-| `sourceChainIds` | `number[]` | all | Restrict source chain picker. |
-| `sourceTokenFilter` | `(t) => boolean` | — | Hide source (chain, token) candidates. |
-| `defaultSourceChainId` | `number` | — | Pre-select a source chain. |
-| `defaultSourceTokenAddress` | `` `0x${string}` `` | — | Pre-select a source token (needs `defaultSourceChainId`). |
-| `lockDestinationToken` | `boolean` | `true` | Pay-only; `false` lets the user re-pick destination. Forced off in Swap. |
-| `usdPriceFor` | `(t) => number \| null \| Promise<…>` | — | Resolver for the "≈ $…" line. |
-| `ctaLabels` | `Partial<{…}>` | — | Per-state button copy. |
-| `earnDefaultTab` | `'deposit' \| 'withdraw'` | `'deposit'` | Earn starting tab. |
-| `earnHideTabs` | `boolean` | `false` | Hide deposit/withdraw tabs. |
-| `earnMarketsSource` | `OneDeltaConfig[]` | — | Bundled/static market configs. |
-| `earnDepositDefaults` / `earnWithdrawDefaults` | defaults | — | Override earn intent protocol/action/typestring. |
-| `earnChainIds` | `number[]` | `[1,8453,42161,10,137]` | Chains to fetch pools for (live mode). |
-| `earnLenderFilter` | `string` | — | CSV of 1delta lender keys. |
-| `earnPoolsPerChain` | `number` | `100` | Max rows per chain. |
-| `earnPoolsSortBy` | enum | `totalDepositsUsd` | Pool sort field. |
-| `earnPoolsSortDir` | `'ASC' \| 'DESC'` | `DESC` | Pool sort direction. |
-| `earnSolverUrl` | `string` | — | Earn solver override. |
-| `network` | `'mainnet' \| 'testnet'` | `'mainnet'` | Active network env. |
-| `allowNetworkToggle` | `boolean` | `false` | Show in-widget network toggle. |
-| `renderInline` | `boolean` | `false` | Render inline instead of a modal overlay. |
-| `theme` | `'light' \| 'dark' \| EpochTheme` | `'light'` | See [Theming](#theming). |
-| `classNames` | `EpochClassNames` | — | Per-slot class overrides. |
-| `title` / `submitButtonText` | `string` | — | Header + CTA copy. |
-| `onOpen`/`onStart`/`onSign`/`onSuccess`/`onError`/`onStatus` | callbacks | — | See [Callbacks & lifecycle](#callbacks--lifecycle). |
-| `onIntentSent`/`onIntentComplete` | callbacks | — | Submit / settle payloads. |
-| `onSourceTokenChange`/`onQuote` | callbacks | — | Source selection + quote results. |
+| Prop                                                                                     | Type                                  | Default                 | Notes                                                                    |
+| ---------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------- | ------------------------------------------------------------------------ |
+| `isOpen`                                                                                 | `boolean`                             | —                       | **Required.** Controls visibility.                                       |
+| `onClose`                                                                                | `() => void`                          | —                       | **Required.** Dismiss handler.                                           |
+| `api`                                                                                    | `ApiConfig`                           | —                       | **Required.** See [The `api` prop](#the-api-prop).                       |
+| `mode`                                                                                   | `'pay' \| 'swap' \| 'earn'`           | `'pay'`                 | Flow selector.                                                           |
+| `flow`                                                                                   | same                                  | —                       | Legacy alias for `mode`.                                                 |
+| `intent`                                                                                 | `IntentProps`                         | —                       | Nested pay/swap intent.                                                  |
+| `toAddress` / `toAmount` / `toChainId` / `toToken` / `toTokenDecimals` / `toTokenSymbol` | flat                                  | —                       | Flat-pay shorthand (alternative to `intent`).                            |
+| `sourceChainIds`                                                                         | `number[]`                            | all                     | Restrict source chain picker.                                            |
+| `sourceTokenFilter`                                                                      | `(t) => boolean`                      | —                       | Hide source (chain, token) candidates.                                   |
+| `defaultSourceChainId`                                                                   | `number`                              | —                       | Pre-select a source chain.                                               |
+| `defaultSourceTokenAddress`                                                              | `` `0x${string}` ``                   | —                       | Pre-select a source token (needs `defaultSourceChainId`).                |
+| `lockDestinationToken`                                                                   | `boolean`                             | `true`                  | Pay-only; `false` lets the user re-pick destination. Forced off in Swap. |
+| `usdPriceFor`                                                                            | `(t) => number \| null \| Promise<…>` | —                       | Resolver for the "≈ $…" line.                                            |
+| `ctaLabels`                                                                              | `Partial<{…}>`                        | —                       | Per-state button copy.                                                   |
+| `earnDefaultTab`                                                                         | `'deposit' \| 'withdraw'`             | `'deposit'`             | Earn starting tab.                                                       |
+| `earnHideTabs`                                                                           | `boolean`                             | `false`                 | Hide deposit/withdraw tabs.                                              |
+| `earnMarketsSource`                                                                      | `OneDeltaConfig[]`                    | —                       | Bundled/static market configs.                                           |
+| `earnDepositDefaults` / `earnWithdrawDefaults`                                           | defaults                              | —                       | Override earn intent protocol/action/typestring.                         |
+| `earnChainIds`                                                                           | `number[]`                            | `[1,8453,42161,10,137]` | Chains to fetch pools for (live mode).                                   |
+| `earnLenderFilter`                                                                       | `string`                              | —                       | CSV of 1delta lender keys.                                               |
+| `earnPoolsPerChain`                                                                      | `number`                              | `100`                   | Max rows per chain.                                                      |
+| `earnPoolsSortBy`                                                                        | enum                                  | `totalDepositsUsd`      | Pool sort field.                                                         |
+| `earnPoolsSortDir`                                                                       | `'ASC' \| 'DESC'`                     | `DESC`                  | Pool sort direction.                                                     |
+| `earnSolverUrl`                                                                          | `string`                              | —                       | Earn solver override.                                                    |
+| `network`                                                                                | `'mainnet' \| 'testnet'`              | `'mainnet'`             | Active network env.                                                      |
+| `allowNetworkToggle`                                                                     | `boolean`                             | `false`                 | Show in-widget network toggle.                                           |
+| `renderInline`                                                                           | `boolean`                             | `false`                 | Render inline instead of a modal overlay.                                |
+| `theme`                                                                                  | `'light' \| 'dark' \| EpochTheme`     | `'light'`               | See [Theming](#theming).                                                 |
+| `classNames`                                                                             | `EpochClassNames`                     | —                       | Per-slot class overrides.                                                |
+| `title` / `submitButtonText`                                                             | `string`                              | —                       | Header + CTA copy.                                                       |
+| `onOpen`/`onStart`/`onSign`/`onSuccess`/`onError`/`onStatus`                             | callbacks                             | —                       | See [Callbacks & lifecycle](#callbacks--lifecycle).                      |
+| `onIntentSent`/`onIntentComplete`                                                        | callbacks                             | —                       | Submit / settle payloads.                                                |
+| `onSourceTokenChange`/`onQuote`                                                          | callbacks                             | —                       | Source selection + quote results.                                        |
 
 > Deprecated: `earnMarkets` (use `earnMarketsSource`), `earnUseMockData` (no-op).
 
@@ -532,32 +537,58 @@ Beyond the widget itself, the package re-exports config, helpers, and design-sys
 
 ```ts
 import {
-  EpochIntentWidget,           // the component
+  EpochIntentWidget, // the component
 
   // Theme
-  DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars,
+  DEFAULT_THEME,
+  LIGHT_THEME,
+  DARK_THEME,
+  resolveTheme,
+  themeToCssVars,
 
   // Registries + helpers
-  EPOCH_SUPPORTED_CHAINS, EPOCH_TESTNET_CHAINS,
-  EPOCH_SUPPORTED_TOKENS, EPOCH_TESTNET_TOKENS,
-  getEpochChains, getEpochChainById, getChainName,
-  getEpochTokensByChainEnv, getEpochTokensBySymbol,
+  EPOCH_SUPPORTED_CHAINS,
+  EPOCH_TESTNET_CHAINS,
+  EPOCH_SUPPORTED_TOKENS,
+  EPOCH_TESTNET_TOKENS,
+  getEpochChains,
+  getEpochChainById,
+  getChainName,
+  getEpochTokensByChainEnv,
+  getEpochTokensBySymbol,
 
   // Earn data
-  useEarnMarkets, useUserPositions, useEarnConfigs, useLendingPools,
-  HARDCODED_ONEDELTA_CONFIGS, chainLabelFor,
-  toEpochEarnMarket, flattenConfigsToMarkets,
+  useEarnMarkets,
+  useUserPositions,
+  useEarnConfigs,
+  useLendingPools,
+  HARDCODED_ONEDELTA_CONFIGS,
+  chainLabelFor,
+  toEpochEarnMarket,
+  flattenConfigsToMarkets,
 
   // Pure intent builders
-  buildPayIntentFromFlatProps, buildEarnDepositIntent, buildEarnWithdrawIntent,
+  buildPayIntentFromFlatProps,
+  buildEarnDepositIntent,
+  buildEarnWithdrawIntent,
 
   // Utils
-  formatAmount, truncateAddress, cn,
+  formatAmount,
+  truncateAddress,
+  cn,
 
   // UI primitives (same design system)
-  Card, Pill, TokenAvatar, Skeleton, Stat, SegmentedTabs,
-  RowAccordion, SearchInput, FilterDropdown, TokenAmountCard,
-} from '@epoch-protocol/epoch-intent-widget';
+  Card,
+  Pill,
+  TokenAvatar,
+  Skeleton,
+  Stat,
+  SegmentedTabs,
+  RowAccordion,
+  SearchInput,
+  FilterDropdown,
+  TokenAmountCard,
+} from "@epoch-protocol/epoch-intent-widget";
 ```
 
 It also pass-through re-exports the headless SDK — see below.
@@ -573,7 +604,7 @@ import {
   EpochFlowsSDK,
   PaySession,
   EarnSession,
-} from '@epoch-protocol/epoch-intent-widget';
+} from "@epoch-protocol/epoch-intent-widget";
 ```
 
 …or depend on `@epoch-protocol/epoch-flows-sdk` directly. See that package's README for the full headless API.
@@ -592,12 +623,12 @@ pnpm dev
 
 Best files to copy from:
 
-| Path | Shows |
-|------|-------|
-| [`demo/src/main.tsx`](demo/src/main.tsx) | Provider setup + CSS import + theme projection |
-| [`demo/src/app/App.tsx`](demo/src/app/App.tsx) | Rendering the widget + wiring `api` per mode |
-| [`demo/src/pay/scenarios.ts`](demo/src/pay/scenarios.ts) | Flat-pay & nested-intent prop examples |
-| [`demo/src/earn/earnMarkets.ts`](demo/src/earn/earnMarkets.ts) | Earn props with bundled configs |
+| Path                                                           | Shows                                          |
+| -------------------------------------------------------------- | ---------------------------------------------- |
+| [`demo/src/main.tsx`](demo/src/main.tsx)                       | Provider setup + CSS import + theme projection |
+| [`demo/src/app/App.tsx`](demo/src/app/App.tsx)                 | Rendering the widget + wiring `api` per mode   |
+| [`demo/src/pay/scenarios.ts`](demo/src/pay/scenarios.ts)       | Flat-pay & nested-intent prop examples         |
+| [`demo/src/earn/earnMarkets.ts`](demo/src/earn/earnMarkets.ts) | Earn props with bundled configs                |
 
 Demo env vars: `VITE_EPOCH_API_BASE_URL` (allocator), `VITE_POSITIONS_API_BASE_URL` (1delta proxy), `VITE_EARN_SOLVER_URL`.
 
@@ -605,16 +636,16 @@ Demo env vars: `VITE_EPOCH_API_BASE_URL` (allocator), `VITE_POSITIONS_API_BASE_U
 
 ## Troubleshooting
 
-| Symptom | Cause / fix |
-|---------|-------------|
-| Widget renders unstyled | You didn't `import '@epoch-protocol/epoch-intent-widget/styles.css'` at your app root. |
-| "must wrap … in WagmiProvider" / no connectors listed | Missing `WagmiProvider`, or no connectors configured in your wagmi config. |
-| React Query errors on mount | Missing `QueryClientProvider` (wagmi v2 requires it). |
-| "Unknown destination token" on flat pay | Token isn't in the built-in registry — pass `toTokenDecimals` and `toTokenSymbol`. |
-| Earn picker is empty / shows static rows | Set `api.positionsBaseUrl` for live data; without it Earn uses bundled configs only. |
-| Quote comes back below the displayed amount | Expected for cross-chain/cross-token routes — tune `intent.config.slippageBps` (default `100` = 1%; `0` = strict). |
-| Modal theme tokens missing in portal | Project tokens onto `:root` with `themeToCssVars` (see [Advanced](#advanced-css-variables--portals)). |
-| Wrong network / testnet tokens | Set `network="testnet"` and use `destinationTestnetChainId` in your intent config. |
+| Symptom                                               | Cause / fix                                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Widget renders unstyled                               | You didn't `import '@epoch-protocol/epoch-intent-widget/styles.css'` at your app root.                             |
+| "must wrap … in WagmiProvider" / no connectors listed | Missing `WagmiProvider`, or no connectors configured in your wagmi config.                                         |
+| React Query errors on mount                           | Missing `QueryClientProvider` (wagmi v2 requires it).                                                              |
+| "Unknown destination token" on flat pay               | Token isn't in the built-in registry — pass `toTokenDecimals` and `toTokenSymbol`.                                 |
+| Earn picker is empty / shows static rows              | Set `api.positionsBaseUrl` for live data; without it Earn uses bundled configs only.                               |
+| Quote comes back below the displayed amount           | Expected for cross-chain/cross-token routes — tune `intent.config.slippageBps` (default `100` = 1%; `0` = strict). |
+| Modal theme tokens missing in portal                  | Project tokens onto `:root` with `themeToCssVars` (see [Advanced](#advanced-css-variables--portals)).              |
+| Wrong network / testnet tokens                        | Set `network="testnet"` and use `destinationTestnetChainId` in your intent config.                                 |
 
 ---
 

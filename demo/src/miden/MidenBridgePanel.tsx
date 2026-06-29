@@ -2,27 +2,52 @@
  * Miden → EVM bridge demo (ported from miden-integration-example CrosschainTab).
  * Styled with Tailwind (demo shell tokens).
  */
-import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
-import { SendTransaction } from '@miden-sdk/miden-wallet-adapter-base';
-import { useMidenFiWallet } from '@miden-sdk/miden-wallet-adapter-react';
-import { toast } from 'sonner';
-import type { CrossChainIntentParams } from './types/miden';
-import type { IntentResult } from './types/miden';
-import type { SolveIntentParams } from '@epoch-protocol/epoch-intents-sdk/dist/types';
-import { formatQuoteTokenIn } from './services/epoch-bridge';
-import { explorerTxUrl, midenscanNoteUrl, truncateHash, MIDEN_CHAIN_ID } from './lib/explorers';
-import { DEFAULT_SEPOLIA_CHAIN_ID_STR } from './constants/chains';
-import { getMidenFaucetDecimals } from './constants/miden-tokens';
-import { useMidenWalletAdapter } from './hooks/useMidenWalletAdapter';
-import { useEpochIntent } from './hooks/useEpochIntent';
-import { useIntentFlowStatus } from './hooks/useIntentFlowStatus';
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
+import { SendTransaction } from "@miden-sdk/miden-wallet-adapter-base";
+import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
+import { toast } from "sonner";
+import type { CrossChainIntentParams } from "./types/miden";
+import type { IntentResult } from "./types/miden";
+import type { SolveIntentParams } from "@epoch-protocol/epoch-intents-sdk/dist/types";
+import { formatQuoteTokenIn } from "./services/epoch-bridge";
+import {
+  explorerTxUrl,
+  midenscanNoteUrl,
+  truncateHash,
+  MIDEN_CHAIN_ID,
+} from "./lib/explorers";
+import { DEFAULT_SEPOLIA_CHAIN_ID_STR } from "./constants/chains";
+import { getMidenFaucetDecimals } from "./constants/miden-tokens";
+import { useMidenWalletAdapter } from "./hooks/useMidenWalletAdapter";
+import { useEpochIntent } from "./hooks/useEpochIntent";
+import { useIntentFlowStatus } from "./hooks/useIntentFlowStatus";
 
-const SEPOLIA_TOKENS: ReadonlyArray<{ symbol: string; address: string; decimals: number }> = [
-  { symbol: 'USDC', address: '0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69', decimals: 18 },
-  { symbol: 'DAI', address: '0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a', decimals: 18 },
-  { symbol: 'USDT', address: '0xc04d2869665Be874881133943523723Be5782720', decimals: 18 },
-  { symbol: 'WETH', address: '0x7946dd86eE310D0aC16804A37787289Fa5b88A8A', decimals: 18 },
+const SEPOLIA_TOKENS: ReadonlyArray<{
+  symbol: string;
+  address: string;
+  decimals: number;
+}> = [
+  {
+    symbol: "USDC",
+    address: "0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69",
+    decimals: 18,
+  },
+  {
+    symbol: "DAI",
+    address: "0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a",
+    decimals: 18,
+  },
+  {
+    symbol: "USDT",
+    address: "0xc04d2869665Be874881133943523723Be5782720",
+    decimals: 18,
+  },
+  {
+    symbol: "WETH",
+    address: "0x7946dd86eE310D0aC16804A37787289Fa5b88A8A",
+    decimals: 18,
+  },
 ];
 
 function fallbackMidenNoteId(result: IntentResult | null): string | undefined {
@@ -33,7 +58,7 @@ function fallbackMidenNoteId(result: IntentResult | null): string | undefined {
     (r?.solveResult as Record<string, unknown> | undefined)?.midenNoteId,
   ];
   for (const c of candidates) {
-    if (typeof c === 'string' && c.length > 0) return c;
+    if (typeof c === "string" && c.length > 0) return c;
   }
   return undefined;
 }
@@ -44,38 +69,57 @@ export function MidenBridgePanel() {
   const { requestSend, waitForTransaction } = useMidenFiWallet();
   const { address } = useAccount();
 
-  const [selectedAssetId, setSelectedAssetId] = useState('');
-  const [minTokenOut, setMinTokenOut] = useState('1000000000000000000');
+  const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [minTokenOut, setMinTokenOut] = useState("1000000000000000000");
   const [outputToken, setOutputToken] = useState(SEPOLIA_TOKENS[0].address);
   const [chainId, setChainId] = useState(DEFAULT_SEPOLIA_CHAIN_ID_STR);
-  const [confirmStatus, setConfirmStatus] = useState('');
-  const [localIntentNonce, setLocalIntentNonce] = useState<string | undefined>(undefined);
-  const [localIntentUserAddress, setLocalIntentUserAddress] = useState<string | undefined>(undefined);
-  const [localMidenNoteId, setLocalMidenNoteId] = useState<string | undefined>(undefined);
-  const [evmAddress, setEvmAddress] = useState('');
+  const [confirmStatus, setConfirmStatus] = useState("");
+  const [localIntentNonce, setLocalIntentNonce] = useState<string | undefined>(
+    undefined,
+  );
+  const [localIntentUserAddress, setLocalIntentUserAddress] = useState<
+    string | undefined
+  >(undefined);
+  const [localMidenNoteId, setLocalMidenNoteId] = useState<string | undefined>(
+    undefined,
+  );
+  const [evmAddress, setEvmAddress] = useState("");
 
   useEffect(() => {
     if (address) {
-      setEvmAddress((prev) => (prev.trim() === '' ? address : prev));
+      setEvmAddress((prev) => (prev.trim() === "" ? address : prev));
     }
   }, [address]);
 
-  const sr = epoch.intentResult?.solveResult as { nonce?: string | number | bigint } | undefined;
+  const sr = epoch.intentResult?.solveResult as
+    | { nonce?: string | number | bigint }
+    | undefined;
   const intentNonceFromEpoch =
     epoch.intentResult?.intentNonce ??
     (sr?.nonce != null ? String(sr.nonce) : undefined);
-  const evmAddressFromResult = epoch.intentResult?.intentData?.recipient as string | undefined;
+  const evmAddressFromResult = epoch.intentResult?.intentData?.recipient as
+    | string
+    | undefined;
   const destinationChainIdNum = Number.parseInt(chainId, 10);
-  const hasValidDestinationChainId = Number.isInteger(destinationChainIdNum) && destinationChainIdNum > 0;
+  const hasValidDestinationChainId =
+    Number.isInteger(destinationChainIdNum) && destinationChainIdNum > 0;
   const effectiveIntentNonce = localIntentNonce ?? intentNonceFromEpoch;
   const effectiveIntentUserAddress =
-    localIntentUserAddress ?? evmAddressFromResult ?? (address as string | undefined);
-  const intentStatus = useIntentFlowStatus(effectiveIntentUserAddress, effectiveIntentNonce);
+    localIntentUserAddress ??
+    evmAddressFromResult ??
+    (address as string | undefined);
+  const intentStatus = useIntentFlowStatus(
+    effectiveIntentUserAddress,
+    effectiveIntentNonce,
+  );
 
-  const midenScanBase = import.meta.env.VITE_MIDENSCAN_URL ?? 'https://testnet.midenscan.com';
-  const midenNoteUrl = localMidenNoteId ? `${midenScanBase}/note/${localMidenNoteId}` : undefined;
+  const midenScanBase =
+    import.meta.env.VITE_MIDENSCAN_URL ?? "https://testnet.midenscan.com";
+  const midenNoteUrl = localMidenNoteId
+    ? `${midenScanBase}/note/${localMidenNoteId}`
+    : undefined;
 
-  const resolvedEvmRecipient = (evmAddress.trim() || address || '').trim();
+  const resolvedEvmRecipient = (evmAddress.trim() || address || "").trim();
   const hasValidEvmRecipient = /^0x[a-fA-F0-9]{40}$/.test(resolvedEvmRecipient);
   const selectedAsset = midenWallet.assets.find(
     (a) => a.assetId.toLowerCase() === selectedAssetId.toLowerCase(),
@@ -90,13 +134,15 @@ export function MidenBridgePanel() {
   const buildParams = (): CrossChainIntentParams => {
     const addr = resolvedEvmRecipient;
     if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-      throw new Error('Set a valid destination EVM address (0x…) or connect an EVM wallet');
+      throw new Error(
+        "Set a valid destination EVM address (0x…) or connect an EVM wallet",
+      );
     }
     if (!hasValidDestinationChainId) {
-      throw new Error('Destination chain ID must be a positive integer.');
+      throw new Error("Destination chain ID must be a positive integer.");
     }
     if (!midenWallet.accountId?.hex) {
-      throw new Error('Connect Miden wallet first');
+      throw new Error("Connect Miden wallet first");
     }
     if (midenFaucetDecimals === undefined) {
       throw new Error(
@@ -122,90 +168,112 @@ export function MidenBridgePanel() {
     !!outputToken &&
     hasValidDestinationChainId &&
     Number.isFinite(midenFaucetDecimals);
+  console.log("canFetch: ", canFetch);
+  console.log("!!midenWallet.accountId: ", !!midenWallet.accountId);
 
   const handleGetQuote = () => {
-    if (!outputToken || outputToken === '0x0000000000000000000000000000000000000000') {
-      toast.error('Select a valid output token');
+    if (
+      !outputToken ||
+      outputToken === "0x0000000000000000000000000000000000000000"
+    ) {
+      toast.error("Select a valid output token");
       return;
     }
     void toast.promise(epoch.fetchQuote(buildParams()), {
-      loading: 'Fetching quote…',
-      success: 'Quote ready — review and confirm',
-      error: (err) => (err instanceof Error ? err.message : 'Quote failed'),
+      loading: "Fetching quote…",
+      success: "Quote ready — review and confirm",
+      error: (err) => (err instanceof Error ? err.message : "Quote failed"),
     });
   };
 
   const handleConfirm = () => {
     if (!epoch.pendingQuote) return;
 
-    const createMidenP2IDNote: SolveIntentParams['createMidenP2IDNote'] = async (
-      faucetIdParam,
-      amountParam,
-      allocatorId,
-    ) => {
-      setConfirmStatus('Creating P2IDE note on Miden…');
-      try {
-        if (!midenWallet.accountId?.hex) throw new Error('Missing Miden account id');
-        if (!requestSend) throw new Error('Miden wallet adapter not available');
+    const createMidenP2IDNote: SolveIntentParams["createMidenP2IDNote"] =
+      async (faucetIdParam, amountParam, allocatorId) => {
+        setConfirmStatus("Creating P2IDE note on Miden…");
+        try {
+          if (!midenWallet.accountId?.hex)
+            throw new Error("Missing Miden account id");
+          if (!requestSend)
+            throw new Error("Miden wallet adapter not available");
 
-        const normalizedAmount = BigInt(amountParam);
-        if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
-          throw new Error('Amount too large for wallet adapter send');
+          const normalizedAmount = BigInt(amountParam);
+          if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
+            throw new Error("Amount too large for wallet adapter send");
+          }
+
+          const payload = new SendTransaction(
+            midenWallet.accountId.hex,
+            allocatorId,
+            faucetIdParam,
+            "public",
+            Number(normalizedAmount),
+          );
+          const txId = await requestSend(payload);
+          if (!waitForTransaction)
+            throw new Error("waitForTransaction not available in adapter");
+          const finalized = await waitForTransaction(txId, 120_000);
+          const first = finalized.outputNotes?.[0];
+          const noteId = first ? first.id().toString() : "";
+          if (!noteId)
+            throw new Error(`Could not read output note id for tx ${txId}`);
+          setLocalMidenNoteId(noteId);
+          return { success: true, noteId };
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          };
         }
-
-        const payload = new SendTransaction(
-          midenWallet.accountId.hex,
-          allocatorId,
-          faucetIdParam,
-          'public',
-          Number(normalizedAmount),
-        );
-        const txId = await requestSend(payload);
-        if (!waitForTransaction) throw new Error('waitForTransaction not available in adapter');
-        const finalized = await waitForTransaction(txId, 120_000);
-        const first = finalized.outputNotes?.[0];
-        const noteId = first ? first.id().toString() : '';
-        if (!noteId) throw new Error(`Could not read output note id for tx ${txId}`);
-        setLocalMidenNoteId(noteId);
-        return { success: true, noteId };
-      } catch (err) {
-        return { success: false, error: err instanceof Error ? err.message : String(err) };
-      }
-    };
+      };
 
     void toast.promise(
       (async () => {
-        setConfirmStatus('Submitting intent…');
+        setConfirmStatus("Submitting intent…");
         const result = await epoch.confirmIntent(createMidenP2IDNote);
-        if (result && typeof result === 'object' && 'error' in result && (result as { error?: string }).error) {
+        if (
+          result &&
+          typeof result === "object" &&
+          "error" in result &&
+          (result as { error?: string }).error
+        ) {
           throw new Error((result as { error: string }).error);
         }
-        if (result && typeof result === 'object') {
+        if (result && typeof result === "object") {
           const r = result as unknown as Record<string, unknown>;
           const isNonceLike = (v: unknown) =>
-            typeof v === 'string' || typeof v === 'number' || typeof v === 'bigint';
+            typeof v === "string" ||
+            typeof v === "number" ||
+            typeof v === "bigint";
           const rawNonce = isNonceLike(r.nonce)
             ? r.nonce
             : isNonceLike(r.intentNonce)
               ? r.intentNonce
-              : isNonceLike((r.solveResult as Record<string, unknown> | undefined)?.nonce)
+              : isNonceLike(
+                    (r.solveResult as Record<string, unknown> | undefined)
+                      ?.nonce,
+                  )
                 ? (r.solveResult as Record<string, unknown>).nonce
                 : undefined;
           const nonce = rawNonce != null ? String(rawNonce) : undefined;
           const intentData = r.intentData as { recipient?: string } | undefined;
-          const recipient = typeof intentData?.recipient === 'string' ? intentData.recipient : undefined;
+          const recipient =
+            typeof intentData?.recipient === "string"
+              ? intentData.recipient
+              : undefined;
           const addr = resolvedEvmRecipient;
           if (nonce) setLocalIntentNonce(nonce);
           setLocalIntentUserAddress((recipient ?? addr)?.trim() || undefined);
         }
-        setConfirmStatus('Intent submitted successfully.');
-        return 'Cross-chain intent submitted';
+        setConfirmStatus("Intent submitted successfully.");
+        return "Cross-chain intent submitted";
       })(),
       {
-        loading: 'Confirming intent…',
+        loading: "Confirming intent…",
         success: (msg) => msg,
         error: (err) => {
-          const msg = err instanceof Error ? err.message : 'Unknown error';
+          const msg = err instanceof Error ? err.message : "Unknown error";
           setConfirmStatus(`Error: ${msg}. Quote is still saved — try again.`);
           return `Error: ${msg}`;
         },
@@ -216,47 +284,63 @@ export function MidenBridgePanel() {
   const flow = intentStatus.status;
   const txStatuses = intentStatus.statuses;
   const latestStatus = txStatuses[txStatuses.length - 1];
-  const latestStatusLabel = latestStatus?.status ? String(latestStatus.status) : undefined;
-  const evmStatuses = txStatuses.filter((s) => Number(s.chainId) !== MIDEN_CHAIN_ID);
-  const TERMINAL_OK = new Set(['success', 'completed']);
+  const latestStatusLabel = latestStatus?.status
+    ? String(latestStatus.status)
+    : undefined;
+  const evmStatuses = txStatuses.filter(
+    (s) => Number(s.chainId) !== MIDEN_CHAIN_ID,
+  );
+  const TERMINAL_OK = new Set(["success", "completed"]);
   const evmCompletedStatus = evmStatuses.find(
     (s) =>
       TERMINAL_OK.has(String(s.status).toLowerCase()) &&
-      typeof s.transactionHash === 'string' &&
+      typeof s.transactionHash === "string" &&
       s.transactionHash.length > 0,
   );
   const evmTransactionHash = evmCompletedStatus?.transactionHash;
   const evmTxChainId = evmCompletedStatus?.chainId ?? destinationChainIdNum;
   const explorerUrl =
-    evmTransactionHash && typeof evmTxChainId === 'number'
+    evmTransactionHash && typeof evmTxChainId === "number"
       ? explorerTxUrl(Number(evmTxChainId), evmTransactionHash)
       : null;
 
   const result = epoch.intentResult;
   const depositTxHash = result?.solveResult?.depositResult?.transactionHash;
   const depositChainId =
-    (result as { depositChainId?: number } | null)?.depositChainId ?? flow?.evmChainId;
+    (result as { depositChainId?: number } | null)?.depositChainId ??
+    flow?.evmChainId;
   const depositTxUrl =
-    depositChainId != null && depositTxHash ? explorerTxUrl(Number(depositChainId), depositTxHash) : null;
+    depositChainId != null && depositTxHash
+      ? explorerTxUrl(Number(depositChainId), depositTxHash)
+      : null;
   const midenNoteIdForStatus = flow?.midenNoteId ?? fallbackMidenNoteId(result);
   const midenTxId = flow?.midenTxId;
-  const midenTxUrl = midenTxId ? explorerTxUrl(MIDEN_CHAIN_ID, midenTxId) : null;
-  const noteUrlStatus = midenNoteIdForStatus ? midenscanNoteUrl(midenNoteIdForStatus) : null;
+  const midenTxUrl = midenTxId
+    ? explorerTxUrl(MIDEN_CHAIN_ID, midenTxId)
+    : null;
+  const noteUrlStatus = midenNoteIdForStatus
+    ? midenscanNoteUrl(midenNoteIdForStatus)
+    : null;
 
   return (
     <div className="flex flex-col gap-5">
       <header className="mb-1">
         <h2 className="m-0 text-lg font-[650] text-fg">Miden → EVM bridge</h2>
         <p className="mt-2 max-w-xl text-[0.8125rem] leading-relaxed text-fg-muted">
-          Connect an Ethereum wallet and a Miden wallet. Pick a Miden asset and EVM output token, get a quote, then
-          confirm to create the P2IDE note and submit the cross-chain intent (same flow as{' '}
-          <code className="rounded px-1 py-px text-xs bg-surface-muted">miden-integration-example</code>
+          Connect an Ethereum wallet and a Miden wallet. Pick a Miden asset and
+          EVM output token, get a quote, then confirm to create the P2IDE note
+          and submit the cross-chain intent (same flow as{" "}
+          <code className="rounded px-1 py-px text-xs bg-surface-muted">
+            miden-integration-example
+          </code>
           ).
         </p>
       </header>
 
       <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <div className="mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-fg-muted">Wallets</div>
+        <div className="mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-fg-muted">
+          Wallets
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-line bg-canvas p-3">
             <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
@@ -265,17 +349,21 @@ export function MidenBridgePanel() {
             <ConnectButtonPlaceholder />
           </div>
           <div className="rounded-lg border border-line bg-canvas p-3">
-            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">Miden</div>
+            <div className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
+              Miden
+            </div>
             <div className="mb-2 break-all font-mono text-xs text-fg-secondary">
-              {midenWallet.connected ? midenWallet.accountId?.hex ?? 'connected' : 'Not connected'}
+              {midenWallet.connected
+                ? (midenWallet.accountId?.hex ?? "connected")
+                : "Not connected"}
             </div>
             <button
               type="button"
-              className={`cursor-pointer rounded-lg border-none bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-white ${midenWallet.connected ? 'opacity-60' : ''}`}
+              className={`cursor-pointer rounded-lg border-none bg-primary px-3 py-1.5 text-[0.8125rem] font-semibold text-white ${midenWallet.connected ? "opacity-60" : ""}`}
               disabled={midenWallet.connected}
               onClick={() => void midenWallet.connect()}
             >
-              {midenWallet.connected ? 'Connected' : 'Connect Miden'}
+              {midenWallet.connected ? "Connected" : "Connect Miden"}
             </button>
           </div>
         </div>
@@ -284,7 +372,8 @@ export function MidenBridgePanel() {
       <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <h3 className="m-0 text-base font-semibold text-fg">Intent details</h3>
         <p className="mt-2 text-[0.8125rem] leading-snug text-fg-muted">
-          Set minimum EVM output (base units), then <strong>Get quote</strong> and <strong>Confirm &amp; sign</strong>.
+          Set minimum EVM output (base units), then <strong>Get quote</strong>{" "}
+          and <strong>Confirm &amp; sign</strong>.
         </p>
 
         <div className="mt-4 flex flex-col gap-3.5">
@@ -301,15 +390,18 @@ export function MidenBridgePanel() {
               }}
               disabled={midenWallet.isLoadingAssets}
             >
-              <option value="">{midenWallet.isLoadingAssets ? 'Loading…' : 'Select asset'}</option>
+              <option value="">
+                {midenWallet.isLoadingAssets ? "Loading…" : "Select asset"}
+              </option>
               {midenWallet.assets.map((a) => (
                 <option key={a.assetId} value={a.assetId}>
-                  {(a.symbol ?? a.assetId.slice(0, 16) + '…')} — {a.amount.toString()}
+                  {a.symbol ?? a.assetId.slice(0, 16) + "…"} —{" "}
+                  {a.amount.toString()}
                 </option>
               ))}
             </select>
             <div className="mt-1 text-[0.6875rem] text-fg-muted">
-              Balance: {selectedAsset?.amount?.toString() ?? '—'}
+              Balance: {selectedAsset?.amount?.toString() ?? "—"}
             </div>
           </div>
 
@@ -373,7 +465,7 @@ export function MidenBridgePanel() {
                 setEvmAddress(e.target.value);
                 epoch.clearQuote();
               }}
-              placeholder={address ?? '0x…'}
+              placeholder={address ?? "0x…"}
             />
             {address && (
               <button
@@ -399,14 +491,19 @@ export function MidenBridgePanel() {
                 </button>
               </div>
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <div className="text-[0.625rem] font-semibold uppercase text-amber-900">Required Miden deposit</div>
+                <div className="text-[0.625rem] font-semibold uppercase text-amber-900">
+                  Required Miden deposit
+                </div>
                 <div className="mt-1 font-mono text-lg font-semibold text-warning">
                   {(() => {
-                    const qr = epoch.pendingQuote.quoteResult as Record<string, unknown>;
+                    const qr = epoch.pendingQuote.quoteResult as Record<
+                      string,
+                      unknown
+                    >;
                     const tokenInRaw = qr.tokenIn as string | undefined;
-                    if (!tokenInRaw) return 'calculated at execution';
+                    if (!tokenInRaw) return "calculated at execution";
                     if (midenFaucetDecimals === undefined) return tokenInRaw;
-                    return `${formatQuoteTokenIn(tokenInRaw, midenFaucetDecimals)} ${selectedAsset?.symbol ?? 'tokens'}`;
+                    return `${formatQuoteTokenIn(tokenInRaw, midenFaucetDecimals)} ${selectedAsset?.symbol ?? "tokens"}`;
                   })()}
                 </div>
               </div>
@@ -417,33 +514,41 @@ export function MidenBridgePanel() {
             <button
               type="button"
               className={`mt-3 w-full rounded-lg border-none px-4 py-2.5 text-sm font-semibold text-white ${
-                !canFetch || epoch.isFetchingQuote ? 'cursor-not-allowed bg-primary opacity-50' : 'cursor-pointer bg-primary'
+                !canFetch || epoch.isFetchingQuote
+                  ? "cursor-not-allowed bg-primary opacity-50"
+                  : "cursor-pointer bg-primary"
               }`}
               disabled={epoch.isFetchingQuote || !canFetch}
               onClick={handleGetQuote}
             >
-              {epoch.isFetchingQuote ? 'Fetching quote…' : 'Get quote'}
+              {epoch.isFetchingQuote ? "Fetching quote…" : "Get quote"}
             </button>
           ) : (
             <button
               type="button"
               className={`mt-3 w-full rounded-lg border-none px-4 py-2.5 text-sm font-semibold text-white ${
-                epoch.isLoading ? 'cursor-not-allowed bg-primary opacity-50' : 'cursor-pointer bg-primary'
+                epoch.isLoading
+                  ? "cursor-not-allowed bg-primary opacity-50"
+                  : "cursor-pointer bg-primary"
               }`}
               disabled={epoch.isLoading}
               onClick={handleConfirm}
             >
-              {epoch.isLoading ? 'Processing…' : 'Confirm & sign'}
+              {epoch.isLoading ? "Processing…" : "Confirm & sign"}
             </button>
           )}
 
           {!epoch.isSDKReady && (
-            <p className="text-xs text-warning">Epoch SDK not ready — connect your EVM wallet (RainbowKit header).</p>
+            <p className="text-xs text-warning">
+              Epoch SDK not ready — connect your EVM wallet (RainbowKit header).
+            </p>
           )}
-          {epoch.error && <p className="text-[0.8125rem] text-error">{epoch.error}</p>}
+          {epoch.error && (
+            <p className="text-[0.8125rem] text-error">{epoch.error}</p>
+          )}
           {confirmStatus && (
             <p
-              className={`text-[0.8125rem] ${confirmStatus.startsWith('Error') ? 'text-error' : 'text-warning'}`}
+              className={`text-[0.8125rem] ${confirmStatus.startsWith("Error") ? "text-error" : "text-warning"}`}
             >
               {confirmStatus}
             </p>
@@ -451,7 +556,9 @@ export function MidenBridgePanel() {
 
           {localMidenNoteId && (
             <div className="rounded-lg border border-line bg-canvas text-[0.8125rem] p-3">
-              <strong className="text-[0.625rem] uppercase text-fg-muted">Miden note id</strong>
+              <strong className="text-[0.625rem] uppercase text-fg-muted">
+                Miden note id
+              </strong>
               <div className="mt-1">
                 {midenNoteUrl ? (
                   <a
@@ -469,12 +576,16 @@ export function MidenBridgePanel() {
             </div>
           )}
 
-          {intentStatus.isPolling && !evmTransactionHash && effectiveIntentNonce && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[0.8125rem] text-warning">
-              Waiting for EVM execution…{' '}
-              {latestStatusLabel ? `Status: ${latestStatusLabel}` : 'Polling every 5s'}
-            </div>
-          )}
+          {intentStatus.isPolling &&
+            !evmTransactionHash &&
+            effectiveIntentNonce && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[0.8125rem] text-warning">
+                Waiting for EVM execution…{" "}
+                {latestStatusLabel
+                  ? `Status: ${latestStatusLabel}`
+                  : "Polling every 5s"}
+              </div>
+            )}
 
           {evmTransactionHash && explorerUrl && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[0.8125rem]">
@@ -496,16 +607,34 @@ export function MidenBridgePanel() {
 
       {(result || epoch.error) && (
         <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <h3 className="m-0 text-base font-semibold text-fg">Execution status</h3>
-          {epoch.error && !result && <p className="text-sm text-error">{epoch.error}</p>}
+          <h3 className="m-0 text-base font-semibold text-fg">
+            Execution status
+          </h3>
+          {epoch.error && !result && (
+            <p className="text-sm text-error">{epoch.error}</p>
+          )}
           {result && (
             <div className="mt-3 flex flex-col gap-2">
               {depositTxHash && (
-                <StatusRow label="Compact deposit" value={truncateHash(depositTxHash)} href={depositTxUrl} />
+                <StatusRow
+                  label="Compact deposit"
+                  value={truncateHash(depositTxHash)}
+                  href={depositTxUrl}
+                />
               )}
-              {midenTxId && <StatusRow label="Miden settlement" value={truncateHash(midenTxId)} href={midenTxUrl} />}
+              {midenTxId && (
+                <StatusRow
+                  label="Miden settlement"
+                  value={truncateHash(midenTxId)}
+                  href={midenTxUrl}
+                />
+              )}
               {midenNoteIdForStatus && (
-                <StatusRow label="Miden note" value={truncateHash(midenNoteIdForStatus)} href={noteUrlStatus} />
+                <StatusRow
+                  label="Miden note"
+                  value={truncateHash(midenNoteIdForStatus)}
+                  href={noteUrlStatus}
+                />
               )}
             </div>
           )}
@@ -515,13 +644,28 @@ export function MidenBridgePanel() {
   );
 }
 
-function StatusRow({ label: lb, value, href }: { label: string; value: string; href: string | null }) {
+function StatusRow({
+  label: lb,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href: string | null;
+}) {
   return (
     <div className="rounded-lg border border-line bg-canvas px-3 py-2">
-      <div className="text-[0.625rem] font-bold uppercase text-fg-muted">{lb}</div>
+      <div className="text-[0.625rem] font-bold uppercase text-fg-muted">
+        {lb}
+      </div>
       <div className="mt-1">
         {href ? (
-          <a href={href} target="_blank" rel="noreferrer" className="font-mono text-xs">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-xs"
+          >
             {value}
           </a>
         ) : (
@@ -536,7 +680,8 @@ function StatusRow({ label: lb, value, href }: { label: string; value: string; h
 function ConnectButtonPlaceholder() {
   return (
     <p className="m-0 text-xs leading-normal text-fg-muted">
-      Use <strong>Connect</strong> in the page header (RainbowKit). This wallet pays gas and receives status polls for{' '}
+      Use <strong>Connect</strong> in the page header (RainbowKit). This wallet
+      pays gas and receives status polls for{" "}
       <code className="font-mono text-[0.6875rem]">getIntentStatus</code>.
     </p>
   );

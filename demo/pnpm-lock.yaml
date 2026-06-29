@@ -9,23 +9,23 @@ importers:
   .:
     dependencies:
       '@epoch-protocol/epoch-intent-widget':
-        specifier: file:../
-        version: file:..(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
+        specifier: ^0.1.1
+        version: 0.1.1(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
       '@epoch-protocol/epoch-intents-sdk':
-        specifier: file:../../smallocator/sdk
-        version: file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+        specifier: ^1.0.26
+        version: 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       '@miden-sdk/miden-sdk':
-        specifier: ^0.14.5
-        version: 0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)
+        specifier: ^0.15.2
+        version: 0.15.2
       '@miden-sdk/miden-wallet-adapter-base':
-        specifier: ^0.14.3
-        version: 0.14.3
+        specifier: ^0.15.1
+        version: 0.15.1
       '@miden-sdk/miden-wallet-adapter-react':
-        specifier: ^0.14.3
-        version: 0.14.3(@miden-sdk/react@0.14.5(@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3))(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)))(react@18.3.1)(typescript@5.9.3)
+        specifier: ^0.15.1
+        version: 0.15.1(@miden-sdk/react@0.15.2(@miden-sdk/miden-sdk@0.15.2)(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)))(react@18.3.1)(typescript@5.9.3)
       '@miden-sdk/react':
-        specifier: ^0.14.5
-        version: 0.14.5(@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3))(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
+        specifier: ^0.15.2
+        version: 0.15.2(@miden-sdk/miden-sdk@0.15.2)(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
       '@rainbow-me/rainbowkit':
         specifier: ^2.2.9
         version: 2.2.10(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
@@ -198,16 +198,19 @@ packages:
   '@emotion/hash@0.9.2':
     resolution: {integrity: sha512-MyqliTZGuOm3+5ZRSaaBGP3USLw6+EGykkwZns2EPC5g8jJ4z9OrdZY9apkl3+UP9+sdz76YYkwCKP5gh8iY3g==}
 
-  '@epoch-protocol/epoch-commons-sdk@file:../../epoch-commons-sdk':
-    resolution: {directory: ../../epoch-commons-sdk, type: directory}
+  '@epoch-protocol/epoch-commons-sdk@0.1.12':
+    resolution: {integrity: sha512-+dQJouzUHiRVcT2NE3TW6EawRdZ4Q49b1pR9+8G3JJ0vyFkeTCzXYlS8L6yJbZrwADzZi3NjvjhMMql4ZxMk5Q==}
 
-  '@epoch-protocol/epoch-flows-sdk@file:../../epoch-flows-sdk':
-    resolution: {directory: ../../epoch-flows-sdk, type: directory}
+  '@epoch-protocol/epoch-commons-sdk@0.1.13':
+    resolution: {integrity: sha512-Uum+1ldaJgnt2yCB80HFfs8WSMN0p4oo4AevfC1III+dti0N6Ytvw/xpn8GFpUD09mHh54xt6gqVt30nO42edQ==}
+
+  '@epoch-protocol/epoch-flows-sdk@0.1.1':
+    resolution: {integrity: sha512-POB+1PbDw1usc2a/6QMkCRPdR0l1Q1qEAMmKtYRUkyN44Vg9CaWwA6n396XKXFlAWUcCTPnZGTYq+IH+AUmGaw==}
     peerDependencies:
       viem: ^2.x
 
-  '@epoch-protocol/epoch-intent-widget@file:..':
-    resolution: {directory: .., type: directory}
+  '@epoch-protocol/epoch-intent-widget@0.1.1':
+    resolution: {integrity: sha512-cPhG8/sDCcgexO7EPD53xCIQNWat8kxCosq4id3/bcwzhG5JtnasBeunNew/o+2+X19nHk2v4GjLdp+IBzNBIw==}
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       lucide-react: ^1.14.0
@@ -216,8 +219,8 @@ packages:
       viem: ^2.0.0
       wagmi: ^2.0.0
 
-  '@epoch-protocol/epoch-intents-sdk@file:../../smallocator/sdk':
-    resolution: {directory: ../../smallocator/sdk, type: directory}
+  '@epoch-protocol/epoch-intents-sdk@1.0.26':
+    resolution: {integrity: sha512-hy3uyRhwst28Vk9clrA/VLidaI6KZiEJsCrojlYiR095miPqT2t7iZMvfEKmQ5+wNE0vw0SlA78iMmTY72zHow==}
     peerDependencies:
       viem: ^2.x
 
@@ -490,30 +493,45 @@ packages:
     resolution: {integrity: sha512-w8CVbdkDrVXFJbfBSlDfafDR6BAkpDmv1bC1UJVCoVny5tW2RKAdn9i68Xf7asYT4TnUhl/hN4zfUiKQq9II4g==}
     engines: {node: '>=16.0.0'}
 
-  '@miden-sdk/miden-sdk@0.14.5':
-    resolution: {integrity: sha512-lXaO8mWE6GuaTmTCGtKE6XzDxQl83MMFlYvuuQnWHEcdmnENu1LYG9/WVyCveiJQr2VSMMkhc+lQEaqKhrOvOg==}
+  '@miden-sdk/miden-sdk@0.15.2':
+    resolution: {integrity: sha512-0ww0aKrTZlLOpn9TbPnYg5erqE+j5QOqqGBn1ki/ku6iJRvkHyZquQPIz2CWi76AOAnUt+OZLKoMNEZ0X2RFww==}
 
-  '@miden-sdk/miden-wallet-adapter-base@0.14.3':
-    resolution: {integrity: sha512-SfoIMnzP4OD4u6I8GyYvlbghXuXInw6vkQMmE+s8xTcshEiZk38MbVmmlPTtSFAhz7Z+K3nAOsW84EMn83d52A==}
+  '@miden-sdk/miden-wallet-adapter-base@0.15.1':
+    resolution: {integrity: sha512-7CjpJyvEUtXh3KmjBzRQEgQqPjGhGc0FOr3fWOFwIHprQNdKxEpo3i6l208y6qOO/OK+SikKqxj9dlmHXkcmwQ==}
 
-  '@miden-sdk/miden-wallet-adapter-miden@0.14.3':
-    resolution: {integrity: sha512-amZsYB41XZ/RyMgokygU99VqGwwWd+bmHbHPbOnoOMMHvPlskc+9Zn2IowNE13qzjzOfn4BhWG2jQErrg8m12g==}
+  '@miden-sdk/miden-wallet-adapter-miden@0.15.1':
+    resolution: {integrity: sha512-IpmJJh3vF1xfYaqRwt4b+JHIcgxCQQt2UvVcFsBFgUnRl6VQrUBpTI4RCuEga/MxdQXaZNMtSI4S1NweSNdDOA==}
     peerDependencies:
       typescript: ^5.0.0
 
-  '@miden-sdk/miden-wallet-adapter-react@0.14.3':
-    resolution: {integrity: sha512-PqweUFoWf6YJaVx1FW2s6gc6vp6oz2pey0wmMzYpjxH24TZMQ+hooRYhql7FgGkfYo1VMQkXlVzCLyymgmn8SQ==}
+  '@miden-sdk/miden-wallet-adapter-react@0.15.1':
+    resolution: {integrity: sha512-29rgc/N6PIkv8w6U4Ld1RFRDDRMavzypW5sxHDFwGDQ3+Fb/sio9Yh6wKqIGo0JN9M+aG31G0C66/VWZ/sqTiw==}
     peerDependencies:
-      '@miden-sdk/react': ^0.14.4
+      '@miden-sdk/react': ^0.15.1
       react: ^18.0.0 || ^19.0.0
     peerDependenciesMeta:
       '@miden-sdk/react':
         optional: true
 
-  '@miden-sdk/react@0.14.5':
-    resolution: {integrity: sha512-j8uHdmUVitQZ9yP2sRsbNulDy6Mf8pjfRyWMt7eQ9r3fvaQuc7R2iKJuOMcgvMVrhn0nWrCXxgeRwzts9L+ogQ==}
+  '@miden-sdk/node-darwin-arm64@0.15.2':
+    resolution: {integrity: sha512-Y4cZjjSImHC1AwAlk+xWp661+3LIIzlHB/1saDCSr4pAvufoMCou2vRRP+l4vwAT+9iDvLwi1iSw2qfybCORiA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@miden-sdk/node-darwin-x64@0.15.2':
+    resolution: {integrity: sha512-pxUZpHWCNjClEcEVPDLF4HsFqAQMzoA2PjSjVHSUK8xdcD3F/fiRNIuW+3pYD9gDkvNPGRsJtPLO21R2Rmvskg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@miden-sdk/node-linux-x64-gnu@0.15.2':
+    resolution: {integrity: sha512-7ndNrEg+xSmcGb8lDcD/MAYKwXAzjlB6tfL/8fsUvZVgJ5h6ijDIhNCt4JMA40SS736mU7JHlzbTy8uPBwxqFA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@miden-sdk/react@0.15.2':
+    resolution: {integrity: sha512-L3vxV2QRE+qQ9YPo4VIsCfQ7u12oN0fGp8oRnUGAgSwT1oztHx/rOku02ggAdy1SWQnpe8AiUGiFfC9lNoXkqg==}
     peerDependencies:
-      '@miden-sdk/miden-sdk': ^0.14.5
+      '@miden-sdk/miden-sdk': ^0.15.2
       react: '>=18.0.0'
 
   '@noble/ciphers@1.2.1':
@@ -612,30 +630,8 @@ packages:
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
 
-  '@rollup/plugin-typescript@12.3.0':
-    resolution: {integrity: sha512-7DP0/p7y3t67+NabT9f8oTBFE6gGkto4SA6Np2oudYmZE/m1dt8RB0SjL1msMxFpLo631qjRCcBlAbq1ml/Big==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.14.0||^3.0.0||^4.0.0
-      tslib: '*'
-      typescript: '>=3.7.0'
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-      tslib:
-        optional: true
-
   '@rollup/plugin-virtual@3.0.2':
     resolution: {integrity: sha512-10monEYsBp3scM4/ND4LNH5Rxvh3e/cVeL3jWTgZ2SrQ+BmUoQcopVQvnaMcOnykb1VkxUFuDAN+0FnpTFRy2A==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/pluginutils@5.3.0':
-    resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
@@ -677,79 +673,66 @@ packages:
     resolution: {integrity: sha512-L+34Qqil+v5uC0zEubW7uByo78WOCIrBvci69E7sFASRl0X7b/MB6Cqd1lky/CtcSVTydWa2WZwFuWexjS5o6g==}
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.1':
     resolution: {integrity: sha512-n83O8rt4v34hgFzlkb1ycniJh7IR5RCIqt6mz1VRJD6pmhRi0CXdmfnLu9dIUS6buzh60IvACM842Ffb3xd6Gg==}
     cpu: [arm]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.60.1':
     resolution: {integrity: sha512-Nql7sTeAzhTAja3QXeAI48+/+GjBJ+QmAH13snn0AJSNL50JsDqotyudHyMbO2RbJkskbMbFJfIJKWA6R1LCJQ==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.60.1':
     resolution: {integrity: sha512-+pUymDhd0ys9GcKZPPWlFiZ67sTWV5UU6zOJat02M1+PiuSGDziyRuI/pPue3hoUwm2uGfxdL+trT6Z9rxnlMA==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.60.1':
     resolution: {integrity: sha512-VSvgvQeIcsEvY4bKDHEDWcpW4Yw7BtlKG1GUT4FzBUlEKQK0rWHYBqQt6Fm2taXS+1bXvJT6kICu5ZwqKCnvlQ==}
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-loong64-musl@4.60.1':
     resolution: {integrity: sha512-4LqhUomJqwe641gsPp6xLfhqWMbQV04KtPp7/dIp0nzPxAkNY1AbwL5W0MQpcalLYk07vaW9Kp1PBhdpZYYcEw==}
     cpu: [loong64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-ppc64-gnu@4.60.1':
     resolution: {integrity: sha512-tLQQ9aPvkBxOc/EUT6j3pyeMD6Hb8QF2BTBnCQWP/uu1lhc9AIrIjKnLYMEroIz/JvtGYgI9dF3AxHZNaEH0rw==}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-musl@4.60.1':
     resolution: {integrity: sha512-RMxFhJwc9fSXP6PqmAz4cbv3kAyvD1etJFjTx4ONqFP9DkTkXsAMU4v3Vyc5BgzC+anz7nS/9tp4obsKfqkDHg==}
     cpu: [ppc64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-gnu@4.60.1':
     resolution: {integrity: sha512-QKgFl+Yc1eEk6MmOBfRHYF6lTxiiiV3/z/BRrbSiW2I7AFTXoBFvdMEyglohPj//2mZS4hDOqeB0H1ACh3sBbg==}
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.60.1':
     resolution: {integrity: sha512-RAjXjP/8c6ZtzatZcA1RaQr6O1TRhzC+adn8YZDnChliZHviqIjmvFwHcxi4JKPSDAt6Uhf/7vqcBzQJy0PDJg==}
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.60.1':
     resolution: {integrity: sha512-wcuocpaOlaL1COBYiA89O6yfjlp3RwKDeTIA0hM7OpmhR1Bjo9j31G1uQVpDlTvwxGn2nQs65fBFL5UFd76FcQ==}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.60.1':
     resolution: {integrity: sha512-77PpsFQUCOiZR9+LQEFg9GClyfkNXj1MP6wRnzYs0EeWbPcHs02AXu4xuUbM1zhwn3wqaizle3AEYg5aeoohhg==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.60.1':
     resolution: {integrity: sha512-5cIATbk5vynAjqqmyBjlciMJl1+R/CwX9oLk/EyiFXDWd95KpHdrOJT//rnUl4cUcskrd0jCCw3wpZnhIHdD9w==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-openbsd-x64@4.60.1':
     resolution: {integrity: sha512-cl0w09WsCi17mcmWqqglez9Gk8isgeWvoUZ3WiJFYSR3zjBQc2J5/ihSjpl+VLjPqjQ/1hJRcqBfLjssREQILw==}
@@ -1206,42 +1189,36 @@ packages:
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-arm64-musl@1.15.33':
     resolution: {integrity: sha512-il7tYM+CpUNzieQbwAjFT1P8zqAhmGWNAGhQZBnxurXZ0aNn+5nqYFTEUKNZl7QibtT0uQXzTZrNGHCIj6Y1Og==}
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@swc/core-linux-ppc64-gnu@1.15.33':
     resolution: {integrity: sha512-ZtNBwN0Z7CFj9Il0FcPaKdjgP7URyKu/3RfH46vq+0paOBqLj4NYldD6Qo//Duif/7IOtAraUfDOmp0PLAufog==}
     engines: {node: '>=10'}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-s390x-gnu@1.15.33':
     resolution: {integrity: sha512-De1IyajoOmhOYYjw/lx66bKlyDpHZTueqwpDrWgf5O7T6d1ODeJJO9/OqMBmrBQc5C+dNnlmIufHsp4QVCWufA==}
     engines: {node: '>=10'}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-x64-gnu@1.15.33':
     resolution: {integrity: sha512-mGTH0YxmUN+x6vRN/I6NOk5X0ogNktkwPnJ94IMvR7QjhRDwL0O8RXEDhyUM0YtwWrryBOqaJQBX4zruxEPRGw==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-x64-musl@1.15.33':
     resolution: {integrity: sha512-hj628ZkSEJf6zMf5VMbYrG2O6QqyTIp2qwY6VlCjvIa9lAEZ5c2lfPblCLVGYubTeLJDxadLB/CxqQYOQABeEQ==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@swc/core-win32-arm64-msvc@1.15.33':
     resolution: {integrity: sha512-GV2oohtN2/5+KSccl86VULu3aT+LrISC8uzgSq0FRnikpD+Zwc+sBlXmoKQ+Db6jI57ITUOIB8jRkdGMABC29g==}
@@ -1317,28 +1294,24 @@ packages:
     engines: {node: '>= 20'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@tailwindcss/oxide-linux-arm64-musl@4.3.0':
     resolution: {integrity: sha512-Z6sukiQsngnWO+l39X4pPbiWT81IC+PLKF+PHxIlyZbGNb9MODfYlXEVlFvej5BOZInWX01kVyzeLvHsXhfczQ==}
     engines: {node: '>= 20'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@tailwindcss/oxide-linux-x64-gnu@4.3.0':
     resolution: {integrity: sha512-DRNdQRpSGzRGfARVuVkxvM8Q12nh19l4BF/G7zGA1oe+9wcC6saFBHTISrpIcKzhiXtSrlSrluCfvMuledoCTQ==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@tailwindcss/oxide-linux-x64-musl@4.3.0':
     resolution: {integrity: sha512-Z0IADbDo8bh6I7h2IQMx601AdXBLfFpEdUotft86evd/8ZPflZe9COPO8Q1vw+pfLWIUo9zN/JGZvwuAJqduqg==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@tailwindcss/oxide-wasm32-wasi@4.3.0':
     resolution: {integrity: sha512-HNZGOUxEmElksYR7S6sC5jTeNGpobAsy9u7Gu0AskJ8/20FR9GqebUyB+HBcU/ax6BHuiuJi+Oda4B+YX6H1yA==}
@@ -1941,9 +1914,6 @@ packages:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
     engines: {node: '>=6'}
 
-  estree-walker@2.0.2:
-    resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
-
   eth-block-tracker@7.1.0:
     resolution: {integrity: sha512-8YdplnuE1IK4xfqpf4iU7oBxnOYAc35934o083G8ao+8WM8QQtt/mVlAY6yIAdY1eMeLqg4Z//PZjJGmWGPMRg==}
     engines: {node: '>=14.0.0'}
@@ -2087,10 +2057,6 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hasown@2.0.3:
-    resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
-    engines: {node: '>= 0.4'}
-
   hono@4.12.12:
     resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
     engines: {node: '>=16.9.0'}
@@ -2119,10 +2085,6 @@ packages:
 
   is-callable@1.2.7:
     resolution: {integrity: sha512-1BC0BVFhS/p0qtw6enp8e+8OD0UrK0oFLztSjNzhcKA3WDuJxxAPXzPuPtKkjEY9UUoEWlX/8fgKeu2S8i9JTA==}
-    engines: {node: '>= 0.4'}
-
-  is-core-module@2.16.2:
-    resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
 
   is-fullwidth-code-point@3.0.0:
@@ -2241,28 +2203,24 @@ packages:
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   lightningcss-linux-arm64-musl@1.32.0:
     resolution: {integrity: sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   lightningcss-linux-x64-gnu@1.32.0:
     resolution: {integrity: sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   lightningcss-linux-x64-musl@1.32.0:
     resolution: {integrity: sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   lightningcss-win32-arm64-msvc@1.32.0:
     resolution: {integrity: sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==}
@@ -2487,9 +2445,6 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  path-parse@1.0.7:
-    resolution: {integrity: sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==}
-
   path-scurry@2.0.2:
     resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
     engines: {node: 18 || 20 || >=22}
@@ -2500,10 +2455,6 @@ packages:
   picomatch@2.3.2:
     resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
     engines: {node: '>=8.6'}
-
-  picomatch@4.0.4:
-    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
-    engines: {node: '>=12'}
 
   pify@3.0.0:
     resolution: {integrity: sha512-C3FsVNH1udSEX48gGX1xfvwTWfsYWj5U+8/uK15BGzIGrKoUpghX8hWZwa/OFnakBiiVNmBvemTJR5mcy7iPcg==}
@@ -2679,11 +2630,6 @@ packages:
   require-main-filename@2.0.0:
     resolution: {integrity: sha512-NKN5kMDylKuldxYLSUfrbo5Tuzh4hd+2E8NPPX02mZtn1VuREQToYe/ZdlJy+J3uCpfaiGF05e7B8W0iXbQHmg==}
 
-  resolve@1.22.12:
-    resolution: {integrity: sha512-TyeJ1zif53BPfHootBGwPRYT1RUt6oGWsaQr8UyZW/eAm9bKoijtvruSDEmZHm92CwS9nj7/fWttqPCgzep8CA==}
-    engines: {node: '>= 0.4'}
-    hasBin: true
-
   rollup@4.60.1:
     resolution: {integrity: sha512-VmtB2rFU/GroZ4oL8+ZqXgSA38O6GR8KSIvWmEFv63pQ0G6KaBH9s07PO8XTXP4vI+3UJUEypOfjkGfmSBBR0w==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -2792,10 +2738,6 @@ packages:
   superstruct@1.0.4:
     resolution: {integrity: sha512-7JpaAoX2NGyoFlI9NBh66BQXGONc+uE+MRS5i2iOBKuS4e+ccgMDjATgZldkah+33DakBxDHiss9kvUcGAO8UQ==}
     engines: {node: '>=14.0.0'}
-
-  supports-preserve-symlinks-flag@1.0.0:
-    resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
-    engines: {node: '>= 0.4'}
 
   tailwind-merge@2.6.1:
     resolution: {integrity: sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==}
@@ -3439,7 +3381,7 @@ snapshots:
 
   '@emotion/hash@0.9.2': {}
 
-  '@epoch-protocol/epoch-commons-sdk@file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@epoch-protocol/epoch-commons-sdk@0.1.12(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
@@ -3449,10 +3391,20 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@file:../../epoch-flows-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-commons-sdk@0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@epoch-protocol/epoch-intents-sdk': file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@epoch-protocol/epoch-flows-sdk@0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
+    dependencies:
+      '@epoch-protocol/epoch-commons-sdk': 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       viem: 2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - bufferutil
@@ -3460,11 +3412,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intent-widget@file:..(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-intent-widget@0.1.1(@tanstack/react-query@5.99.0(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.16.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.99.0)(@tanstack/react-query@5.99.0(react@18.3.1))(@types/react@18.3.28)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@epoch-protocol/epoch-flows-sdk': file:../../epoch-flows-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
-      '@epoch-protocol/epoch-intents-sdk': file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-flows-sdk': 0.1.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
       '@tanstack/react-query': 5.99.0(react@18.3.1)
       clsx: 2.1.1
       lucide-react: 1.16.0(react@18.3.1)
@@ -3479,9 +3431,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intents-sdk@file:../../smallocator/sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
+  '@epoch-protocol/epoch-intents-sdk@1.0.26(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': file:../../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@epoch-protocol/epoch-commons-sdk': 0.1.12(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       viem: 2.47.16(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - bufferutil
@@ -3798,39 +3750,47 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)':
+  '@miden-sdk/miden-sdk@0.15.2':
     dependencies:
-      '@rollup/plugin-typescript': 12.3.0(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)
       dexie: 4.4.2
       glob: 11.1.0
-    transitivePeerDependencies:
-      - rollup
-      - tslib
-      - typescript
+    optionalDependencies:
+      '@miden-sdk/node-darwin-arm64': 0.15.2
+      '@miden-sdk/node-darwin-x64': 0.15.2
+      '@miden-sdk/node-linux-x64-gnu': 0.15.2
 
-  '@miden-sdk/miden-wallet-adapter-base@0.14.3':
+  '@miden-sdk/miden-wallet-adapter-base@0.15.1':
     dependencies:
       eventemitter3: 5.0.4
 
-  '@miden-sdk/miden-wallet-adapter-miden@0.14.3(typescript@5.9.3)':
+  '@miden-sdk/miden-wallet-adapter-miden@0.15.1(typescript@5.9.3)':
     dependencies:
-      '@miden-sdk/miden-wallet-adapter-base': 0.14.3
+      '@miden-sdk/miden-wallet-adapter-base': 0.15.1
       nanoid: 5.1.11
       typescript: 5.9.3
 
-  '@miden-sdk/miden-wallet-adapter-react@0.14.3(@miden-sdk/react@0.14.5(@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3))(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)))(react@18.3.1)(typescript@5.9.3)':
+  '@miden-sdk/miden-wallet-adapter-react@0.15.1(@miden-sdk/react@0.15.2(@miden-sdk/miden-sdk@0.15.2)(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)))(react@18.3.1)(typescript@5.9.3)':
     dependencies:
-      '@miden-sdk/miden-wallet-adapter-base': 0.14.3
-      '@miden-sdk/miden-wallet-adapter-miden': 0.14.3(typescript@5.9.3)
+      '@miden-sdk/miden-wallet-adapter-base': 0.15.1
+      '@miden-sdk/miden-wallet-adapter-miden': 0.15.1(typescript@5.9.3)
       react: 18.3.1
     optionalDependencies:
-      '@miden-sdk/react': 0.14.5(@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3))(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
+      '@miden-sdk/react': 0.15.2(@miden-sdk/miden-sdk@0.15.2)(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
     transitivePeerDependencies:
       - typescript
 
-  '@miden-sdk/react@0.14.5(@miden-sdk/miden-sdk@0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3))(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))':
+  '@miden-sdk/node-darwin-arm64@0.15.2':
+    optional: true
+
+  '@miden-sdk/node-darwin-x64@0.15.2':
+    optional: true
+
+  '@miden-sdk/node-linux-x64-gnu@0.15.2':
+    optional: true
+
+  '@miden-sdk/react@0.15.2(@miden-sdk/miden-sdk@0.15.2)(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))':
     dependencies:
-      '@miden-sdk/miden-sdk': 0.14.5(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)
+      '@miden-sdk/miden-sdk': 0.15.2
       react: 18.3.1
       zustand: 5.0.12(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
     transitivePeerDependencies:
@@ -4160,24 +4120,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
-  '@rollup/plugin-typescript@12.3.0(rollup@4.60.1)(tslib@2.8.1)(typescript@5.9.3)':
-    dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.60.1)
-      resolve: 1.22.12
-      typescript: 5.9.3
-    optionalDependencies:
-      rollup: 4.60.1
-      tslib: 2.8.1
-
   '@rollup/plugin-virtual@3.0.2(rollup@4.60.1)':
-    optionalDependencies:
-      rollup: 4.60.1
-
-  '@rollup/pluginutils@5.3.0(rollup@4.60.1)':
-    dependencies:
-      '@types/estree': 1.0.8
-      estree-walker: 2.0.2
-      picomatch: 4.0.4
     optionalDependencies:
       rollup: 4.60.1
 
@@ -5935,8 +5878,6 @@ snapshots:
 
   escalade@3.2.0: {}
 
-  estree-walker@2.0.2: {}
-
   eth-block-tracker@7.1.0:
     dependencies:
       '@metamask/eth-json-rpc-provider': 1.0.1
@@ -6101,10 +6042,6 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hasown@2.0.3:
-    dependencies:
-      function-bind: 1.1.2
-
   hono@4.12.12: {}
 
   idb-keyval@6.2.1: {}
@@ -6125,10 +6062,6 @@ snapshots:
   is-buffer@1.1.6: {}
 
   is-callable@1.2.7: {}
-
-  is-core-module@2.16.2:
-    dependencies:
-      hasown: 2.0.3
 
   is-fullwidth-code-point@3.0.0: {}
 
@@ -6490,8 +6423,6 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  path-parse@1.0.7: {}
-
   path-scurry@2.0.2:
     dependencies:
       lru-cache: 11.3.3
@@ -6500,8 +6431,6 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
-
-  picomatch@4.0.4: {}
 
   pify@3.0.0: {}
 
@@ -6662,13 +6591,6 @@ snapshots:
 
   require-main-filename@2.0.0: {}
 
-  resolve@1.22.12:
-    dependencies:
-      es-errors: 1.3.0
-      is-core-module: 2.16.2
-      path-parse: 1.0.7
-      supports-preserve-symlinks-flag: 1.0.0
-
   rollup@4.60.1:
     dependencies:
       '@types/estree': 1.0.8
@@ -6801,8 +6723,6 @@ snapshots:
       ansi-regex: 5.0.1
 
   superstruct@1.0.4: {}
-
-  supports-preserve-symlinks-flag@1.0.0: {}
 
   tailwind-merge@2.6.1: {}
 
