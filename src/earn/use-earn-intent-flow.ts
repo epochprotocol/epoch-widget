@@ -82,6 +82,8 @@ interface UseEarnIntentFlowParams {
   address: string | undefined;
   walletClient?: WalletClient | null;
   sessionId: string;
+  /** Opt-in EIP-7702 gasless Compact deposit. */
+  gasless?: boolean;
   /** @deprecated SIO now selects the solver via smallocator; this prop is ignored. */
   earnSolverUrl?: string;
   onIntentSent?: (data: IntentSentPayload) => void;
@@ -137,6 +139,7 @@ export function useEarnIntentFlow({
   address,
   walletClient,
   sessionId,
+  gasless = false,
   onIntentSent,
   onIntentComplete,
   onError,
@@ -539,6 +542,10 @@ export function useEarnIntentFlow({
           solvePayload.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
           solvePayload.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
           solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
+        }
+
+        if (gasless && !submitParams.isMidenDeposit) {
+          solvePayload.gasless = true;
         }
 
         const data = await sdk.solveIntent(solvePayload as never);

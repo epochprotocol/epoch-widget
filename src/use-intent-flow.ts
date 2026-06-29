@@ -29,6 +29,7 @@ interface UseIntentFlowParams {
   sessionId: string;
   mode: WidgetFlow;
   receiver?: `0x${string}`;
+  gasless?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
   onError?: (error: Error) => void;
@@ -71,6 +72,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     sessionId,
     mode,
     receiver,
+    gasless = false,
     onIntentSent,
     onIntentComplete,
     onError,
@@ -136,6 +138,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       intentConfig,
       isTestnet,
       receiver,
+      gasless,
     });
     sessionRef.current = session;
 
@@ -183,6 +186,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     mode,
     isTestnet,
     receiver,
+    gasless,
     // Hot deps for the session config — recreating on intent shape changes is
     // fine because typed-data signing is per-submit anyway.
     requiredToken,

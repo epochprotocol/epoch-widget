@@ -33,6 +33,7 @@
     "dev:js": "tsup --watch",
     "dev:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/index.css --watch",
     "typecheck": "tsc --noEmit",
+    "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
     "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
@@ -63,6 +64,7 @@
     "react-dom": "^18.3.1",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.0.0",
+    "tsx": "^4.20.6",
     "typescript": "^5.5.0",
     "viem": "^2.42.0",
     "wagmi": "^2.9.0"

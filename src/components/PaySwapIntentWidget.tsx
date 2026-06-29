@@ -14,6 +14,8 @@ import { formatAmount } from "../utils";
 import { Modal } from "./Modal";
 import { ProgressStepper } from "./ProgressStepper";
 import { NetworkToggle } from "./NetworkToggle";
+import { GaslessToggle } from "./GaslessToggle";
+import { EpochIntentSDK } from "@epoch-protocol/epoch-intents-sdk";
 import { TokenSelector, type TokenWithChain } from "./TokenSelector";
 import { PayIntentSummary } from "./PayIntentSummary";
 import { SwapIntentSummary } from "./SwapIntentSummary";
@@ -47,6 +49,8 @@ export type PaySwapIntentWidgetProps = Pick<
   | "api"
   | "network"
   | "allowNetworkToggle"
+  | "allowGasless"
+  | "gasless"
   | "classNames"
   | "theme"
   | "onIntentSent"
@@ -88,6 +92,8 @@ export function PaySwapIntentWidget({
   api,
   network = "mainnet",
   allowNetworkToggle = false,
+  allowGasless = true,
+  gasless: gaslessProp = false,
   classNames: cn,
   theme,
   onIntentSent,
@@ -150,6 +156,10 @@ export function PaySwapIntentWidget({
   const sessionId = useSessionId(isOpen);
 
   const [isTestnet, setIsTestnet] = useState(network === "testnet");
+  const [gasless, setGasless] = useState(gaslessProp);
+  const [gaslessUnavailableReason, setGaslessUnavailableReason] = useState<
+    string | null
+  >(null);
 
   const { data: walletClient } = useWalletClient();
   const { address, isConnected, connector } = useAccount();
@@ -379,6 +389,7 @@ export function PaySwapIntentWidget({
     sessionId,
     mode: variant,
     receiver,
+    gasless: allowGasless && gasless,
     onIntentSent,
     onIntentComplete,
     onRequestClose: onClose,
@@ -497,6 +508,46 @@ export function PaySwapIntentWidget({
     selectedTokenAddress,
     selectedToken,
   ]);
+
+  useEffect(() => {
+    if (!allowGasless || !gasless || !walletClient || !address) {
+      setGaslessUnavailableReason(null);
+      return;
+    }
+    const chainIdForGasless = selectedChainId ?? walletClient.chain?.id;
+    if (!chainIdForGasless) return;
+
+    let cancelled = false;
+    const sdk = new EpochIntentSDK({
+      apiBaseUrl,
+      walletClient: walletClient as never,
+    });
+    sdk
+      .getWalletGaslessStatus(chainIdForGasless)
+      .then((status) => {
+        if (cancelled) return;
+        if (!status.is7702Capable || status.delegation === "other") {
+          const reason =
+            status.delegation === "other"
+              ? "Wallet delegated to another smart account"
+              : "Gasless not available for this wallet or chain";
+          setGaslessUnavailableReason(reason);
+          setGasless(false);
+        } else {
+          setGaslessUnavailableReason(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGaslessUnavailableReason("Unable to check gasless support");
+          setGasless(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allowGasless, gasless, walletClient, address, selectedChainId, apiBaseUrl]);
 
   const hasResolvableIntent = !!payIntent;
 
@@ -789,16 +840,31 @@ export function PaySwapIntentWidget({
     </div>
   );
 
-  const headerAction = resolvedAllowNetworkToggle ? (
-    <NetworkToggle
-      isTestnet={isTestnet}
-      onChange={(checked) => {
-        setIsTestnet(checked);
-        setSelectedChainId(null);
-        setSelectedTokenAddress("");
-      }}
-    />
-  ) : undefined;
+  const headerAction =
+    resolvedAllowNetworkToggle || allowGasless ? (
+      <div className="flex items-center gap-2">
+        {allowGasless ? (
+          <GaslessToggle
+            gasless={gasless}
+            disabled={!!gaslessUnavailableReason}
+            disabledReason={gaslessUnavailableReason ?? undefined}
+            onChange={(next) => {
+              if (!gaslessUnavailableReason) setGasless(next);
+            }}
+          />
+        ) : null}
+        {resolvedAllowNetworkToggle ? (
+          <NetworkToggle
+            isTestnet={isTestnet}
+            onChange={(checked) => {
+              setIsTestnet(checked);
+              setSelectedChainId(null);
+              setSelectedTokenAddress("");
+            }}
+          />
+        ) : null}
+      </div>
+    ) : undefined;
 
   return (
     <Modal
