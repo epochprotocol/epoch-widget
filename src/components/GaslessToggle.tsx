@@ -3,8 +3,9 @@ import { cn } from '../lib/cn';
 interface GaslessToggleProps {
   gasless: boolean;
   onChange: (gasless: boolean) => void;
-  disabled?: boolean;
-  disabledReason?: string;
+  /** When set, only the Gasless segment is disabled (Standard stays clickable). */
+  gaslessDisabled?: boolean;
+  gaslessDisabledReason?: string;
 }
 
 const SEGMENT_BASE =
@@ -16,23 +17,23 @@ const SEGMENT_BASE =
 export function GaslessToggle({
   gasless,
   onChange,
-  disabled = false,
-  disabledReason,
+  gaslessDisabled = false,
+  gaslessDisabledReason,
 }: GaslessToggleProps) {
-  const segmentClasses = (active: boolean) =>
+  const segmentClasses = (active: boolean, segmentDisabled?: boolean) =>
     cn(
       SEGMENT_BASE,
-      disabled && 'opacity-50',
+      segmentDisabled && 'opacity-50 cursor-not-allowed',
       active
         ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
-        : 'cursor-pointer bg-transparent text-fg-muted',
+        : !segmentDisabled && 'cursor-pointer bg-transparent text-fg-muted',
+      !active && segmentDisabled && 'cursor-not-allowed',
     );
 
   return (
     <div
       role="tablist"
       aria-label="Deposit mode"
-      title={disabled ? disabledReason : undefined}
       className="inline-flex select-none items-center rounded-full border border-line bg-surface p-0.75 text-[11px] font-semibold leading-none tracking-[0.01em]"
     >
       <button
@@ -40,9 +41,10 @@ export function GaslessToggle({
         role="tab"
         aria-selected={gasless}
         tabIndex={gasless ? 0 : -1}
-        disabled={disabled}
-        onClick={() => !gasless && !disabled && onChange(true)}
-        className={segmentClasses(gasless)}
+        disabled={gaslessDisabled}
+        title={gaslessDisabled ? gaslessDisabledReason : undefined}
+        onClick={() => !gasless && !gaslessDisabled && onChange(true)}
+        className={segmentClasses(gasless, gaslessDisabled)}
       >
         Gasless
       </button>
@@ -51,8 +53,7 @@ export function GaslessToggle({
         role="tab"
         aria-selected={!gasless}
         tabIndex={!gasless ? 0 : -1}
-        disabled={disabled}
-        onClick={() => gasless && !disabled && onChange(false)}
+        onClick={() => gasless && onChange(false)}
         className={segmentClasses(!gasless)}
       >
         Standard

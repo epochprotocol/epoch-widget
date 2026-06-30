@@ -41,7 +41,8 @@ import {
   configsToRows,
 } from '../earn/market-rows';
 import { useEarnIntentFlow } from '../earn/use-earn-intent-flow';
-import { EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
+import { useGaslessWallet } from '../hooks/use-gasless-wallet-check';
+import { isInjectedWallet } from '../gasless/wallet-capability';
 import type { OneDeltaConfig } from '../types';
 import { ArrowDownIcon, CheckIcon } from './Icons';
 import { SegmentedTabs } from './ui/SegmentedTabs';
@@ -50,7 +51,7 @@ import { EarnFlowPanel } from './EarnFlowPanel';
 import { MarketPickerPage } from './MarketPickerPage';
 import { Modal } from './Modal';
 import { NetworkToggle } from './NetworkToggle';
-import { GaslessToggle } from './GaslessToggle';
+import { GaslessEnableButton } from './GaslessEnableButton';
 import { ProgressStepper } from './ProgressStepper';
 import { TokenSelector, type TokenWithChain } from './TokenSelector';
 import { WithdrawPanel } from './WithdrawPanel';
@@ -171,6 +172,14 @@ export function EarnIntentWidget({
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
 
+  const effectiveAllowGasless = useMemo(
+    () =>
+      allowGasless &&
+      walletClient != null &&
+      !isInjectedWallet(walletClient),
+    [allowGasless, walletClient],
+  );
+
   const [earnTab, setEarnTab] = useState<'deposit' | 'withdraw'>(earnDefaultTab);
   const [earnSelectedMarket, setEarnSelectedMarket] = useState<EpochEarnMarket | null>(null);
   const [earnAmount, setEarnAmount] = useState('');
@@ -201,7 +210,6 @@ export function EarnIntentWidget({
   const [view, setView] = useState<EarnView>('main');
   const [isTestnet, setIsTestnet] = useState(networkProp === 'testnet');
   const [gasless, setGasless] = useState(gaslessProp);
-  const [gaslessUnavailableReason, setGaslessUnavailableReason] = useState<string | null>(null);
   const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
   const midenEnabled =
     networkEnv === 'testnet' &&
@@ -493,6 +501,23 @@ export function EarnIntentWidget({
     () => availableTokens.find((tok) => tok.address === selectedTokenAddress) ?? null,
     [availableTokens, selectedTokenAddress],
   );
+
+  const gaslessWallet = useGaslessWallet({
+    allowGasless:
+      effectiveAllowGasless && earnTab === 'deposit' && fundingSource === 'evm',
+    apiBaseUrl: resolvedApi.baseUrl,
+    gasless,
+    setGasless,
+    walletClient,
+    address,
+    chainIdForCheck:
+      fundingSource === 'miden'
+        ? null
+        : selectedChainId ??
+          (isTestnet ? 84532 : walletClient?.chain?.id ?? null),
+    switchChain,
+  });
+
   const selectedChain = availableChains.find((c) => c.id === selectedChainId);
   const midenAssets = useMemo(
     () => (earnMiden?.assets ?? []).filter((a) => isDefaultMidenFaucet(a.faucetId)),
@@ -611,7 +636,7 @@ export function EarnIntentWidget({
     walletClient,
     address,
     sessionId,
-    gasless: allowGasless && gasless,
+    gasless: effectiveAllowGasless && gasless,
     onIntentSent,
     onIntentComplete,
     onError,
@@ -788,82 +813,21 @@ export function EarnIntentWidget({
       : title ?? (earnTab === 'deposit' ? 'Earn' : 'Withdraw');
 
   const headerAction =
-    allowNetworkToggle || allowGasless ? (
-      <div className="flex items-center gap-2">
-        {allowGasless && earnTab === 'deposit' ? (
-          <GaslessToggle
-            gasless={gasless}
-            disabled={!!gaslessUnavailableReason}
-            disabledReason={gaslessUnavailableReason ?? undefined}
-            onChange={(next) => {
-              if (!gaslessUnavailableReason) setGasless(next);
-            }}
-          />
-        ) : null}
-        {allowNetworkToggle ? (
-          <NetworkToggle
-            isTestnet={isTestnet}
-            onChange={(checked) => {
-              setIsTestnet(checked);
-              setSelectedChainId(null);
-              setSelectedTokenAddress('');
-              setEarnSelectedMarket(null);
-              setSelectedPosition(null);
-              setEarnAmount('');
-              setWithdrawAmount('');
-              if (!checked) setFundingSource('evm');
-            }}
-          />
-        ) : null}
-      </div>
+    allowNetworkToggle ? (
+      <NetworkToggle
+        isTestnet={isTestnet}
+        onChange={(checked) => {
+          setIsTestnet(checked);
+          setSelectedChainId(null);
+          setSelectedTokenAddress('');
+          setEarnSelectedMarket(null);
+          setSelectedPosition(null);
+          setEarnAmount('');
+          setWithdrawAmount('');
+          if (!checked) setFundingSource('evm');
+        }}
+      />
     ) : null;
-
-  useEffect(() => {
-    if (!allowGasless || !gasless || !walletClient || !address) {
-      setGaslessUnavailableReason(null);
-      return;
-    }
-    const chainIdForGasless = selectedChainId ?? walletClient.chain?.id;
-    if (!chainIdForGasless) return;
-
-    let cancelled = false;
-    const sdk = new EpochIntentSDK({
-      apiBaseUrl: resolvedApi.baseUrl,
-      walletClient: walletClient as never,
-    });
-    sdk
-      .getWalletGaslessStatus(chainIdForGasless)
-      .then((status) => {
-        if (cancelled) return;
-        if (!status.is7702Capable || status.delegation === 'other') {
-          const reason =
-            status.delegation === 'other'
-              ? 'Wallet delegated to another smart account'
-              : 'Gasless not available for this wallet or chain';
-          setGaslessUnavailableReason(reason);
-          setGasless(false);
-        } else {
-          setGaslessUnavailableReason(null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setGaslessUnavailableReason('Unable to check gasless support');
-          setGasless(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    allowGasless,
-    gasless,
-    walletClient,
-    address,
-    selectedChainId,
-    resolvedApi.baseUrl,
-  ]);
 
   const handleConnectMiden = useCallback(() => {
     void Promise.resolve(earnMiden?.connect?.()).catch(() => {
@@ -1213,7 +1177,22 @@ export function EarnIntentWidget({
       )}
 
       {earnTab === 'deposit' ? (
-        <EarnFlowPanel
+        <>
+          {effectiveAllowGasless && fundingSource === 'evm' ? (
+            <GaslessEnableButton
+              gasless={gasless}
+              disabledReason={gaslessWallet.unavailableReason}
+              needsEpochSetup={gaslessWallet.needsEpochSetup}
+              onSwitchSmartAccount={() => gaslessWallet.switchToEpochSmartAccount()}
+              setupBusy={gaslessWallet.setupBusy}
+              setupError={gaslessWallet.setupError}
+              checking={gaslessWallet.checking}
+              onEnable={() => setGasless(true)}
+              onDisable={() => setGasless(false)}
+              className="mb-1"
+            />
+          ) : null}
+          <EarnFlowPanel
           selected={earnSelectedMarket}
           onPickMarket={() => setView('selectMarket')}
           amount={earnAmount}
@@ -1244,6 +1223,7 @@ export function EarnIntentWidget({
           midenConnected={!!earnMiden?.connected}
           onConnectMiden={handleConnectMiden}
         />
+        </>
       ) : (
         <WithdrawPanel
           positions={positionsState.positions}

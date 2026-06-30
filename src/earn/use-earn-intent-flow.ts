@@ -157,6 +157,8 @@ export function useEarnIntentFlow({
   const [error, setError] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
+  const gaslessRef = useRef(gasless);
+  gaslessRef.current = gasless;
   const quoteCallIdRef = useRef(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCheckingRef = useRef(false);
@@ -544,7 +546,7 @@ export function useEarnIntentFlow({
           solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
         }
 
-        if (gasless && !submitParams.isMidenDeposit) {
+        if (gaslessRef.current && !submitParams.isMidenDeposit) {
           solvePayload.gasless = true;
         }
 

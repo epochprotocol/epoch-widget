@@ -111,6 +111,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const sessionRef = useRef<PaySession | null>(null);
+  const gaslessRef = useRef(gasless);
+  gaslessRef.current = gasless;
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -138,7 +140,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       intentConfig,
       isTestnet,
       receiver,
-      gasless,
+      getGasless: () => gaslessRef.current,
     });
     sessionRef.current = session;
 
@@ -186,7 +188,6 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     mode,
     isTestnet,
     receiver,
-    gasless,
     // Hot deps for the session config — recreating on intent shape changes is
     // fine because typed-data signing is per-submit anyway.
     requiredToken,
