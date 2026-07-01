@@ -33,14 +33,15 @@
     "dev:js": "tsup --watch",
     "dev:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/index.css --watch",
     "typecheck": "tsc --noEmit",
+    "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
     "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.14",
-    "@epoch-protocol/epoch-flows-sdk": "^0.1.1",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.26",
+    "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
+    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
+    "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
@@ -63,6 +64,7 @@
     "react-dom": "^18.3.1",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.0.0",
+    "tsx": "^4.20.6",
     "typescript": "^5.5.0",
     "viem": "^2.42.0",
     "wagmi": "^2.9.0"

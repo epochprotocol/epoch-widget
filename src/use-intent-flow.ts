@@ -29,6 +29,7 @@ interface UseIntentFlowParams {
   sessionId: string;
   mode: WidgetFlow;
   receiver?: `0x${string}`;
+  gasless?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
   onError?: (error: Error) => void;
@@ -71,6 +72,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     sessionId,
     mode,
     receiver,
+    gasless = false,
     onIntentSent,
     onIntentComplete,
     onError,
@@ -109,6 +111,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const sessionRef = useRef<PaySession | null>(null);
+  const gaslessRef = useRef(gasless);
+  gaslessRef.current = gasless;
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -136,6 +140,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       intentConfig,
       isTestnet,
       receiver,
+      getGasless: () => gaslessRef.current,
     });
     sessionRef.current = session;
 
