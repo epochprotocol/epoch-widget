@@ -13,6 +13,7 @@ import type {
   OnSignCtx,
   OnSuccessCtx,
   OnErrorCtx,
+  RoutingAndLiquidityOptions,
   WidgetFlow,
 } from './types';
 
@@ -29,6 +30,7 @@ interface UseIntentFlowParams {
   sessionId: string;
   mode: WidgetFlow;
   receiver?: `0x${string}`;
+  routingAndLiquidityOptions?: RoutingAndLiquidityOptions;
   gasless?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
@@ -72,6 +74,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     sessionId,
     mode,
     receiver,
+    routingAndLiquidityOptions,
     gasless = false,
     onIntentSent,
     onIntentComplete,
@@ -140,6 +143,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       intentConfig,
       isTestnet,
       receiver,
+      routingAndLiquidityOptions,
       getGasless: () => gaslessRef.current,
     });
     sessionRef.current = session;
@@ -188,6 +192,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     mode,
     isTestnet,
     receiver,
+    routingAndLiquidityOptions,
     // Hot deps for the session config — recreating on intent shape changes is
     // fine because typed-data signing is per-submit anyway.
     requiredToken,

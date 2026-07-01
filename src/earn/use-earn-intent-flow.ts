@@ -3,6 +3,7 @@ import { keccak256, parseUnits, toBytes } from 'viem';
 import type { WalletClient } from 'viem';
 import { TaskType } from '@epoch-protocol/epoch-commons-sdk';
 import { CollateralType, EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
+import type { RoutingAndLiquidityOptions } from '../types';
 import type {
   EarnMidenCreateP2IDNote,
   EpochEarnMarket,
@@ -86,6 +87,7 @@ interface UseEarnIntentFlowParams {
   gasless?: boolean;
   /** @deprecated SIO now selects the solver via smallocator; this prop is ignored. */
   earnSolverUrl?: string;
+  routingAndLiquidityOptions?: RoutingAndLiquidityOptions;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
   onError?: (ctx: OnErrorCtx) => void;
@@ -139,6 +141,7 @@ export function useEarnIntentFlow({
   address,
   walletClient,
   sessionId,
+  routingAndLiquidityOptions,
   gasless = false,
   onIntentSent,
   onIntentComplete,
@@ -390,6 +393,9 @@ export function useEarnIntentFlow({
           taskTypeString,
           intentData,
           isNative: false,
+          ...(routingAndLiquidityOptions
+            ? { routingAndLiquidityOptions }
+            : {}),
         });
 
         if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
@@ -424,7 +430,7 @@ export function useEarnIntentFlow({
         setStatus('idle');
       }
     },
-    [address, walletClient, apiBaseUrl, buildParams],
+    [address, walletClient, apiBaseUrl, buildParams, routingAndLiquidityOptions],
   );
 
   // ---- Poll intent status ---------------------------------------------------
@@ -520,6 +526,9 @@ export function useEarnIntentFlow({
             taskTypeString,
             intentData,
             isNative: false,
+            ...(routingAndLiquidityOptions
+              ? { routingAndLiquidityOptions }
+              : {}),
           });
           if (!qr?.success) {
             throw new Error((qr as { error?: string } | undefined)?.error ?? 'Quote failed');
@@ -537,6 +546,9 @@ export function useEarnIntentFlow({
           taskTypeString,
           intentData,
           quoteResult,
+          ...(routingAndLiquidityOptions
+            ? { routingAndLiquidityOptions }
+            : {}),
         };
 
         if (submitParams.isMidenDeposit && input.midenSource) {
