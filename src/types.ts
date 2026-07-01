@@ -317,6 +317,10 @@ export interface EpochIntentWidgetProps {
   network?: 'mainnet' | 'testnet';
   /** Allow the user to toggle mainnet/testnet inside the widget. Default: false for pay/swap; earn defaults to true. */
   allowNetworkToggle?: boolean;
+  /** Allow the user to toggle gasless EIP-7702 Compact deposits. Default: true. */
+  allowGasless?: boolean;
+  /** Initial or controlled gasless state. Default: false. */
+  gasless?: boolean;
 
   // ---- Rendering ------------------------------------------------------------
 

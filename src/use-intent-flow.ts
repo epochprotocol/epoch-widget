@@ -31,6 +31,7 @@ interface UseIntentFlowParams {
   mode: WidgetFlow;
   receiver?: `0x${string}`;
   routingAndLiquidityOptions?: RoutingAndLiquidityOptions;
+  gasless?: boolean;
   onIntentSent?: (data: IntentSentPayload) => void;
   onIntentComplete?: (data: IntentCompletePayload) => void;
   onError?: (error: Error) => void;
@@ -74,6 +75,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     mode,
     receiver,
     routingAndLiquidityOptions,
+    gasless = false,
     onIntentSent,
     onIntentComplete,
     onError,
@@ -112,6 +114,8 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const sessionRef = useRef<PaySession | null>(null);
+  const gaslessRef = useRef(gasless);
+  gaslessRef.current = gasless;
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -140,6 +144,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
       isTestnet,
       receiver,
       routingAndLiquidityOptions,
+      getGasless: () => gaslessRef.current,
     });
     sessionRef.current = session;
 

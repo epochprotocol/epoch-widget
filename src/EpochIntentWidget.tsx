@@ -20,6 +20,8 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     api,
     network = 'mainnet',
     allowNetworkToggle = false,
+    allowGasless = true,
+    gasless = false,
     onIntentSent,
     onIntentComplete,
     onError,
@@ -84,6 +86,8 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     api,
     network,
     allowNetworkToggle,
+    allowGasless,
+    gasless,
     classNames: cn,
     theme,
     onIntentSent,
@@ -138,6 +142,8 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         api={api}
         network={network}
         allowNetworkToggle={allowNetworkToggle ?? true}
+        allowGasless={allowGasless}
+        gasless={gasless}
         classNames={cn}
         theme={theme}
         renderInline={renderInline}

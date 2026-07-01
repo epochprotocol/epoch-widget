@@ -8,12 +8,15 @@ import {
 import { useTokenBalance } from "../use-token-balance";
 import { useIntentFlow, type IntentFlowStatus } from "../use-intent-flow";
 import { useTokenUsdPrice } from "../hooks/use-token-usd-price";
+import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
+import { isInjectedWallet } from "../gasless/wallet-capability";
 import { useSessionId } from "../session";
 import { cn as twcn } from "../lib/cn";
 import { formatAmount } from "../utils";
 import { Modal } from "./Modal";
 import { ProgressStepper } from "./ProgressStepper";
 import { NetworkToggle } from "./NetworkToggle";
+import { GaslessEnableButton } from "./GaslessEnableButton";
 import { TokenSelector, type TokenWithChain } from "./TokenSelector";
 import { PayIntentSummary } from "./PayIntentSummary";
 import { SwapIntentSummary } from "./SwapIntentSummary";
@@ -47,6 +50,8 @@ export type PaySwapIntentWidgetProps = Pick<
   | "api"
   | "network"
   | "allowNetworkToggle"
+  | "allowGasless"
+  | "gasless"
   | "classNames"
   | "theme"
   | "onIntentSent"
@@ -89,6 +94,8 @@ export function PaySwapIntentWidget({
   api,
   network = "mainnet",
   allowNetworkToggle = false,
+  allowGasless = true,
+  gasless: gaslessProp = false,
   classNames: cn,
   theme,
   onIntentSent,
@@ -152,11 +159,17 @@ export function PaySwapIntentWidget({
   const sessionId = useSessionId(isOpen);
 
   const [isTestnet, setIsTestnet] = useState(network === "testnet");
+  const [gasless, setGasless] = useState(gaslessProp);
 
   const { data: walletClient } = useWalletClient();
   const { address, isConnected, connector } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+
+  const effectiveAllowGasless = useMemo(
+    () => allowGasless && walletClient != null && !isInjectedWallet(walletClient),
+    [allowGasless, walletClient],
+  );
 
   const resolvedIntent = useMemo<IntentProps>(() => {
     return payIntent ?? PLACEHOLDER_INTENT;
@@ -234,6 +247,19 @@ export function PaySwapIntentWidget({
       null,
     [availableTokens, selectedTokenAddress],
   );
+
+  const gaslessWallet = useGaslessWallet({
+    allowGasless: effectiveAllowGasless,
+    apiBaseUrl,
+    gasless,
+    setGasless,
+    walletClient,
+    address,
+    chainIdForCheck:
+      selectedChainId ??
+      (isTestnet ? (availableChains[0]?.id ?? 84532) : walletClient?.chain?.id ?? null),
+    switchChain,
+  });
 
   const selectedChain = availableChains.find((c) => c.id === selectedChainId);
 
@@ -382,6 +408,7 @@ export function PaySwapIntentWidget({
     mode: variant,
     receiver,
     routingAndLiquidityOptions,
+    gasless: effectiveAllowGasless && gasless,
     onIntentSent,
     onIntentComplete,
     onRequestClose: onClose,
@@ -819,6 +846,20 @@ export function PaySwapIntentWidget({
           {flatPayError}
         </Banner>
       )}
+
+      {effectiveAllowGasless ? (
+        <GaslessEnableButton
+          gasless={gasless}
+          disabledReason={gaslessWallet.unavailableReason}
+          needsEpochSetup={gaslessWallet.needsEpochSetup}
+          onSwitchSmartAccount={() => gaslessWallet.switchToEpochSmartAccount()}
+          setupBusy={gaslessWallet.setupBusy}
+          setupError={gaslessWallet.setupError}
+          checking={gaslessWallet.checking}
+          onEnable={() => setGasless(true)}
+          onDisable={() => setGasless(false)}
+        />
+      ) : null}
 
       {showIntentSummary && variant === "swap" && (
         <SwapIntentSummary
