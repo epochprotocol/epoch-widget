@@ -116,7 +116,7 @@ export function EarnSurface({ onOpenWidget }: Props) {
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg-muted">
           Show a list of lending and yield markets right inside your app. Users deposit with any
           token they hold; withdrawals come back to the same wallet. Use the Mainnet / Testnet toggle
-          in the modal header to try dummy-lending on Base Sepolia and Ethereum Sepolia, with
+          in the modal header to try dummy-lending on Base Sepolia, Ethereum Sepolia, and Optimism Sepolia, with
           optional Miden as a deposit source on testnet.
         </p>
       </header>

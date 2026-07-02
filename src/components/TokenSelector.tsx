@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { cn } from '../lib/cn';
 import type { EpochChain, EpochToken } from '../types';
 import { Avatar } from './Avatar';
+import { chainDotColor } from '../chain-colors';
 import { CheckIcon, CloseIcon, SearchIcon } from './Icons';
 
 export interface TokenWithChain extends EpochToken {
@@ -17,19 +18,6 @@ interface TokenSelectorProps {
 }
 
 const ALL_GRADIENT = 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)';
-
-const CHAIN_DOT: Record<number, string> = {
-  1: '#627eea',     // Ethereum
-  10: '#ff0420',    // Optimism
-  137: '#8247e5',   // Polygon
-  8453: '#0052ff',  // Base
-  42161: '#28a0f0', // Arbitrum
-  84532: '#0052ff', // Base Sepolia
-};
-
-function chainDot(chainId: number): string {
-  return CHAIN_DOT[chainId] ?? 'var(--epoch-color-primary)';
-}
 
 export function TokenSelector({
   tokens,
@@ -108,7 +96,7 @@ export function TokenSelector({
                 key={c.id}
                 label={c.name}
                 logoURI={c.logoURI}
-                dotColor={chainDot(c.id)}
+                dotColor={chainDotColor(c.id)}
                 active={chainFilter === c.id}
                 onClick={() => setChainFilter(chainFilter === c.id ? null : c.id)}
               />

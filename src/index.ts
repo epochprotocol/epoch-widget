@@ -1,4 +1,5 @@
 export { EpochIntentWidget } from './EpochIntentWidget';
+export { CHAIN_DOT, chainDotColor } from './chain-colors';
 export {
   EPOCH_SUPPORTED_CHAINS,
   EPOCH_TESTNET_CHAINS,

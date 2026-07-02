@@ -481,7 +481,7 @@ network = "testnet"; // default 'mainnet'
 allowNetworkToggle; // optionally let the user flip in-widget
 ```
 
-In testnet mode the widget uses the Sepolia chain/token registries and reads `intent.config.destinationTestnetChainId`. Base Sepolia USDC for testing: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Note Earn has no testnet (see [Mode: Earn](#mode-earn)).
+In testnet mode the widget uses the Sepolia chain/token registries (Base Sepolia `84532`, Ethereum Sepolia `11155111`, Optimism Sepolia `11155420`) and reads `intent.config.destinationTestnetChainId`. Test USDC addresses: Base Sepolia `0x036CbD53842c5426634e7929541eC2318f3dCF7e`, Optimism Sepolia `0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69`. Dummy-lending Earn on testnet supports all three Sepolia chains (see [Mode: Earn](#mode-earn)).
 
 ---
 

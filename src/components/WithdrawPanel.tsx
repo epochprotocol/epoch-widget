@@ -1,4 +1,7 @@
 import { SECTION_LABEL } from '../lib/styles';
+import { chainDotColor } from '../chain-colors';
+import { getEpochChainById } from '../epoch-config';
+import { DUMMY_LENDING_DESTINATION_CHAIN_IDS } from '../earn/dummy-lending-markets';
 import type { EpochEarnPosition } from '../types';
 import { Banner } from './Banner';
 import { PositionRow } from './PositionRow';
@@ -8,13 +11,22 @@ import { FilterDropdown, type FilterOption } from './ui/FilterDropdown';
 const ALL_GRADIENT = 'linear-gradient(135deg, #b6509e 0%, #2ebac6 100%)';
 
 // First option = empty value → hook falls back to derived all-chains CSV.
-const POSITIONS_CHAIN_OPTIONS: FilterOption[] = [
+const POSITIONS_MAINNET_CHAIN_OPTIONS: FilterOption[] = [
   { value: '', label: 'All chains', dotBackground: ALL_GRADIENT },
-  { value: '8453', label: 'Base', dotColor: '#0052ff' },
-  { value: '1', label: 'Ethereum', dotColor: '#627eea' },
-  { value: '42161', label: 'Arbitrum', dotColor: '#28a0f0' },
-  { value: '10', label: 'Optimism', dotColor: '#ff0420' },
-  { value: '137', label: 'Polygon', dotColor: '#8247e5' },
+  { value: '8453', label: 'Base', dotColor: chainDotColor(8453) },
+  { value: '1', label: 'Ethereum', dotColor: chainDotColor(1) },
+  { value: '42161', label: 'Arbitrum', dotColor: chainDotColor(42161) },
+  { value: '10', label: 'Optimism', dotColor: chainDotColor(10) },
+  { value: '137', label: 'Polygon', dotColor: chainDotColor(137) },
+];
+
+const POSITIONS_TESTNET_CHAIN_OPTIONS: FilterOption[] = [
+  { value: '', label: 'All chains', dotBackground: ALL_GRADIENT },
+  ...DUMMY_LENDING_DESTINATION_CHAIN_IDS.map((id) => ({
+    value: String(id),
+    label: getEpochChainById(id)?.name ?? `Chain ${id}`,
+    dotColor: chainDotColor(id),
+  })),
 ];
 
 const POSITIONS_LENDER_OPTIONS: FilterOption[] = [
@@ -36,6 +48,7 @@ interface Props {
   onChainFilterChange: (v: string) => void;
   lenderFilter: string;
   onLenderFilterChange: (v: string) => void;
+  isTestnet?: boolean;
 }
 
 
@@ -50,8 +63,12 @@ export function WithdrawPanel({
   onChainFilterChange,
   lenderFilter,
   onLenderFilterChange,
+  isTestnet = false,
 }: Props) {
   const positionsCount = positions.length;
+  const chainOptions = isTestnet
+    ? POSITIONS_TESTNET_CHAIN_OPTIONS
+    : POSITIONS_MAINNET_CHAIN_OPTIONS;
 
   const headerRow = (
     <div className="mb-3 flex items-center justify-between gap-2">
@@ -71,7 +88,7 @@ export function WithdrawPanel({
           menuWidth={180}
           value={chainFilter}
           onChange={onChainFilterChange}
-          options={POSITIONS_CHAIN_OPTIONS}
+          options={chainOptions}
         />
         <FilterDropdown
           ariaLabel="Filter positions by lender"

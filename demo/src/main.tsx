@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { WagmiProvider, http } from 'wagmi';
-import { arbitrum, base, baseSepolia, optimism, polygon, sepolia } from 'wagmi/chains';
+import { arbitrum, base, baseSepolia, optimism, optimismSepolia, polygon, sepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import './index.css';
@@ -33,7 +33,7 @@ import App from './app/App';
 const config = getDefaultConfig({
   appName: 'EpochIntentWidget Demo',
   projectId: 'demo', // WalletConnect project ID — replace with a real one for WC support
-  chains: [base, optimism, polygon, arbitrum, baseSepolia, sepolia],
+  chains: [base, optimism, polygon, arbitrum, baseSepolia, sepolia, optimismSepolia],
   transports: {
     [base.id]:       http('https://mainnet.base.org'),
     [optimism.id]:   http('https://mainnet.optimism.io'),
@@ -41,6 +41,7 @@ const config = getDefaultConfig({
     [arbitrum.id]:   http('https://arb1.arbitrum.io/rpc'),
     [baseSepolia.id]: http('https://sepolia.base.org'),
     [sepolia.id]:    http('https://eth-sepolia-testnet.api.pocket.network'),
+    [optimismSepolia.id]: http('https://sepolia.optimism.io'),
   },
   ssr: false,
 });

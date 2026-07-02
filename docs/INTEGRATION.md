@@ -365,7 +365,7 @@ network="testnet"          // default 'mainnet'
 allowNetworkToggle         // optionally let the user flip mainnet/testnet in-widget
 ```
 
-In testnet mode the widget uses the Sepolia chain/token registries, reads `intent.config.destinationTestnetChainId`, and resolves `api.testnetBaseUrl` / `api.testnetPositionsBaseUrl` (both default to localhost). Base Sepolia USDC for testing: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`.
+In testnet mode the widget uses the Sepolia chain/token registries (Base Sepolia `84532`, Ethereum Sepolia `11155111`, Optimism Sepolia `11155420`), reads `intent.config.destinationTestnetChainId`, and resolves `api.testnetBaseUrl` / `api.testnetPositionsBaseUrl` (both default to localhost). Test USDC: Base Sepolia `0x036CbD53842c5426634e7929541eC2318f3dCF7e`, Optimism Sepolia `0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69`.
 
 Caveats: **Earn has no real testnet** (1delta doesn't index testnet pools — dummy-lending markets only), and **Miden funding is testnet-only**. See [BEHAVIOR.md → Caveats](./BEHAVIOR.md#caveats--current-limitations).
 

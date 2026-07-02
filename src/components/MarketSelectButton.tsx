@@ -1,3 +1,4 @@
+import { chainDotColor } from '../chain-colors';
 import { cn } from '../lib/cn';
 import { getEpochChainById } from '../epoch-config';
 import type { EpochEarnMarket } from '../types';
@@ -11,14 +12,6 @@ interface Props {
   disabled?: boolean;
 }
 
-const CHAIN_DOT: Record<number, string> = {
-  1: '#627eea',
-  8453: '#0052ff',
-  42161: '#28a0f0',
-  10: '#ff0420',
-  137: '#8247e5',
-};
-
 const BASE_BUTTON =
   'group flex w-full cursor-pointer items-center gap-3.5 rounded-md border border-line p-3.5 text-left shadow-sm ring-1 ring-transparent transition-[border-color,box-shadow,background-color] duration-150 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:border-line';
 const SELECTED_SURFACE =
@@ -28,7 +21,7 @@ const EMPTY_SURFACE = 'bg-canvas';
 export function MarketSelectButton({ selected, onClick, disabled }: Props) {
   const chain = selected?.chainId != null ? getEpochChainById(selected.chainId) : undefined;
   const chainDot =
-    selected?.chainId != null ? CHAIN_DOT[selected.chainId] : undefined;
+    selected?.chainId != null ? chainDotColor(selected.chainId) : undefined;
 
   return (
     <button

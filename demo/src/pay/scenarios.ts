@@ -82,6 +82,24 @@ export const PAY_TESTNET_SCENARIOS: Scenario[] = [
       toToken: BASE_SEPOLIA_USDC,
     },
   },
+  {
+    id: "flat-pay-op-sepolia",
+    name: "Flat pay (Optimism Sepolia)",
+    tagline:
+      "Send test USDC on Optimism Sepolia (11155420). Uses the bundled registry token for OP Sepolia.",
+    props: {
+      mode: "pay",
+      network: "testnet",
+      title: "Send test USDC",
+      submitButtonText: "Send",
+      toAddress: "0x4235215114484bACDfF0071dB54Dc9faaD3489a9",
+      toAmount: "0.10",
+      toChainId: 11155420,
+      toToken: "0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69",
+      toTokenSymbol: "USDC",
+      toTokenDecimals: 18,
+    },
+  },
 ];
 
 const SHARED_USD_ORACLE = ({ symbol }: { symbol: string }) => {
@@ -141,6 +159,9 @@ export const SWAP_SCENARIOS: Scenario[] = [
   },
 ];
 
+const OP_SEPOLIA_USDC =
+  "0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69" as const;
+
 const SWAP_TESTNET_INITIAL_INTENT = {
   requiredToken: {
     address: BASE_SEPOLIA_USDC,
@@ -171,6 +192,35 @@ export const SWAP_TESTNET_SCENARIOS: Scenario[] = [
       ctaLabels: SHARED_CTA_LABELS,
       usdPriceFor: SHARED_USD_ORACLE,
       intent: SWAP_TESTNET_INITIAL_INTENT,
+    },
+  },
+  {
+    id: "swap-op-sepolia",
+    name: "Swap (Optimism Sepolia)",
+    tagline:
+      "Swap UX on Optimism Sepolia. Default destination 1 test USDC on OP Sepolia — both sides re-pickable.",
+    props: {
+      mode: "swap",
+      network: "testnet",
+      title: "Swap",
+      ctaLabels: SHARED_CTA_LABELS,
+      usdPriceFor: SHARED_USD_ORACLE,
+      intent: {
+        requiredToken: {
+          address: OP_SEPOLIA_USDC,
+          symbol: "USDC",
+          decimals: 18,
+        },
+        requiredAmount: BigInt(1_000_000_000_000_000_000), // 1 USDC (18 decimals)
+        destinationChainName: "Optimism Sepolia",
+        positionLabel: "1 USDC on Optimism Sepolia",
+        config: {
+          protocol: "swap",
+          action: "swap",
+          fixedOutput: true,
+          destinationChainId: 11155420,
+        },
+      },
     },
   },
 ];

@@ -84,6 +84,7 @@ Built-in registry (flat-pay can omit `toTokenSymbol`/`toTokenDecimals` for these
 | Env | Chains (id) | Tokens |
 |-----|-------------|--------|
 | mainnet | Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161) | USDC, USDT, DAI, WETH |
+| testnet | Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420) | USDC, USDT, DAI, WETH |
 
 Read them programmatically:
 
@@ -97,4 +98,4 @@ import {
 
 For tokens **outside** the registry, pass `toTokenDecimals` + `toTokenSymbol` (flat pay) or full `requiredToken` metadata (nested intent).
 
-Base Sepolia test USDC: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`.
+Base Sepolia test USDC: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Optimism Sepolia test USDC: `0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69`.

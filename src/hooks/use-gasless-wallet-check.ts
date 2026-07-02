@@ -102,7 +102,7 @@ export function useGaslessWallet({
         );
       } else if (!GASLESS_SUPPORTED_CHAIN_IDS.includes(chainIdForCheck)) {
         setUnavailableReason(
-          `Gasless is not enabled on chain ${chainIdForCheck} — switch to Base Sepolia (84532) or another supported testnet`,
+          `Gasless is not enabled on chain ${chainIdForCheck} — switch to Base Sepolia (84532), Optimism Sepolia (11155420), or another supported testnet`,
         );
       } else if (!status.is7702Capable) {
         setUnavailableReason("Gasless not available for this wallet or chain");

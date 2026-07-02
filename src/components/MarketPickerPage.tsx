@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { chainDotColor } from "../chain-colors";
 import { getEpochChainById } from "../epoch-config";
 import { SECTION_LABEL } from "../lib/styles";
 import type {
@@ -72,13 +73,6 @@ interface Props {
 // Default mainnet earn universe — used when the parent doesn't narrow the
 // chain set. Kept in sync with EarnIntentWidget.EARN_MAINNET_CHAIN_IDS.
 const DEFAULT_CHAIN_IDS = [1, 8453, 42161, 10, 137];
-const CHAIN_DOT: Record<number, string> = {
-  1: "#627eea",
-  8453: "#0052ff",
-  42161: "#28a0f0",
-  10: "#ff0420",
-  137: "#8247e5",
-};
 
 // Known lender families with pretty labels. Used as a fallback when the
 // consumer doesn't supply `availableLenders` and as the display lookup for
@@ -210,7 +204,7 @@ export function MarketPickerPage({
       ...chainIdsForOptions.map((id) => ({
         value: String(id),
         label: getEpochChainById(id)?.name ?? `Chain ${id}`,
-        dotColor: CHAIN_DOT[id] ?? "var(--epoch-color-primary)",
+        dotColor: chainDotColor(id),
       })),
     ],
     [allChainsLabel, chainIdsForOptions],
