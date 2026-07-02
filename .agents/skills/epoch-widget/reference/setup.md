@@ -86,6 +86,8 @@ Built-in registry (flat-pay can omit `toTokenSymbol`/`toTokenDecimals` for these
 | mainnet | Ethereum (1), Polygon (137), Optimism (10), Base (8453), Arbitrum (42161) | USDC, USDT, DAI, WETH |
 | testnet | Base Sepolia (84532), Ethereum Sepolia (11155111), Optimism Sepolia (11155420) | USDC, USDT, DAI, WETH |
 
+Dummy-lending Earn (testnet): markets on Base Sepolia + Ethereum Sepolia; Optimism Sepolia is a deposit source only.
+
 Read them programmatically:
 
 ```ts
