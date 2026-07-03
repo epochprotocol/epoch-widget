@@ -12,8 +12,8 @@ importers:
         specifier: ^0.1.17
         version: 0.1.17(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-flows-sdk':
-        specifier: ^0.1.5
-        version: 0.1.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
+        specifier: ^0.1.7
+        version: 0.1.7(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk':
         specifier: ^1.0.30
         version: 1.0.30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
@@ -100,8 +100,8 @@ packages:
   '@epoch-protocol/epoch-commons-sdk@0.1.17':
     resolution: {integrity: sha512-7fE8F9KQST7TKayjVi5kBufvvf8mimQjSxDI8/jDSH+Q28GOSDxl2sEgiyGlDn8VfChktg4JroeRTRtBrWyuHg==}
 
-  '@epoch-protocol/epoch-flows-sdk@0.1.5':
-    resolution: {integrity: sha512-MY1g6i0Jyg05d+OLkB3+8jqnGBJnjL9b1+LHiZCMK0HvvucEXeyYTr1td0PCjkddlF0djPyK+pUkzmj93lU0eA==}
+  '@epoch-protocol/epoch-flows-sdk@0.1.7':
+    resolution: {integrity: sha512-XwM+zHrAQBCVRv3ZtSr9ME3Y5EwNpad6wmD+nscCk6BWa2WLWdjUDQZBVsM5r05JBMSrJIYBW1tMfuCN6dkKSw==}
     peerDependencies:
       viem: ^2.x
 
@@ -3544,7 +3544,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@0.1.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
+  '@epoch-protocol/epoch-flows-sdk@0.1.7(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': 0.1.17(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk': 1.0.30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
