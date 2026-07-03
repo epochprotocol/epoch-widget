@@ -39,9 +39,9 @@
     "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.16",
-    "@epoch-protocol/epoch-flows-sdk": "^0.1.4",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.29",
+    "@epoch-protocol/epoch-commons-sdk": "^0.1.17",
+    "@epoch-protocol/epoch-flows-sdk": "^0.1.5",
+    "@epoch-protocol/epoch-intents-sdk": "^1.0.30",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
