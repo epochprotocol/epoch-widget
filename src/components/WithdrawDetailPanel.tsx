@@ -23,6 +23,10 @@ interface Props {
   smartDestTokenAddress: string;
   onPickDestChain: (chainId: number) => void;
   onPickDestToken: (address: string) => void;
+  /** Testnet vs mainnet — selects the chain/token sets for the destination
+   *  dropdowns. MUST match the active network or SIO rejects the destination
+   *  with CHAIN_NOT_SUPPORTED (mainnet chains aren't in the testnet graph). */
+  isTestnet: boolean;
   buildError: string | null;
   quoteError: string | null;
   isQuoting: boolean;
@@ -59,6 +63,7 @@ export function WithdrawDetailPanel({
   smartDestTokenAddress,
   onPickDestChain,
   onPickDestToken,
+  isTestnet,
   buildError,
   quoteError,
   isQuoting,
@@ -83,22 +88,22 @@ export function WithdrawDetailPanel({
 
   const chainOptions: DropdownOption[] = useMemo(
     () =>
-      getEpochChains(false).map((c) => ({
+      getEpochChains(isTestnet).map((c) => ({
         value: String(c.id),
         label: c.name,
         leading: <Avatar src={c.logoURI} label={c.name} size={20} />,
       })),
-    [],
+    [isTestnet],
   );
   const tokenOptions: DropdownOption[] = useMemo(() => {
     if (smartDestChainId == null) return [];
-    return getEpochTokensByChainEnv(smartDestChainId, false).map((tok) => ({
+    return getEpochTokensByChainEnv(smartDestChainId, isTestnet).map((tok) => ({
       value: tok.address,
       label: tok.symbol,
       sublabel: tok.name,
       leading: <Avatar src={tok.logoURI} label={tok.symbol} size={20} />,
     }));
-  }, [smartDestChainId]);
+  }, [smartDestChainId, isTestnet]);
 
   const inlineError = buildError ?? quoteError;
   const aprPct = Number.isFinite(market.aprDecimal) ? market.aprDecimal * 100 : null;

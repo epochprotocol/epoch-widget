@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
+import { detectWalletAccountType } from "@epoch-protocol/epoch-intents-sdk";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
 import { useTokenBalance } from "../use-token-balance";
 import { useSessionId } from "../session";
@@ -52,7 +53,6 @@ import {
 } from "../earn/market-rows";
 import { useEarnIntentFlow } from "../earn/use-earn-intent-flow";
 import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
-import { isInjectedWallet } from "../gasless/wallet-capability";
 import type { OneDeltaConfig } from "../types";
 import { ArrowDownIcon, CheckIcon } from "./Icons";
 import { SegmentedTabs } from "./ui/SegmentedTabs";
@@ -193,7 +193,9 @@ export function EarnIntentWidget({
 
   const effectiveAllowGasless = useMemo(
     () =>
-      allowGasless && walletClient != null && !isInjectedWallet(walletClient),
+      allowGasless &&
+      walletClient != null &&
+      detectWalletAccountType(walletClient as never) === "local",
     [allowGasless, walletClient],
   );
 
@@ -1219,6 +1221,7 @@ export function EarnIntentWidget({
             setSmartDestTokenAddress(firstTok?.address ?? "");
           }}
           onPickDestToken={setSmartDestTokenAddress}
+          isTestnet={isTestnet}
           buildError={withdrawBuildError}
           quoteError={earnFlow.quoteError}
           isQuoting={earnFlow.isQuoting}

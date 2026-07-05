@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useWalletClient, useAccount, useChainId, useSwitchChain } from "wagmi";
+import { detectWalletAccountType } from "@epoch-protocol/epoch-intents-sdk";
 import {
   getEpochChainById,
   getEpochChains,
@@ -9,7 +10,6 @@ import { useTokenBalance } from "../use-token-balance";
 import { useIntentFlow, type IntentFlowStatus } from "../use-intent-flow";
 import { useTokenUsdPrice } from "../hooks/use-token-usd-price";
 import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
-import { isInjectedWallet } from "../gasless/wallet-capability";
 import { useSessionId } from "../session";
 import { cn as twcn } from "../lib/cn";
 import { formatAmount } from "../utils";
@@ -167,7 +167,7 @@ export function PaySwapIntentWidget({
   const { switchChain } = useSwitchChain();
 
   const effectiveAllowGasless = useMemo(
-    () => allowGasless && walletClient != null && !isInjectedWallet(walletClient),
+    () => allowGasless && walletClient != null && detectWalletAccountType(walletClient as never) === "local",
     [allowGasless, walletClient],
   );
 
