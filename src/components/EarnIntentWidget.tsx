@@ -779,6 +779,20 @@ export function EarnIntentWidget({
     ],
   );
 
+  // Smart Withdraw with the destination still pointing at the position's own
+  // chain + token is a no-op: there is nothing to bridge/swap, so the
+  // cross-chain quote is guaranteed to fail (NO_QUOTE_AVAILABLE). This is the
+  // DEFAULT state right after the toggle is switched on, so we treat it as
+  // "not yet configured" — skip the doomed quote and disable submit with a
+  // hint, rather than letting the failed quote drive a dead "retry" button.
+  const isSmartWithdrawDegenerate =
+    earnTab === "withdraw" &&
+    smartWithdraw &&
+    selectedPosition != null &&
+    smartDestChainId === selectedPosition.market.chainId &&
+    smartDestTokenAddress.toLowerCase() ===
+      selectedPosition.market.token.address.toLowerCase();
+
   // Single point of entry for kicking off a quote — used both by the auto-fire
   // effect (debounced as inputs change) and by the manual "Retry quote" CTA
   // shown when the previous attempt failed.
@@ -796,6 +810,9 @@ export function EarnIntentWidget({
       (!earnMiden?.connected || !midenQuoteSource)
     )
       return;
+    // Destination not yet moved off the position's own chain/token → no route
+    // to quote. Skip until the user picks a real destination.
+    if (isSmartWithdrawDegenerate) return;
     earnFlow.fetchQuote({
       tab: earnTab,
       amount: activeAmount,
@@ -829,6 +846,7 @@ export function EarnIntentWidget({
     fundingSource,
     midenQuoteSource,
     earnMiden?.connected,
+    isSmartWithdrawDegenerate,
   ]);
 
   useEffect(() => {
@@ -930,6 +948,15 @@ export function EarnIntentWidget({
       !effectiveSourceToken
     ) {
       return { action: "disabled", label: "Enter an amount" };
+    }
+    // Smart Withdraw is on but the destination still equals the position's own
+    // chain + token — nothing to bridge/swap. Guide the user to configure a
+    // real destination instead of surfacing the doomed quote's failure.
+    if (isSmartWithdrawDegenerate) {
+      return {
+        action: "disabled",
+        label: "Select a different chain or token",
+      };
     }
     // Quote failed → don't expose Bridge + Deposit; user must re-quote first.
     // We keep the tone primary so the retry CTA reads as the next action, not a
@@ -1092,18 +1119,28 @@ export function EarnIntentWidget({
     </div>
   );
 
-  const detailCtaLabel =
-    ctaState.action === "switch"
-      ? ctaState.label
-      : isBusy
-        ? smartWithdraw
-          ? "Routing…"
-          : "Withdrawing…"
-        : earnFlow.isQuoting
-          ? "Fetching quote…"
-          : smartWithdraw
-            ? "Review Smart Withdrawal"
-            : "Withdraw Funds";
+  // Busy/quoting states win first (smart-aware progress copy); otherwise defer
+  // to ctaState for any non-submit action (switch network, retry a failed
+  // quote, or a disabled hint like "Select a different chain or token") so the
+  // button never reads "Review Smart Withdrawal" while it actually re-quotes.
+  const detailCtaLabel = (() => {
+    // While busy, show the hook's live sub-stage (which quote is in flight /
+    // waiting on the wallet / submitting) so the button says what's happening.
+    if (isBusy)
+      return (
+        earnFlow.stepLabel ?? (smartWithdraw ? "Routing…" : "Withdrawing…")
+      );
+    if (earnFlow.isQuoting) return "Fetching quote…";
+    if (
+      ctaState.action === "switch" ||
+      ctaState.action === "retry" ||
+      ctaState.action === "disabled"
+    )
+      return ctaState.label;
+    // Idle + ready. "Confirm" (not "Review") — the click executes: it re-quotes
+    // both legs and opens the wallet, it does not open a separate review step.
+    return smartWithdraw ? "Confirm Smart Withdraw" : "Withdraw Funds";
+  })();
 
   const detailFooter = (
     <WithdrawFundsButton
