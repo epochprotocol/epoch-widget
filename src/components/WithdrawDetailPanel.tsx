@@ -3,6 +3,7 @@ import { cn } from '../lib/cn';
 import { SECTION_LABEL } from '../lib/styles';
 import { formatAmount, formatBalancePortionForInput } from '../utils';
 import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
+import { MIDEN_VIRTUAL_CHAIN_ID } from '../earn/miden';
 import type { EpochEarnPosition } from '../types';
 import { Avatar } from './Avatar';
 import { Dropdown, type DropdownOption } from './Dropdown';
@@ -33,6 +34,15 @@ interface Props {
   approxUsd?: number | null;
   /** Tap on the From card → return to the position list. */
   onPickAnotherPosition?: () => void;
+  /** When true, "Miden" is offered as a Smart Withdraw destination (EVM→Miden
+   *  delivery). Requires a connected Miden account (`midenRecipientAccount`). */
+  midenDestEnabled?: boolean;
+  /** The connected Miden account funds are delivered to when the destination is
+   *  Miden. Shown read-only so the user can confirm where proceeds land. */
+  midenRecipientAccount?: string | null;
+  /** Miden faucet assets surfaced as "Receive Token" options when the
+   *  destination chain is Miden. `value` is the faucet id. */
+  midenFaucets?: { faucetId: string; symbol: string; logoURI?: string }[];
 }
 
 const FRACTIONS: { label: string; num: number; den: number; isMax: boolean }[] = [
@@ -69,6 +79,9 @@ export function WithdrawDetailPanel({
   isQuoting,
   approxUsd,
   onPickAnotherPosition,
+  midenDestEnabled = false,
+  midenRecipientAccount,
+  midenFaucets,
 }: Props) {
   const { market } = position;
   const decimals = market.token.decimals;
@@ -86,24 +99,42 @@ export function WithdrawDetailPanel({
     onPickFraction(formatBalancePortionForInput(balanceRaw, num, den, decimals), isMax);
   };
 
-  const chainOptions: DropdownOption[] = useMemo(
-    () =>
-      getEpochChains(isTestnet).map((c) => ({
-        value: String(c.id),
-        label: c.name,
-        leading: <Avatar src={c.logoURI} label={c.name} size={20} />,
-      })),
-    [isTestnet],
-  );
+  const isMidenDest = smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID;
+  const chainOptions: DropdownOption[] = useMemo(() => {
+    const opts = getEpochChains(isTestnet).map((c) => ({
+      value: String(c.id),
+      label: c.name,
+      leading: <Avatar src={c.logoURI} label={c.name} size={20} />,
+    }));
+    if (midenDestEnabled) {
+      opts.push({
+        value: String(MIDEN_VIRTUAL_CHAIN_ID),
+        label: 'Miden',
+        leading: <Avatar label="Miden" size={20} />,
+      });
+    }
+    return opts;
+  }, [isTestnet, midenDestEnabled]);
   const tokenOptions: DropdownOption[] = useMemo(() => {
     if (smartDestChainId == null) return [];
+    // Miden destination → the faucet assets (only USDC surfaced today). The
+    // dropdown `value` is the faucet id, which the flow reads back as
+    // `midenDest.faucetId`.
+    if (smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID) {
+      return (midenFaucets ?? []).map((f) => ({
+        value: f.faucetId,
+        label: f.symbol,
+        sublabel: 'Miden',
+        leading: <Avatar src={f.logoURI} label={f.symbol} size={20} />,
+      }));
+    }
     return getEpochTokensByChainEnv(smartDestChainId, isTestnet).map((tok) => ({
       value: tok.address,
       label: tok.symbol,
       sublabel: tok.name,
       leading: <Avatar src={tok.logoURI} label={tok.symbol} size={20} />,
     }));
-  }, [smartDestChainId, isTestnet]);
+  }, [smartDestChainId, isTestnet, midenFaucets]);
 
   const inlineError = buildError ?? quoteError;
   const aprPct = Number.isFinite(market.aprDecimal) ? market.aprDecimal * 100 : null;
@@ -197,6 +228,21 @@ export function WithdrawDetailPanel({
               searchable={tokenOptions.length > 6}
             />
           </LabeledPicker>
+        </div>
+      )}
+
+      {smartWithdraw && isMidenDest && (
+        <div className="animate-overlay-in rounded-md border border-line bg-surface px-3 py-2">
+          <span className={SECTION_LABEL}>Recipient (Miden)</span>
+          {midenRecipientAccount ? (
+            <div className="mt-1 truncate font-mono text-[12px] text-fg">
+              {midenRecipientAccount}
+            </div>
+          ) : (
+            <div className="mt-1 text-[12px] text-fg-muted">
+              Connect a Miden account to deliver the withdrawal here.
+            </div>
+          )}
         </div>
       )}
 

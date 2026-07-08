@@ -24,7 +24,9 @@ import type {
 } from '../types';
 import {
   EARN_MIDEN_EXTRA_FIELDS,
+  EARN_MIDEN_WITHDRAW_EXTRA_FIELDS,
   EVM_ZERO_ADDRESS,
+  MIDEN_VIRTUAL_CHAIN_ID,
   normalizeMidenId,
 } from './miden';
 
@@ -78,6 +80,15 @@ interface EarnQuoteInput {
   smartWithdraw?: boolean;
   smartDestChainId?: number | null;
   smartDestTokenAddress?: string;
+  /** Withdraw-only. When set (and `smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID`),
+   *  the Smart Withdraw swap leg delivers to a Miden account (EVM→Miden) instead
+   *  of an EVM chain/token. `recipientAccount` with no source account is what
+   *  routes the intent through smallocator's EVM→Miden path. */
+  midenDest?: {
+    recipientAccount: string;
+    faucetId: string;
+    decimals: number;
+  };
 }
 
 interface EarnSubmitInput extends EarnQuoteInput {
@@ -165,8 +176,81 @@ function isSmartWithdrawInput(input: EarnQuoteInput): boolean {
     input.tab === 'withdraw' &&
     input.smartWithdraw === true &&
     input.smartDestChainId != null &&
-    !!input.smartDestTokenAddress
+    (!!input.smartDestTokenAddress || !!input.midenDest)
   );
+}
+
+/** A Smart Withdraw whose destination is a Miden account (EVM→Miden delivery). */
+function isMidenDestInput(input: EarnQuoteInput): boolean {
+  return (
+    !!input.midenDest &&
+    input.smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID &&
+    !!input.midenDest.recipientAccount
+  );
+}
+
+/**
+ * Build the `getTaskData` params for the Smart Withdraw SWAP leg (the underlying
+ * withdrawn on the position chain → destination). Branches on the destination:
+ * an EVM chain/token (plain GetTokenOut) vs a Miden account (EVM→Miden — output
+ * token is the EVM zero address, destination is the Miden virtual chain, and the
+ * faucet/recipient ride in extraData exactly like the canonical bridge intent).
+ */
+function buildSwapLegTaskInput(
+  input: EarnQuoteInput,
+  opts: {
+    underlyingAddress: `0x${string}`;
+    tokenInAmount: string;
+    minTokenOut: string;
+    recipient: `0x${string}`;
+  },
+) {
+  if (isMidenDestInput(input)) {
+    const miden = input.midenDest!;
+    return {
+      taskType: TaskType.GetTokenOut,
+      intentData: {
+        isNative: false,
+        depositTokenAddress: opts.underlyingAddress,
+        tokenInAmount: opts.tokenInAmount,
+        // EVM→Miden carries no EVM output token — the real target is the Miden
+        // faucet in extraData; the address slot is the zero sentinel.
+        outputTokenAddress: EVM_ZERO_ADDRESS as `0x${string}`,
+        minTokenOut: opts.minTokenOut,
+        destinationChainId: String(MIDEN_VIRTUAL_CHAIN_ID),
+        protocolHashIdentifier: ZERO_BYTES32,
+        recipient: opts.recipient,
+      },
+      extraDataTypestring: EARN_MIDEN_WITHDRAW_EXTRA_FIELDS.join(','),
+      extraData: {
+        midenRecipientAccount: normalizeMidenId(miden.recipientAccount),
+        midenFaucetId: normalizeMidenId(miden.faucetId),
+        midenNoteType: 'P2ID',
+      },
+    };
+  }
+  return {
+    taskType: TaskType.GetTokenOut,
+    intentData: {
+      isNative: false,
+      depositTokenAddress: opts.underlyingAddress,
+      tokenInAmount: opts.tokenInAmount,
+      outputTokenAddress: input.smartDestTokenAddress as `0x${string}`,
+      minTokenOut: opts.minTokenOut,
+      destinationChainId: String(input.smartDestChainId),
+      protocolHashIdentifier: ZERO_BYTES32,
+      recipient: opts.recipient,
+    },
+    extraDataTypestring: '',
+    extraData: {} as Record<string, string>,
+  };
+}
+
+/** The asset id a Smart Withdraw delivers into — a Miden faucet id or an EVM token. */
+function smartWithdrawDestAsset(input: EarnQuoteInput): string {
+  return isMidenDestInput(input)
+    ? normalizeMidenId(input.midenDest!.faucetId)
+    : (input.smartDestTokenAddress ?? '');
 }
 
 /**
@@ -449,21 +533,14 @@ export function useEarnIntentFlow({
         pendingQuoteRef.current = null;
         try {
           const sdk = createEarnIntentSdk(apiBaseUrl, walletClient);
-          const { taskTypeString, intentData } = await sdk.getTaskData({
-            taskType: TaskType.GetTokenOut,
-            intentData: {
-              isNative: false,
-              depositTokenAddress: underlyingAddress,
+          const { taskTypeString, intentData } = await sdk.getTaskData(
+            buildSwapLegTaskInput(input, {
+              underlyingAddress,
               tokenInAmount: amountRaw,
-              outputTokenAddress: input.smartDestTokenAddress as `0x${string}`,
               minTokenOut: '0',
-              destinationChainId: String(input.smartDestChainId),
-              protocolHashIdentifier: ZERO_BYTES32,
               recipient: address as `0x${string}`,
-            },
-            extraDataTypestring: '',
-            extraData: {},
-          });
+            }),
+          );
           const quoteResult = await sdk.getIntentQuote({
             sponsorAddress: address as `0x${string}`,
             taskTypeString,
@@ -485,7 +562,7 @@ export function useEarnIntentFlow({
           setQuote({
             tokenIn: quoteResult.tokenIn,
             tokenOut: quoteResult.tokenOut,
-            asset: input.smartDestTokenAddress,
+            asset: smartWithdrawDestAsset(input),
             executionTransactions: [],
             resourceLockRequired: true,
             raw: quoteResult,
@@ -669,7 +746,10 @@ export function useEarnIntentFlow({
       }
       const underlyingAddress = market.token.address as `0x${string}`;
       const destChainId = input.smartDestChainId as number;
-      const destToken = input.smartDestTokenAddress as `0x${string}`;
+      // The delivered asset — a Miden faucet id for EVM→Miden, else an EVM token.
+      // Used for preview-reuse matching + logging; the executable task is built
+      // by buildSwapLegTaskInput, which branches on the destination.
+      const destToken = smartWithdrawDestAsset(input);
       const sponsor = address as `0x${string}`;
 
       setError(null);
@@ -704,21 +784,14 @@ export function useEarnIntentFlow({
         });
         const swapAmountRaw = wParams.tokenInAmount;
         const buildSwapTask = (minOut: string) =>
-          sdk.getTaskData({
-            taskType: TaskType.GetTokenOut,
-            intentData: {
-              isNative: false,
-              depositTokenAddress: underlyingAddress,
+          sdk.getTaskData(
+            buildSwapLegTaskInput(input, {
+              underlyingAddress,
               tokenInAmount: swapAmountRaw,
-              outputTokenAddress: destToken,
               minTokenOut: minOut,
-              destinationChainId: String(destChainId),
-              protocolHashIdentifier: ZERO_BYTES32,
               recipient: sponsor,
-            },
-            extraDataTypestring: '',
-            extraData: {},
-          });
+            }),
+          );
 
         // --- Withdraw path → underlying withdraw CALLDATA (transactions[]) ---
         const runWithdrawLeg = async (): Promise<ExecutionTx[]> => {
