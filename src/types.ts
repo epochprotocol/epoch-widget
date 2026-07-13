@@ -171,8 +171,6 @@ export interface EarnMidenAdapter {
   assets: EarnMidenAsset[];
   connect?: () => void | Promise<void>;
   createP2IDNote: EarnMidenCreateP2IDNote;
-  /** Block height after which the P2IDE note can be reclaimed. Default: 1000. */
-  reclaimHeight?: number;
 }
 
 // ---------------------------------------------------------------------------

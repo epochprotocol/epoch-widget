@@ -790,14 +790,12 @@ export function EarnIntentWidget({
             faucetId: selectedMidenAsset.faucetId,
             decimals: selectedMidenAsset.decimals,
             createP2IDNote: earnMiden.createP2IDNote,
-            reclaimHeight: earnMiden.reclaimHeight,
           }
         : undefined,
     [
       fundingSource,
       earnMiden?.accountId,
       earnMiden?.createP2IDNote,
-      earnMiden?.reclaimHeight,
       selectedMidenAsset,
     ],
   );

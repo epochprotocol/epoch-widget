@@ -1,4 +1,8 @@
 import { mainnetGraph, testnetGraph } from "@epoch-protocol/epoch-commons-sdk";
+import {
+  MIDEN_TO_EVM_EXTRA_TYPESTRING,
+  EVM_TO_MIDEN_EXTRA_TYPESTRING,
+} from "@epoch-protocol/epoch-intents-sdk";
 
 /** Virtual chain id used in the widget UI for Miden-sourced deposits. */
 export const MIDEN_VIRTUAL_CHAIN_ID = 999_999_999;
@@ -28,27 +32,25 @@ export function isDefaultMidenFaucet(id: string): boolean {
   return midenFaucetKey(id) === midenFaucetKey(DEFAULT_MIDEN_FAUCET.faucetId);
 }
 
-/** Miden extraData fields appended to earn protocol-interaction intents (Miden→EVM deposit). */
-export const EARN_MIDEN_EXTRA_FIELDS = [
-  "string midenSourceAccount",
-  "string midenFaucetId",
-  "string midenNoteType",
-  "string midenNoteId",
-  "uint256 midenReclaimHeight",
-] as const;
+/**
+ * Miden extraData fields appended to earn protocol-interaction intents (Miden→EVM
+ * deposit). Sourced from the SDK's canonical Miden→EVM suffix so the assembled
+ * witness always ends with exactly the suffix the allocator validates (no drift,
+ * no extra fields).
+ */
+export const EARN_MIDEN_EXTRA_FIELDS = MIDEN_TO_EVM_EXTRA_TYPESTRING.split(",");
 
 /**
  * Miden extraData fields for an EVM→Miden delivery — the Smart Withdraw case
  * where a lending position is withdrawn on EVM and the proceeds are bridged to a
  * Miden account. Deliberately carries NO `midenSourceAccount`: its absence is
  * what flags the EVM→Miden direction to smallocator (`isEVMToMidenIntent`).
- * Matches the canonical bridge shape (demo `buildEVMToMidenTaskDataParams`).
+ * Sourced from the SDK's canonical EVM→Miden suffix (midenRecipientAccount +
+ * midenFaucetId) so the assembled witness ends with exactly what the allocator
+ * validates.
  */
-export const EARN_MIDEN_WITHDRAW_EXTRA_FIELDS = [
-  "string midenRecipientAccount",
-  "string midenFaucetId",
-  "string midenNoteType",
-] as const;
+export const EARN_MIDEN_WITHDRAW_EXTRA_FIELDS =
+  EVM_TO_MIDEN_EXTRA_TYPESTRING.split(",");
 
 /** A Miden-side token pulled from the Epoch graph (`tokens[*].contractAddress.Miden`). */
 export interface MidenGraphToken {

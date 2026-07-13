@@ -68,7 +68,6 @@ interface EarnQuoteInput {
     faucetId: string;
     decimals: number;
     createP2IDNote: EarnMidenCreateP2IDNote;
-    reclaimHeight?: number;
   };
   /** Withdraw-only. When true, signals the 1delta API to use protocol-level max-withdraw
    *  mechanisms (maxUint256 / share-based redemption) where supported. */
@@ -225,7 +224,6 @@ function buildSwapLegTaskInput(
       extraData: {
         midenRecipientAccount: normalizeMidenId(miden.recipientAccount),
         midenFaucetId: normalizeMidenId(miden.faucetId),
-        midenNoteType: 'P2ID',
       },
     };
   }
@@ -462,7 +460,6 @@ export function useEarnIntentFlow({
         extraData.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
         extraData.midenNoteType = 'P2IDE';
         extraData.midenNoteId = '';
-        extraData.midenReclaimHeight = String(input.midenSource.reclaimHeight ?? 1000);
       }
 
       const tokenInDecimals = isMidenDeposit
@@ -1027,7 +1024,7 @@ export function useEarnIntentFlow({
           }
         };
 
-        if (strategy.mode === 'atomic' || strategy.mode === 'sequential-batch') {
+        if (strategy.mode !== 'sequential-tx') {
           // Best UX: one wallet_sendCalls → a single confirmation for all calls.
           setStepLabel('Confirm in your wallet…');
           swLog('exec: wallet_sendCalls (single prompt) — WALLET PROMPT EXPECTED', {

@@ -9,6 +9,10 @@ import type {
   EpochIntentSDK,
   IntentQuoteResult,
 } from "@epoch-protocol/epoch-intents-sdk";
+import {
+  MIDEN_TO_EVM_EXTRA_TYPESTRING,
+  EVM_TO_MIDEN_EXTRA_TYPESTRING,
+} from "@epoch-protocol/epoch-intents-sdk";
 import type {
   CollateralType,
   GetTaskDataParams,
@@ -118,7 +122,6 @@ export function buildEpochTaskDataParams(
     midenAmount: params.midenAmount,
     evmRecipient: params.evmRecipient,
     destinationChainId: params.destinationChainId,
-    midenReclaimHeight: params.midenReclaimHeight,
   });
 
   const outputToken = params.outputTokenAddress || ZERO_ADDRESS;
@@ -153,18 +156,14 @@ export function buildEpochTaskDataParams(
       protocolHashIdentifier: ZERO_HASH,
       recipient: params.evmRecipient,
     },
-    // Mirror EpochSwapWidget Miden extraData pattern exactly
-    extraDataTypestring:
-      "string midenSourceAccount,string midenFaucetId,string midenNoteType,string midenNoteId,uint256 midenReclaimHeight",
+    // Canonical Miden→EVM suffix from the SDK. midenNoteId is a placeholder here;
+    // the SDK fills it when it creates the P2IDE note during solveIntent.
+    extraDataTypestring: MIDEN_TO_EVM_EXTRA_TYPESTRING,
     extraData: {
       midenSourceAccount: midenSourceAccountHex,
       midenFaucetId: midenFaucetIdHex,
       midenNoteType: "P2IDE",
       midenNoteId: "",
-      midenReclaimHeight:
-        params.midenReclaimHeight != null
-          ? String(params.midenReclaimHeight)
-          : "1000",
     },
   };
 
@@ -229,12 +228,12 @@ export function buildEVMToMidenTaskDataParams(params: EVMToMidenIntentParams) {
       protocolHashIdentifier: ZERO_HASH,
       recipient: params.evmSourceAddress,
     },
-    extraDataTypestring:
-      "string midenRecipientAccount,string midenFaucetId,string midenNoteType",
+    // EVM→Miden carries the recipient on Miden — no source note. Canonical
+    // EVM→Miden suffix from the SDK (midenRecipientAccount + midenFaucetId).
+    extraDataTypestring: EVM_TO_MIDEN_EXTRA_TYPESTRING,
     extraData: {
       midenRecipientAccount: midenRecipientHex,
       midenFaucetId: midenFaucetHex,
-      midenNoteType: "P2ID",
     },
   };
 
