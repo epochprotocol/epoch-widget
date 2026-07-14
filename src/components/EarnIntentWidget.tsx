@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
+import { detectWalletAccountType } from "@epoch-protocol/epoch-intents-sdk";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
 import { useTokenBalance } from "../use-token-balance";
 import { useSessionId } from "../session";
@@ -35,7 +36,8 @@ import {
 import {
   MIDEN_VIRTUAL_CHAIN_ID,
   DEFAULT_MIDEN_FAUCET,
-  isDefaultMidenFaucet,
+  midenFaucetKey,
+  getMidenGraphTokens,
 } from "../earn/miden";
 import {
   DUMMY_LENDING_DESTINATION_CHAIN_IDS,
@@ -52,7 +54,6 @@ import {
 } from "../earn/market-rows";
 import { useEarnIntentFlow } from "../earn/use-earn-intent-flow";
 import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
-import { isInjectedWallet } from "../gasless/wallet-capability";
 import type { OneDeltaConfig } from "../types";
 import { ArrowDownIcon, CheckIcon } from "./Icons";
 import { SegmentedTabs } from "./ui/SegmentedTabs";
@@ -193,7 +194,9 @@ export function EarnIntentWidget({
 
   const effectiveAllowGasless = useMemo(
     () =>
-      allowGasless && walletClient != null && !isInjectedWallet(walletClient),
+      allowGasless &&
+      walletClient != null &&
+      detectWalletAccountType(walletClient as never) === "local",
     [allowGasless, walletClient],
   );
 
@@ -563,11 +566,33 @@ export function EarnIntentWidget({
   });
 
   const selectedChain = availableChains.find((c) => c.id === selectedChainId);
-  const midenAssets = useMemo(
-    () =>
-      (earnMiden?.assets ?? []).filter((a) => isDefaultMidenFaucet(a.faucetId)),
-    [earnMiden?.assets],
-  );
+  // Deposit source = the Epoch graph's Miden tokens (USDC/DAI/USDT/WETH/WBTC on
+  // testnet) — canonical faucet ids that SIO can resolve. The host adapter only
+  // supplies *balances*, overlaid here by faucet id (falling back to symbol,
+  // since wallets may encode ids in bech32 vs hex). The old path filtered adapter
+  // assets by the bundled DEFAULT faucet — whose id was stale vs the graph — so
+  // deposits quoted with an unresolvable faucet (NO_QUOTE).
+  const midenAssets = useMemo(() => {
+    const adapterAssets = earnMiden?.assets ?? [];
+    const graphTokens = getMidenGraphTokens(isTestnet);
+    if (graphTokens.length === 0) return adapterAssets;
+    return graphTokens.map((t) => {
+      const match =
+        adapterAssets.find(
+          (a) => midenFaucetKey(a.faucetId) === midenFaucetKey(t.faucetId),
+        ) ??
+        adapterAssets.find(
+          (a) => (a.symbol ?? "").toUpperCase() === t.symbol.toUpperCase(),
+        );
+      return {
+        faucetId: t.faucetId,
+        symbol: t.symbol,
+        decimals: t.decimals,
+        balance: match?.balance,
+        logoURI: match?.logoURI,
+      };
+    });
+  }, [earnMiden?.assets, isTestnet]);
   const selectedMidenAsset = useMemo(
     () =>
       midenAssets.find(
@@ -765,17 +790,100 @@ export function EarnIntentWidget({
             faucetId: selectedMidenAsset.faucetId,
             decimals: selectedMidenAsset.decimals,
             createP2IDNote: earnMiden.createP2IDNote,
-            reclaimHeight: earnMiden.reclaimHeight,
           }
         : undefined,
     [
       fundingSource,
       earnMiden?.accountId,
       earnMiden?.createP2IDNote,
-      earnMiden?.reclaimHeight,
       selectedMidenAsset,
     ],
   );
+
+  // Smart Withdraw → Miden destination (EVM→Miden delivery). The withdrawal
+  // still executes on the EVM position chain; only the swap-leg output is
+  // bridged to a Miden account. Reuse the connected Miden adapter account as the
+  // recipient — the same account used to fund Miden deposits.
+  // Miden destination tokens come from the Epoch graph (USDC/DAI/USDT/WETH/WBTC
+  // on testnet) — `getEpochTokensByChainEnv` is EVM-only and returns nothing for
+  // the Miden virtual chain. Fall back to adapter assets / the bundled default
+  // only if the graph carries no Miden tokens.
+  const midenGraphTokens = useMemo(
+    () => getMidenGraphTokens(isTestnet),
+    [isTestnet],
+  );
+  const midenDestFaucets = useMemo(() => {
+    if (midenGraphTokens.length > 0) {
+      return midenGraphTokens.map((t) => ({
+        faucetId: t.faucetId,
+        symbol: t.symbol,
+      }));
+    }
+    return midenAssets.length > 0
+      ? midenAssets.map((a) => ({
+          faucetId: a.faucetId,
+          symbol: a.symbol,
+          logoURI: a.logoURI,
+        }))
+      : [
+          {
+            faucetId: DEFAULT_MIDEN_FAUCET.faucetId,
+            symbol: DEFAULT_MIDEN_FAUCET.symbol,
+          },
+        ];
+  }, [midenGraphTokens, midenAssets]);
+  // Offer Miden as a destination whenever the adapter is present (testnet). A
+  // recipient account is required to actually quote — enforced via
+  // `smartMidenDest`/`smartWithdrawMidenNotReady`, which prompts a connect.
+  const midenDestEnabled = midenEnabled;
+  const smartMidenDest = useMemo(() => {
+    if (
+      earnTab !== "withdraw" ||
+      !smartWithdraw ||
+      smartDestChainId !== MIDEN_VIRTUAL_CHAIN_ID ||
+      !earnMiden?.accountId ||
+      !smartDestTokenAddress
+    )
+      return undefined;
+    return {
+      recipientAccount: earnMiden.accountId,
+      faucetId: smartDestTokenAddress,
+      decimals:
+        midenGraphTokens.find(
+          (t) =>
+            t.faucetId.toLowerCase() === smartDestTokenAddress.toLowerCase(),
+        )?.decimals ?? DEFAULT_MIDEN_FAUCET.decimals,
+    };
+  }, [
+    earnTab,
+    smartWithdraw,
+    smartDestChainId,
+    smartDestTokenAddress,
+    earnMiden?.accountId,
+    midenGraphTokens,
+  ]);
+  // Miden destination picked but no Miden account connected yet → no recipient,
+  // so the cross-chain quote can't be built. Skip the doomed quote (the panel
+  // shows a "connect Miden" hint instead).
+  const smartWithdrawMidenNotReady =
+    earnTab === "withdraw" &&
+    smartWithdraw &&
+    smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID &&
+    !smartMidenDest;
+
+  // Smart Withdraw with the destination still pointing at the position's own
+  // chain + token is a no-op: there is nothing to bridge/swap, so the
+  // cross-chain quote is guaranteed to fail (NO_QUOTE_AVAILABLE). This is the
+  // DEFAULT state right after the toggle is switched on, so we treat it as
+  // "not yet configured" — skip the doomed quote and disable submit with a
+  // hint, rather than letting the failed quote drive a dead "retry" button.
+  const isSmartWithdrawDegenerate =
+    earnTab === "withdraw" &&
+    smartWithdraw &&
+    selectedPosition != null &&
+    smartDestChainId === selectedPosition.market.chainId &&
+    smartDestTokenAddress.toLowerCase() ===
+      selectedPosition.market.token.address.toLowerCase();
 
   // Single point of entry for kicking off a quote — used both by the auto-fire
   // effect (debounced as inputs change) and by the manual "Retry quote" CTA
@@ -794,6 +902,11 @@ export function EarnIntentWidget({
       (!earnMiden?.connected || !midenQuoteSource)
     )
       return;
+    // Destination not yet moved off the position's own chain/token → no route
+    // to quote. Skip until the user picks a real destination.
+    if (isSmartWithdrawDegenerate) return;
+    // Miden destination chosen but no Miden account connected → no recipient.
+    if (smartWithdrawMidenNotReady) return;
     earnFlow.fetchQuote({
       tab: earnTab,
       amount: activeAmount,
@@ -808,6 +921,7 @@ export function EarnIntentWidget({
       smartDestChainId: earnTab === "withdraw" ? smartDestChainId : undefined,
       smartDestTokenAddress:
         earnTab === "withdraw" ? smartDestTokenAddress : undefined,
+      midenDest: earnTab === "withdraw" ? smartMidenDest : undefined,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -827,6 +941,9 @@ export function EarnIntentWidget({
     fundingSource,
     midenQuoteSource,
     earnMiden?.connected,
+    isSmartWithdrawDegenerate,
+    smartMidenDest,
+    smartWithdrawMidenNotReady,
   ]);
 
   useEffect(() => {
@@ -929,6 +1046,21 @@ export function EarnIntentWidget({
     ) {
       return { action: "disabled", label: "Enter an amount" };
     }
+    // Smart Withdraw is on but the destination still equals the position's own
+    // chain + token — nothing to bridge/swap. Guide the user to configure a
+    // real destination instead of surfacing the doomed quote's failure.
+    if (isSmartWithdrawDegenerate) {
+      return {
+        action: "disabled",
+        label: "Select a different chain or token",
+      };
+    }
+    // Smart Withdraw → Miden destination, but no Miden account connected yet.
+    // The recipient is missing so the quote is skipped; prompt a connect instead
+    // of falling through to an enabled "Withdraw" that submits a malformed intent.
+    if (smartWithdrawMidenNotReady) {
+      return { action: "connectMiden", label: "Connect Miden wallet" };
+    }
     // Quote failed → don't expose Bridge + Deposit; user must re-quote first.
     // We keep the tone primary so the retry CTA reads as the next action, not a
     // warning state (the inline error already carries the failure semantics).
@@ -1023,6 +1155,7 @@ export function EarnIntentWidget({
       smartDestChainId: earnTab === "withdraw" ? smartDestChainId : undefined,
       smartDestTokenAddress:
         earnTab === "withdraw" ? smartDestTokenAddress : undefined,
+      midenDest: earnTab === "withdraw" ? smartMidenDest : undefined,
     });
   };
 
@@ -1090,18 +1223,28 @@ export function EarnIntentWidget({
     </div>
   );
 
-  const detailCtaLabel =
-    ctaState.action === "switch"
-      ? ctaState.label
-      : isBusy
-        ? smartWithdraw
-          ? "Routing…"
-          : "Withdrawing…"
-        : earnFlow.isQuoting
-          ? "Fetching quote…"
-          : smartWithdraw
-            ? "Review Smart Withdrawal"
-            : "Withdraw Funds";
+  // Busy/quoting states win first (smart-aware progress copy); otherwise defer
+  // to ctaState for any non-submit action (switch network, retry a failed
+  // quote, or a disabled hint like "Select a different chain or token") so the
+  // button never reads "Review Smart Withdrawal" while it actually re-quotes.
+  const detailCtaLabel = (() => {
+    // While busy, show the hook's live sub-stage (which quote is in flight /
+    // waiting on the wallet / submitting) so the button says what's happening.
+    if (isBusy)
+      return (
+        earnFlow.stepLabel ?? (smartWithdraw ? "Routing…" : "Withdrawing…")
+      );
+    if (earnFlow.isQuoting) return "Fetching quote…";
+    if (
+      ctaState.action === "switch" ||
+      ctaState.action === "retry" ||
+      ctaState.action === "disabled"
+    )
+      return ctaState.label;
+    // Idle + ready. "Confirm" (not "Review") — the click executes: it re-quotes
+    // both legs and opens the wallet, it does not open a separate review step.
+    return smartWithdraw ? "Confirm Smart Withdraw" : "Withdraw Funds";
+  })();
 
   const detailFooter = (
     <WithdrawFundsButton
@@ -1214,11 +1357,21 @@ export function EarnIntentWidget({
           onPickDestChain={(id) => {
             setSmartDestChainId(id);
             // Reset receive token to first option on the new chain so we never
-            // surface a stale token from another network.
-            const firstTok = getEpochTokensByChainEnv(id, isTestnet)[0];
-            setSmartDestTokenAddress(firstTok?.address ?? "");
+            // surface a stale token from another network. Miden → default faucet.
+            if (id === MIDEN_VIRTUAL_CHAIN_ID) {
+              setSmartDestTokenAddress(
+                midenDestFaucets[0]?.faucetId ?? DEFAULT_MIDEN_FAUCET.faucetId,
+              );
+            } else {
+              const firstTok = getEpochTokensByChainEnv(id, isTestnet)[0];
+              setSmartDestTokenAddress(firstTok?.address ?? "");
+            }
           }}
           onPickDestToken={setSmartDestTokenAddress}
+          isTestnet={isTestnet}
+          midenDestEnabled={midenDestEnabled}
+          midenRecipientAccount={earnMiden?.accountId}
+          midenFaucets={midenDestFaucets}
           buildError={withdrawBuildError}
           quoteError={earnFlow.quoteError}
           isQuoting={earnFlow.isQuoting}

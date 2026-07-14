@@ -4,3 +4,5 @@ dist/
 *.log
 .env
 ./demo/.env
+# local pnpm link override (do not commit)
+pnpm-workspace.yaml

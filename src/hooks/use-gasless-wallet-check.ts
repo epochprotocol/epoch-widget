@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPublicClient, http, type WalletClient } from "viem";
-import { EpochIntentSDK } from "@epoch-protocol/epoch-intents-sdk";
 import {
+  EpochIntentSDK,
   getWalletGaslessStatus,
+  detectWalletAccountType,
   GASLESS_SUPPORTED_CHAIN_IDS,
-  isInjectedWallet,
   type DelegationState,
-} from "../gasless/wallet-capability";
+} from "@epoch-protocol/epoch-intents-sdk";
 import { getEpochChainById } from "../epoch-config";
 
 interface UseGaslessWalletParams {
@@ -19,7 +19,9 @@ interface UseGaslessWalletParams {
   /** Chain to probe for 7702 support (source / wallet chain). */
   chainIdForCheck?: number | null;
   /** Switch wallet chain before smart-account setup (required for MetaMask EIP-5792). */
-  switchChain?: (args: { chainId: number }) => Promise<unknown>;
+  // Accepts wagmi's SwitchChainMutate (returns void) as well as a Promise-returning
+  // variant — the call site awaits it, which is a no-op for the void form.
+  switchChain?: (args: { chainId: number }) => unknown;
 }
 
 export type UseGaslessWalletResult = {
@@ -64,7 +66,10 @@ export function useGaslessWallet({
       return;
     }
 
-    if (isInjectedWallet(walletClient)) {
+    // Gasless relay (7702 delegation) is only for local signers, not injected wallets.
+    // `as never`: linked SDK bundles its own viem, so its WalletClient type is nominally
+    // distinct from the widget's — identical runtime shape; vanishes once SDK is from npm.
+    if (detectWalletAccountType(walletClient as never) !== "local") {
       setUnavailableReason(null);
       setDelegation(null);
       setNeedsEpochSetup(false);
@@ -76,18 +81,18 @@ export function useGaslessWallet({
     try {
       const epochChain = getEpochChainById(chainIdForCheck);
       const rpcUrl =
-        epochChain?.rpcUrls?.default?.http?.[0] ??
+        epochChain?.rpcUrl ??
         walletClient.chain?.rpcUrls?.default?.http?.[0] ??
         "";
 
       const publicClient = createPublicClient({
-        chain: epochChain ?? walletClient.chain ?? undefined,
+        chain: walletClient.chain ?? undefined,
         transport: http(rpcUrl),
       });
 
       const status = await getWalletGaslessStatus({
-        publicClient,
-        walletClient,
+        publicClient: publicClient as never,
+        walletClient: walletClient as never,
         chainId: chainIdForCheck,
         user: address as `0x${string}`,
       });

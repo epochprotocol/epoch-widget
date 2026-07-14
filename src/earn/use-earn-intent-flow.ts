@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { keccak256, parseUnits, toBytes } from 'viem';
+import { createPublicClient, http, keccak256, parseUnits, toBytes } from 'viem';
 import type { WalletClient } from 'viem';
 import { TaskType } from '@epoch-protocol/epoch-commons-sdk';
-import { CollateralType, EpochIntentSDK } from '@epoch-protocol/epoch-intents-sdk';
+import {
+  CollateralType,
+  EpochIntentSDK,
+  resolveWalletBatchStrategy,
+  executeWalletBatch,
+  isUserWalletRejection,
+} from '@epoch-protocol/epoch-intents-sdk';
 import type { RoutingAndLiquidityOptions } from '../types';
 import type {
   EarnMidenCreateP2IDNote,
@@ -18,7 +24,9 @@ import type {
 } from '../types';
 import {
   EARN_MIDEN_EXTRA_FIELDS,
+  EARN_MIDEN_WITHDRAW_EXTRA_FIELDS,
   EVM_ZERO_ADDRESS,
+  MIDEN_VIRTUAL_CHAIN_ID,
   normalizeMidenId,
 } from './miden';
 
@@ -60,7 +68,6 @@ interface EarnQuoteInput {
     faucetId: string;
     decimals: number;
     createP2IDNote: EarnMidenCreateP2IDNote;
-    reclaimHeight?: number;
   };
   /** Withdraw-only. When true, signals the 1delta API to use protocol-level max-withdraw
    *  mechanisms (maxUint256 / share-based redemption) where supported. */
@@ -72,6 +79,15 @@ interface EarnQuoteInput {
   smartWithdraw?: boolean;
   smartDestChainId?: number | null;
   smartDestTokenAddress?: string;
+  /** Withdraw-only. When set (and `smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID`),
+   *  the Smart Withdraw swap leg delivers to a Miden account (EVM→Miden) instead
+   *  of an EVM chain/token. `recipientAccount` with no source account is what
+   *  routes the intent through smallocator's EVM→Miden path. */
+  midenDest?: {
+    recipientAccount: string;
+    faucetId: string;
+    decimals: number;
+  };
 }
 
 interface EarnSubmitInput extends EarnQuoteInput {
@@ -99,6 +115,141 @@ interface UseEarnIntentFlowParams {
 
 const POLL_INTERVAL_MS = 3000;
 const AUTO_CLOSE_DELAY_MS = 2500;
+
+// Smart Withdraw = withdraw a lending position and deliver on another chain/token.
+// It runs as TWO calls — (1) withdraw the position to plain underlying, (2) a
+// cross-chain GetTokenOut swap of that underlying — fused into ONE atomic batch
+// via EIP-5792 `wallet_sendCalls`. No router contract: the box-deposit
+// (depositERC20AndRegister) is signature-free calldata, so [withdraw, approve,
+// deposit] is a single batch; then `submitAllocation` (a plain POST) starts
+// solving. Wallets without batching fall back to the sequential 2-tx path.
+const SMART_WITHDRAW_SLIPPAGE_BPS = 100n; // 1% floor on the cross-chain swap leg
+const ZERO_BYTES32 =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+// Stage logger — makes the Smart Withdraw flow traceable in the console and
+// maps 1:1 onto the network tab. NOTE: each `getIntentQuote` call below hits
+// the allocator's `getCompactData` (GET keyed by sponsor address) followed by
+// `POST /checkIfDepositNeeded`, so *one logged "quote" = one such request pair*.
+// If you see these repeating, count the `swLog('…quote…')` lines to see which
+// leg is firing and how many times.
+// Gated tracer for the Smart Withdraw flow — silent by default. Enable at
+// runtime with `window.__EPOCH_DEBUG__ = true` or `localStorage['epoch:debug']='1'`.
+const swDebugEnabled = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    return (
+      (window as { __EPOCH_DEBUG__?: boolean }).__EPOCH_DEBUG__ === true ||
+      window.localStorage?.getItem('epoch:debug') === '1'
+    );
+  } catch {
+    return false;
+  }
+};
+const swLog = (stage: string, data?: Record<string, unknown>) => {
+  if (!swDebugEnabled()) return;
+  // eslint-disable-next-line no-console
+  console.info(`[SmartWithdraw] ${stage}`, data ?? {});
+};
+
+// True only for SUBMISSION-time "wallet can't do wallet_sendCalls" errors (e.g.
+// smart account switched off after the capability probe). These fire from
+// sendCalls before anything lands on-chain, so it's safe to retry per-tx. A
+// mid-batch revert has a different signature and is deliberately NOT matched —
+// retrying that would double-execute the withdraw.
+const isBatchingUnsupported = (err: unknown): boolean => {
+  const m = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase();
+  return (
+    m.includes('wallet_sendcalls') ||
+    m.includes('does not support') ||
+    m.includes('unsupported method') ||
+    m.includes('method not supported') ||
+    m.includes('method not found') ||
+    m.includes('4200') ||
+    m.includes('32601')
+  );
+};
+
+function isSmartWithdrawInput(input: EarnQuoteInput): boolean {
+  return (
+    input.tab === 'withdraw' &&
+    input.smartWithdraw === true &&
+    input.smartDestChainId != null &&
+    (!!input.smartDestTokenAddress || !!input.midenDest)
+  );
+}
+
+/** A Smart Withdraw whose destination is a Miden account (EVM→Miden delivery). */
+function isMidenDestInput(input: EarnQuoteInput): boolean {
+  return (
+    !!input.midenDest &&
+    input.smartDestChainId === MIDEN_VIRTUAL_CHAIN_ID &&
+    !!input.midenDest.recipientAccount
+  );
+}
+
+/**
+ * Build the `getTaskData` params for the Smart Withdraw SWAP leg (the underlying
+ * withdrawn on the position chain → destination). Branches on the destination:
+ * an EVM chain/token (plain GetTokenOut) vs a Miden account (EVM→Miden — output
+ * token is the EVM zero address, destination is the Miden virtual chain, and the
+ * faucet/recipient ride in extraData exactly like the canonical bridge intent).
+ */
+function buildSwapLegTaskInput(
+  input: EarnQuoteInput,
+  opts: {
+    underlyingAddress: `0x${string}`;
+    tokenInAmount: string;
+    minTokenOut: string;
+    recipient: `0x${string}`;
+  },
+) {
+  if (isMidenDestInput(input)) {
+    const miden = input.midenDest!;
+    return {
+      taskType: TaskType.GetTokenOut,
+      intentData: {
+        isNative: false,
+        depositTokenAddress: opts.underlyingAddress,
+        tokenInAmount: opts.tokenInAmount,
+        // EVM→Miden carries no EVM output token — the real target is the Miden
+        // faucet in extraData; the address slot is the zero sentinel.
+        outputTokenAddress: EVM_ZERO_ADDRESS as `0x${string}`,
+        minTokenOut: opts.minTokenOut,
+        destinationChainId: String(MIDEN_VIRTUAL_CHAIN_ID),
+        protocolHashIdentifier: ZERO_BYTES32,
+        recipient: opts.recipient,
+      },
+      extraDataTypestring: EARN_MIDEN_WITHDRAW_EXTRA_FIELDS.join(','),
+      extraData: {
+        midenRecipientAccount: normalizeMidenId(miden.recipientAccount),
+        midenFaucetId: normalizeMidenId(miden.faucetId),
+      },
+    };
+  }
+  return {
+    taskType: TaskType.GetTokenOut,
+    intentData: {
+      isNative: false,
+      depositTokenAddress: opts.underlyingAddress,
+      tokenInAmount: opts.tokenInAmount,
+      outputTokenAddress: input.smartDestTokenAddress as `0x${string}`,
+      minTokenOut: opts.minTokenOut,
+      destinationChainId: String(input.smartDestChainId),
+      protocolHashIdentifier: ZERO_BYTES32,
+      recipient: opts.recipient,
+    },
+    extraDataTypestring: '',
+    extraData: {} as Record<string, string>,
+  };
+}
+
+/** The asset id a Smart Withdraw delivers into — a Miden faucet id or an EVM token. */
+function smartWithdrawDestAsset(input: EarnQuoteInput): string {
+  return isMidenDestInput(input)
+    ? normalizeMidenId(input.midenDest!.faucetId)
+    : (input.smartDestTokenAddress ?? '');
+}
 
 /**
  * Compact quote/submit uses `walletClient.chain.id` as the intent origin chain.
@@ -158,6 +309,10 @@ export function useEarnIntentFlow({
   const [quote, setQuote] = useState<EarnQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Live label for the CURRENT sub-stage of a submit (which quote is in flight,
+  // waiting on the wallet, submitting…). Surfaced on the CTA so the button says
+  // exactly what round-trip is happening instead of a generic "Routing…".
+  const [stepLabel, setStepLabel] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
   const gaslessRef = useRef(gasless);
@@ -211,6 +366,7 @@ export function useEarnIntentFlow({
     setQuote(null);
     setQuoteError(null);
     setError(null);
+    setStepLabel(null);
     pendingQuoteRef.current = null;
   }, []);
 
@@ -268,24 +424,17 @@ export function useEarnIntentFlow({
 
       const isWithdraw = input.tab === 'withdraw';
       const isMidenDeposit = !isWithdraw && !!input.midenSource;
-      const isSmartWithdraw =
-        isWithdraw &&
-        input.smartWithdraw === true &&
-        input.smartDestChainId != null &&
-        !!input.smartDestTokenAddress;
 
       const protocolHashIdentifier = keccak256(toBytes(earnProtocolName(marketUid)));
       const underlyingAddress = market.token.address as string;
       const actionChainId =
         market.chainId != null ? String(market.chainId) : muidChain ?? '1';
 
-      const destinationChainId = isSmartWithdraw
-        ? String(input.smartDestChainId)
-        : actionChainId;
-
-      const tokenOutAddress = isSmartWithdraw
-        ? (input.smartDestTokenAddress as `0x${string}`)
-        : (underlyingAddress as `0x${string}`);
+      // Smart Withdraw is handled by `submitSmartWithdraw` (a 2-leg batch:
+      // withdraw → cross-chain swap), so buildParams only ever builds the plain
+      // same-chain leg: tokenOut = underlying on the position chain.
+      const destinationChainId = actionChainId;
+      const tokenOutAddress = underlyingAddress as `0x${string}`;
 
       const isSameChain = isMidenDeposit
         ? false
@@ -294,7 +443,6 @@ export function useEarnIntentFlow({
 
       const extraDataFields = ['string marketUid', 'string action', 'string payAsset'];
       if (isWithdraw) extraDataFields.push('bool isAll', 'bool simulate');
-      if (isSmartWithdraw) extraDataFields.push('string actionChainId', 'string actionOutputToken');
       if (isMidenDeposit) extraDataFields.push(...EARN_MIDEN_EXTRA_FIELDS);
       const extraDataTypestring = extraDataFields.join(',');
 
@@ -307,16 +455,11 @@ export function useEarnIntentFlow({
         extraData.isAll = input.isAll === true;
         extraData.simulate = true;
       }
-      if (isSmartWithdraw) {
-        extraData.actionChainId = actionChainId;
-        extraData.actionOutputToken = underlyingAddress;
-      }
       if (isMidenDeposit && input.midenSource) {
         extraData.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
         extraData.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
         extraData.midenNoteType = 'P2IDE';
         extraData.midenNoteId = '';
-        extraData.midenReclaimHeight = String(input.midenSource.reclaimHeight ?? 1000);
       }
 
       const tokenInDecimals = isMidenDeposit
@@ -353,6 +496,82 @@ export function useEarnIntentFlow({
     async (input: EarnQuoteInput) => {
       if (!address || !walletClient) return;
       if (!input.amount.trim()) return;
+      swLog('fetchQuote', {
+        tab: input.tab,
+        smart: input.smartWithdraw === true,
+        amount: input.amount,
+        destChainId: input.smartDestChainId ?? null,
+      });
+
+      // Smart Withdraw preview: quote the cross-chain swap leg (underlying →
+      // destination token) so the user sees the final received amount. The
+      // withdraw leg is ~1:1 underlying, so the swap output is the headline.
+      if (isSmartWithdrawInput(input)) {
+        const market = input.market ?? input.position?.market;
+        if (!market) {
+          setQuoteError('Market missing');
+          return;
+        }
+        const underlyingAddress = market.token.address as `0x${string}`;
+        let amountRaw: string;
+        try {
+          amountRaw = parseUnits(
+            input.amount.trim().replace(/,/g, ''),
+            market.token.decimals,
+          ).toString();
+        } catch (e) {
+          setQuoteError((e as Error).message);
+          return;
+        }
+        const callId = ++quoteCallIdRef.current;
+        setStatus('quoting');
+        setQuote(null);
+        setQuoteError(null);
+        pendingQuoteRef.current = null;
+        try {
+          const sdk = createEarnIntentSdk(apiBaseUrl, walletClient);
+          const { taskTypeString, intentData } = await sdk.getTaskData(
+            buildSwapLegTaskInput(input, {
+              underlyingAddress,
+              tokenInAmount: amountRaw,
+              minTokenOut: '0',
+              recipient: address as `0x${string}`,
+            }),
+          );
+          const quoteResult = await sdk.getIntentQuote({
+            sponsorAddress: address as `0x${string}`,
+            taskTypeString,
+            intentData,
+            isNative: false,
+          });
+          if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
+          if (!quoteResult?.success) {
+            setQuoteError(
+              (quoteResult as { error?: string } | undefined)?.error ??
+                'Quote unavailable',
+            );
+            setStatus('idle');
+            return;
+          }
+          swLog('preview:quote ok (GetTokenOut)', {
+            tokenOut: quoteResult.tokenOut,
+          });
+          setQuote({
+            tokenIn: quoteResult.tokenIn,
+            tokenOut: quoteResult.tokenOut,
+            asset: smartWithdrawDestAsset(input),
+            executionTransactions: [],
+            resourceLockRequired: true,
+            raw: quoteResult,
+          });
+          setStatus('idle');
+        } catch (err) {
+          if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
+          setQuoteError(err instanceof Error ? err.message : String(err));
+          setStatus('idle');
+        }
+        return;
+      }
 
       let params: ReturnType<typeof buildParams>;
       try {
@@ -474,6 +693,404 @@ export function useEarnIntentFlow({
     [address, sessionId],
   );
 
+  // Shared tail for both `submit` and `submitSmartWithdraw`: if the solve
+  // returned a nonce, move to polling; otherwise mark complete and auto-close.
+  const beginPolling = useCallback(
+    (n: string | null, data: unknown, sdk: EpochIntentSDK) => {
+      if (!mountedRef.current) return;
+      if (n) {
+        setNonce(n);
+        setStatus('sent');
+        onIntentSentRef.current?.({ nonce: n });
+        setStatus('polling');
+        setActiveStep(4);
+        checkIntentStatus(n, sdk);
+        pollingRef.current = setInterval(
+          () => checkIntentStatus(n, sdk),
+          POLL_INTERVAL_MS,
+        );
+      } else {
+        setStatus('complete');
+        setStatusProgress(100);
+        setActiveStep(5);
+        onIntentCompleteRef.current?.({ nonce: '', status: data });
+        onSuccessRef.current?.({ sessionId, nonce: '', status: data });
+        setTimeout(() => {
+          if (mountedRef.current) onRequestCloseRef.current?.();
+        }, AUTO_CLOSE_DELAY_MS);
+      }
+    },
+    [sessionId, checkIntentStatus],
+  );
+
+  // ---- Smart Withdraw (batch: withdraw → cross-chain swap) -------------------
+  // Builds the two legs as calldata and fuses them into one atomic
+  // `wallet_sendCalls` batch (no router). Falls back to sequential 2-tx when the
+  // wallet has no EIP-5792 batching. The box-deposit calls + the `/compact`
+  // payload come from the SDK's `buildResourceLockCalls` (build, don't send).
+  const submitSmartWithdraw = useCallback(
+    async (input: EarnSubmitInput) => {
+      if (!address || !walletClient) {
+        setError('Wallet client unavailable');
+        setStatus('error');
+        return;
+      }
+      const market = input.market ?? input.position?.market;
+      if (!market) {
+        setError('Market missing');
+        setStatus('error');
+        return;
+      }
+      const underlyingAddress = market.token.address as `0x${string}`;
+      const destChainId = input.smartDestChainId as number;
+      // The delivered asset — a Miden faucet id for EVM→Miden, else an EVM token.
+      // Used for preview-reuse matching + logging; the executable task is built
+      // by buildSwapLegTaskInput, which branches on the destination.
+      const destToken = smartWithdrawDestAsset(input);
+      const sponsor = address as `0x${string}`;
+
+      setError(null);
+      setStatus('submitting');
+      setActiveStep(1);
+      setStatusProgress(10);
+      setStepLabel('Quoting withdrawal…');
+      onStartRef.current?.({ sessionId, mode: 'earn' });
+      swLog('submit:begin — will re-quote withdraw+swap legs', {
+        amount: input.amount,
+        destChainId,
+        destToken,
+      });
+
+      try {
+        const sdk = createEarnIntentSdk(apiBaseUrl, walletClient);
+
+        // Withdraw path and swap path are INDEPENDENT (the swap's slippage floor
+        // comes from the reused preview, not the withdraw quote) and both quote
+        // endpoints are read-only server-side (suggested-nonce is a pure SELECT
+        // with no reservation; checkIfDepositNeeded runs shouldExecute=false). So
+        // quote both paths CONCURRENTLY. Promise.allSettled (not all) preserves
+        // per-leg error attribution — a plain all() reject hides which leg failed.
+        setStepLabel('Quoting routes…');
+
+        // Shared same-chain withdraw params (also the swap-leg input amount).
+        const wParams = buildParams({
+          ...input,
+          smartWithdraw: false,
+          smartDestChainId: null,
+          smartDestTokenAddress: '',
+        });
+        const swapAmountRaw = wParams.tokenInAmount;
+        const buildSwapTask = (minOut: string) =>
+          sdk.getTaskData(
+            buildSwapLegTaskInput(input, {
+              underlyingAddress,
+              tokenInAmount: swapAmountRaw,
+              minTokenOut: minOut,
+              recipient: sponsor,
+            }),
+          );
+
+        // --- Withdraw path → underlying withdraw CALLDATA (transactions[]) ---
+        const runWithdrawLeg = async (): Promise<ExecutionTx[]> => {
+          const wTask = await sdk.getTaskData({
+            taskType: TaskType.ProtocolInteraction,
+            intentData: {
+              isNative: false,
+              depositTokenAddress: wParams.tokenInAddress,
+              tokenInAmount: wParams.tokenInAmount,
+              outputTokenAddress: wParams.tokenOutAddress,
+              minTokenOut: '0',
+              destinationChainId: wParams.destinationChainId,
+              protocolHashIdentifier: wParams.protocolHashIdentifier,
+              recipient: wParams.recipient,
+            },
+            extraDataTypestring: wParams.extraDataTypestring,
+            extraData: wParams.extraData,
+          });
+          swLog('leg1: withdraw quote → getCompactData + checkIfDepositNeeded');
+          const wQuote = await sdk.getIntentQuote({
+            sponsorAddress: sponsor,
+            taskTypeString: wTask.taskTypeString,
+            intentData: wTask.intentData,
+            isNative: false,
+          });
+          if (!wQuote?.success) {
+            throw new Error(
+              (wQuote as { error?: string } | undefined)?.error ?? 'Withdraw quote failed',
+            );
+          }
+          const txs = ((wQuote as { transactions?: ExecutionTx[] }).transactions ??
+            []) as ExecutionTx[];
+          swLog('leg1: withdraw quote ok', { txCount: txs.length });
+          return txs;
+        };
+
+        // --- Swap path → { swapQuote, swapTask }: [reuse preview | probe] → floor → real ---
+        const runSwapLeg = async (): Promise<{
+          swapQuote: unknown;
+          swapTask: Awaited<ReturnType<typeof buildSwapTask>>;
+        }> => {
+          // Probe = swap output at minTokenOut=0, only to derive the floor. The
+          // PREVIEW already fetched exactly this, so reuse it and skip a round-
+          // trip; re-probe only if there's no usable preview.
+          const preview = input.quote;
+          const previewRaw = (preview?.raw ?? null) as
+            | { success?: boolean; tokenOut?: string }
+            | null;
+          const canReusePreview =
+            !!previewRaw?.success &&
+            previewRaw.tokenOut != null &&
+            (preview?.asset ?? '').toLowerCase() === destToken.toLowerCase();
+
+          let probeTokenOut: string;
+          let probeQuote: unknown;
+          let probeTask: Awaited<ReturnType<typeof buildSwapTask>> | null = null;
+          if (canReusePreview) {
+            swLog('leg2: reusing PREVIEW swap quote as probe — skipped re-quote #2');
+            probeTokenOut = previewRaw!.tokenOut ?? '0';
+            probeQuote = previewRaw;
+          } else {
+            probeTask = await buildSwapTask('0');
+            swLog('leg2: swap PROBE quote → getCompactData + checkIfDepositNeeded');
+            probeQuote = await sdk.getIntentQuote({
+              sponsorAddress: sponsor,
+              taskTypeString: probeTask.taskTypeString,
+              intentData: probeTask.intentData,
+              isNative: false,
+            });
+            if (!(probeQuote as { success?: boolean })?.success) {
+              throw new Error(
+                (probeQuote as { error?: string } | undefined)?.error ?? 'Swap quote failed',
+              );
+            }
+            probeTokenOut = (probeQuote as { tokenOut?: string }).tokenOut ?? '0';
+          }
+
+          let minTokenOut = '0';
+          try {
+            const out = BigInt(probeTokenOut);
+            if (out > 0n) {
+              minTokenOut = (
+                (out * (10000n - SMART_WITHDRAW_SLIPPAGE_BPS)) /
+                10000n
+              ).toString();
+            }
+          } catch {
+            minTokenOut = '0';
+          }
+          swLog('leg2: minTokenOut floor computed', {
+            minTokenOut,
+            reusedPreview: canReusePreview,
+            willRequote: minTokenOut !== '0',
+          });
+          // Real quote bakes the slippage floor into the executable intent.
+          const swapTask =
+            minTokenOut === '0'
+              ? (probeTask ?? (await buildSwapTask('0')))
+              : await buildSwapTask(minTokenOut);
+          if (minTokenOut !== '0') {
+            swLog('leg2: swap REAL quote (with slippage floor) → getCompactData + checkIfDepositNeeded');
+          }
+          const swapQuote =
+            minTokenOut === '0'
+              ? probeQuote
+              : await sdk.getIntentQuote({
+                  sponsorAddress: sponsor,
+                  taskTypeString: swapTask.taskTypeString,
+                  intentData: swapTask.intentData,
+                  isNative: false,
+                });
+          if (!(swapQuote as { success?: boolean })?.success) {
+            throw new Error(
+              (swapQuote as { error?: string } | undefined)?.error ?? 'Swap quote failed',
+            );
+          }
+          swLog('leg2: swap quote ready', { reusedPreview: canReusePreview });
+          return { swapQuote, swapTask };
+        };
+
+        // Fire both paths at once; attribute any failure to its specific leg.
+        swLog('quoting withdraw + swap paths in PARALLEL');
+        const [withdrawRes, swapRes] = await Promise.allSettled([
+          runWithdrawLeg(),
+          runSwapLeg(),
+        ]);
+        if (withdrawRes.status === 'rejected' || swapRes.status === 'rejected') {
+          const reasons: string[] = [];
+          if (withdrawRes.status === 'rejected') {
+            reasons.push(
+              `withdraw: ${withdrawRes.reason instanceof Error ? withdrawRes.reason.message : String(withdrawRes.reason)}`,
+            );
+          }
+          if (swapRes.status === 'rejected') {
+            reasons.push(
+              `swap: ${swapRes.reason instanceof Error ? swapRes.reason.message : String(swapRes.reason)}`,
+            );
+          }
+          throw new Error(`Quote failed — ${reasons.join('; ')}`);
+        }
+        const withdrawTxs = withdrawRes.value;
+        const { swapQuote, swapTask } = swapRes.value;
+        swLog('both paths quoted', { withdrawTxs: withdrawTxs.length });
+
+        // --- Resolve batch strategy (atomic, sequential-batch, or sequential-tx) ---
+        const wc = walletClient as any;
+        const chainId = walletClient.chain?.id;
+        if (!chainId) {
+          throw new Error('Chain ID unavailable');
+        }
+
+        const rpcUrl =
+          walletClient.chain?.rpcUrls?.default?.http?.[0] ?? '';
+        const publicClient = createPublicClient({
+          chain: walletClient.chain ?? undefined,
+          transport: http(rpcUrl),
+        });
+
+        // `as never`: the linked SDK bundles its own viem, so its WalletClient/
+        // PublicClient types are nominally distinct from the widget's viem even
+        // though the runtime shape is identical. Vanishes once the SDK is consumed
+        // from npm (viem is its peerDependency → single dedup'd viem).
+        const strategy = await resolveWalletBatchStrategy({
+          walletClient: walletClient as never,
+          chainId,
+          user: sponsor,
+          publicClient: publicClient as never,
+        });
+
+        swLog('exec: strategy resolved', { mode: strategy.mode });
+
+        // ── Execute [withdraw → approve → depositERC20AndRegister] ─────────────
+        // All three are plain calls with msg.sender = user, so the SAME `calls`
+        // array works whether we send one EIP-5792 batch (1 prompt — best UX) or
+        // fall back to separate txs (N prompts). buildResourceLockCalls yields
+        // the [approve, deposit] leg + the /compact payload; we prepend the
+        // withdraw calldata from the no-lock quote. submitAllocation runs only
+        // AFTER the deposit lands (the register is verified on-chain), and any
+        // failure throws to the outer catch — we never submit an allocation for
+        // a batch that didn't execute.
+        setActiveStep(2);
+        setStatusProgress(40);
+        setStepLabel('Preparing transaction…');
+        swLog('exec: building resource-lock calls (getCompactData)');
+        const { calls: lockCalls, createAllocationRequest } =
+          await sdk.buildResourceLockCalls({
+            isNative: false,
+            sponsorAddress: sponsor,
+            taskTypeString: swapTask.taskTypeString,
+            intentData: swapTask.intentData,
+            quoteResult: swapQuote,
+          } as never);
+        const calls: { to: `0x${string}`; data: `0x${string}`; value: bigint }[] = [
+          ...withdrawTxs.map((t) => ({
+            to: t.target as `0x${string}`,
+            data: t.callData as `0x${string}`,
+            value: BigInt(t.value ?? '0'),
+          })),
+          ...lockCalls.map((c: any) => ({
+            to: c.to as `0x${string}`,
+            data: c.data as `0x${string}`,
+            value: BigInt(c.value ?? '0'),
+          })),
+        ];
+        swLog('exec: assembled calls', {
+          withdraw: withdrawTxs.length,
+          lock: lockCalls.length,
+          total: calls.length,
+          mode: strategy.mode,
+        });
+
+        // Sign each call in order, awaiting each receipt so the deposit only
+        // runs once the withdraw has funded the wallet. Shared by the no-5792
+        // path and by the batch path's runtime-unsupported fallback.
+        const runSequentialCalls = async () => {
+          for (let i = 0; i < calls.length; i++) {
+            if (!mountedRef.current) return;
+            const c = calls[i];
+            setStepLabel(`Confirm ${i + 1}/${calls.length} in wallet…`);
+            swLog(`exec: sequential tx ${i + 1}/${calls.length} — WALLET PROMPT EXPECTED`, {
+              to: c.to,
+            });
+            onSignRef.current?.({ sessionId });
+            const hash = await wc.sendTransaction({
+              account: sponsor,
+              to: c.to,
+              data: c.data,
+              value: c.value,
+              chain: walletClient.chain,
+            });
+            await publicClient.waitForTransactionReceipt({ hash });
+            swLog(`exec: sequential tx ${i + 1}/${calls.length} confirmed`, { hash });
+          }
+        };
+
+        if (strategy.mode !== 'sequential-tx') {
+          // Best UX: one wallet_sendCalls → a single confirmation for all calls.
+          setStepLabel('Confirm in your wallet…');
+          swLog('exec: wallet_sendCalls (single prompt) — WALLET PROMPT EXPECTED', {
+            atomic: strategy.mode === 'atomic',
+            calls: calls.length,
+          });
+          onSignRef.current?.({ sessionId });
+          try {
+            await executeWalletBatch({
+              walletClient: wc,
+              chainId,
+              account: sponsor,
+              calls,
+              forceAtomic: strategy.mode === 'atomic',
+            });
+            swLog('exec: batch confirmed on-chain');
+          } catch (err) {
+            if (isUserWalletRejection(err)) throw err;
+            // Wallet advertised batching but refused wallet_sendCalls at submit
+            // time (e.g. smart account toggled off after the probe). Nothing
+            // landed → safe to degrade to per-tx. Any other failure (incl. a
+            // mid-batch revert) is re-thrown to abort.
+            if (!isBatchingUnsupported(err)) throw err;
+            swLog('exec: wallet_sendCalls unsupported at runtime — falling back to per-tx', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            await runSequentialCalls();
+          }
+        } else {
+          // No EIP-5792 → per-tx, one prompt each.
+          swLog('exec: sequential-tx (no batching) — one prompt per call', {
+            prompts: calls.length,
+          });
+          await runSequentialCalls();
+        }
+
+        if (!mountedRef.current) return;
+        setActiveStep(3);
+        setStatusProgress(70);
+        setStepLabel('Submitting to solver…');
+        swLog('exec: submitAllocation (deposit landed → start solving)');
+        const res = await sdk.submitAllocation(createAllocationRequest);
+        swLog('exec: submitAllocation ok', {
+          nonce: (res as { nonce?: string })?.nonce ?? null,
+        });
+        beginPolling((res as { nonce?: string })?.nonce ?? null, res, sdk);
+        return;
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        const cancelled = isUserWalletRejection(err);
+        swLog(cancelled ? 'submit: CANCELLED in wallet' : 'submit:ERROR — aborting', {
+          error: e.message,
+        });
+        if (mountedRef.current) {
+          setError(cancelled ? 'Transaction cancelled' : e.message);
+          setStatus('error');
+          setActiveStep(0);
+          setStatusProgress(0);
+          setStepLabel(null);
+        }
+        onErrorRef.current?.({ sessionId, error: e });
+      }
+    },
+    [address, walletClient, apiBaseUrl, sessionId, buildParams, beginPolling],
+  );
+
   // ---- Submit ---------------------------------------------------------------
   const submit = useCallback(
     async (input: EarnSubmitInput) => {
@@ -483,10 +1100,21 @@ export function useEarnIntentFlow({
         return;
       }
 
+      // Smart Withdraw takes the dedicated batch path (withdraw → swap).
+      if (isSmartWithdrawInput(input)) {
+        swLog('submit: routing → submitSmartWithdraw (smart path)');
+        return submitSmartWithdraw(input);
+      }
+      swLog('submit: routing → normal path', {
+        tab: input.tab,
+        hasCachedQuote: pendingQuoteRef.current != null,
+      });
+
       setError(null);
       setStatus('submitting');
       setActiveStep(1);
       setStatusProgress(15);
+      setStepLabel(input.tab === 'withdraw' ? 'Withdrawing…' : 'Depositing…');
       onStartRef.current?.({ sessionId, mode: 'earn' });
 
       try {
@@ -578,28 +1206,7 @@ export function useEarnIntentFlow({
           (data as { intentNonce?: string })?.intentNonce ??
           null;
 
-        if (responseNonce) {
-          const n = responseNonce.toString();
-          setNonce(n);
-          setStatus('sent');
-          onIntentSentRef.current?.({ nonce: n });
-          setStatus('polling');
-          setActiveStep(4);
-          checkIntentStatus(n, sdk);
-          pollingRef.current = setInterval(
-            () => checkIntentStatus(n, sdk),
-            POLL_INTERVAL_MS,
-          );
-        } else {
-          setStatus('complete');
-          setStatusProgress(100);
-          setActiveStep(5);
-          onIntentCompleteRef.current?.({ nonce: '', status: data });
-          onSuccessRef.current?.({ sessionId, nonce: '', status: data });
-          setTimeout(() => {
-            if (mountedRef.current) onRequestCloseRef.current?.();
-          }, AUTO_CLOSE_DELAY_MS);
-        }
+        beginPolling(responseNonce ? responseNonce.toString() : null, data, sdk);
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
         if (mountedRef.current) {
@@ -611,7 +1218,15 @@ export function useEarnIntentFlow({
         onErrorRef.current?.({ sessionId, error: e });
       }
     },
-    [address, walletClient, apiBaseUrl, sessionId, buildParams, checkIntentStatus],
+    [
+      address,
+      walletClient,
+      apiBaseUrl,
+      sessionId,
+      buildParams,
+      beginPolling,
+      submitSmartWithdraw,
+    ],
   );
 
   return {
@@ -622,6 +1237,7 @@ export function useEarnIntentFlow({
     quote,
     quoteError,
     error,
+    stepLabel,
     isQuoting: status === 'quoting',
     isBusy:
       status === 'submitting' ||

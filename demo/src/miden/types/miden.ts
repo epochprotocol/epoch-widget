@@ -24,8 +24,6 @@ export interface CrossChainIntentParams {
   midenAmount?: string;
   /** From `useFaucetDecimals(midenFaucetId).decimals` (same RPC path as dex-solver inventory). Required for scaling. */
   midenDecimals: number;
-  /** Optional absolute reclaim height (block number) for P2IDE notes */
-  midenReclaimHeight?: number;
   evmRecipient: string;
   destinationChainId: number;
   outputTokenAddress: string;

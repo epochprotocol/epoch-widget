@@ -304,7 +304,7 @@ Earn-specific notes:
 - **Earn is mainnet-only** — the 1delta upstream doesn't index testnet pools. Hide the Earn entry point when your app is in testnet mode.
 - The live routes need `ONEDELTA_API_KEY` on the positions service, or they return `503`.
 - Earn defaults `allowNetworkToggle` to `true` (pay/swap default to `false`).
-- **Miden funding** (testnet, optional): pass an `earnMiden` adapter to add an EVM/Miden source toggle. Keep `@miden-sdk/*` in your app — the widget only consumes the adapter shape (`connect`, `createP2IDNote`, asset list, `reclaimHeight`).
+- **Miden funding** (testnet, optional): pass an `earnMiden` adapter to add an EVM/Miden source toggle. Keep `@miden-sdk/*` in your app — the widget only consumes the adapter shape (`connect`, `createP2IDNote`, asset list).
 
 See [BEHAVIOR.md → Earn](./BEHAVIOR.md#earn) for every earn case and caveat.
 

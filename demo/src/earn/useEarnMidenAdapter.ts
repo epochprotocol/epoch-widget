@@ -96,7 +96,6 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
       assets,
       connect,
       createP2IDNote,
-      reclaimHeight: 1000,
     }),
     [
       assets,
