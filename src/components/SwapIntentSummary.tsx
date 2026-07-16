@@ -5,7 +5,7 @@ import { ArrowDownIcon, ChevronRightIcon, WalletIcon } from './Icons';
 import { Avatar } from './Avatar';
 import { Shimmer } from './Shimmer';
 import { TokenAmountCard } from './ui/TokenAmountCard';
-import { truncateAddress, formatBalancePortionForInput } from '../utils';
+import { truncateAddress } from '../utils';
 
 interface SwapIntentSummaryProps {
   sellAmount: string;
@@ -22,16 +22,10 @@ interface SwapIntentSummaryProps {
   balanceStr?: string;
   balanceError?: boolean;
   isBalanceLoading?: boolean;
-  sellBalanceRaw?: bigint | null;
-  sellDecimals?: number;
-  onAmountChange?: ((amount: string) => void) | null;
   /** Optional USD equivalent for the sell amount (e.g. "≈ $1.23"). */
   usdEquivalent?: string | null;
   classNames?: EpochClassNames;
 }
-
-const PCT_BTN =
-  'cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-fg-secondary transition-colors duration-150 hover:border-line-strong hover:text-fg';
 
 /**
  * Swap-flavoured intent summary — two stacked cards (Sell / Buy) with a small
@@ -52,17 +46,9 @@ export function SwapIntentSummary({
   balanceStr,
   balanceError,
   isBalanceLoading,
-  sellBalanceRaw,
-  sellDecimals = 18,
-  onAmountChange,
   usdEquivalent,
   classNames: cs,
 }: SwapIntentSummaryProps) {
-  const applyPortion = (num: number, den: number) => {
-    if (!onAmountChange || !sellBalanceRaw || sellBalanceRaw === 0n) return;
-    onAmountChange(formatBalancePortionForInput(sellBalanceRaw, num, den, sellDecimals));
-  };
-
   const walletBadge = walletAddress ? (
     <div
       className="flex items-center gap-1.5 py-0.75 text-[12.5px] font-bold tabular-nums text-primary"
@@ -92,13 +78,6 @@ export function SwapIntentSummary({
           {balanceStr ?? (walletConnected ? `Balance: 0 ${sellSymbol}` : 'Balance: —')}
         </span>
       )}
-      {onAmountChange && sellBalanceRaw ? (
-        <span className="flex gap-1.5">
-          <button type="button" className={PCT_BTN} onClick={() => applyPortion(20, 100)}>20%</button>
-          <button type="button" className={PCT_BTN} onClick={() => applyPortion(50, 100)}>50%</button>
-          <button type="button" className={PCT_BTN} onClick={() => applyPortion(1, 1)}>Max</button>
-        </span>
-      ) : null}
     </>
   );
 

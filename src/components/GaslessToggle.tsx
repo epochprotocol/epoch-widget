@@ -14,21 +14,22 @@ const SEGMENT_BASE =
 /**
  * Segmented control for gasless vs standard (user-paid) Compact deposits.
  */
+const segmentClasses = (active: boolean, segmentDisabled?: boolean) =>
+  cn(
+    SEGMENT_BASE,
+    segmentDisabled && 'opacity-50 cursor-not-allowed',
+    active
+      ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
+      : !segmentDisabled && 'cursor-pointer bg-transparent text-fg-muted',
+    !active && segmentDisabled && 'cursor-not-allowed',
+  );
+
 export function GaslessToggle({
   gasless,
   onChange,
   gaslessDisabled = false,
   gaslessDisabledReason,
 }: GaslessToggleProps) {
-  const segmentClasses = (active: boolean, segmentDisabled?: boolean) =>
-    cn(
-      SEGMENT_BASE,
-      segmentDisabled && 'opacity-50 cursor-not-allowed',
-      active
-        ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
-        : !segmentDisabled && 'cursor-pointer bg-transparent text-fg-muted',
-      !active && segmentDisabled && 'cursor-not-allowed',
-    );
 
   return (
     <div

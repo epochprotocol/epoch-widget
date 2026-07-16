@@ -33,6 +33,7 @@ export function ChainSelector({ chains, selectedChainId, onSelect, onBack }: Cha
         <button
           type="button"
           onClick={onBack}
+          aria-label="Back"
           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-fg transition-colors duration-150 hover:bg-surface"
         >
           <ChevronLeftIcon width={18} height={18} />

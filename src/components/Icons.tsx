@@ -12,6 +12,7 @@ import {
   Info,
   Lock,
   CircleArrowRight,
+  RotateCw,
   Search,
   Settings,
   Sparkles,
@@ -54,3 +55,4 @@ export const PoweredIcon = icon(CircleArrowRight, 12);
 export const TrendingUpIcon = icon(TrendingUp, 14);
 export const ArrowDownUpIcon = icon(ArrowDownUp, 16);
 export const SparklesIcon = icon(Sparkles, 16);
+export const RetryIcon = icon(RotateCw, 14);

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 export interface MultiSelectOption {
   value: string;
@@ -28,15 +28,23 @@ export function MultiSelectDropdown({
 
   const [query, setQuery] = useState('');
 
+  // Closing always clears the search so the next open is clean. Both setters
+  // fire together here rather than letting an effect react to `open`, so React
+  // batches them into a single render.
+  const close = useCallback(() => {
+    setOpen(false);
+    setQuery('');
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) close();
     };
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (query) setQuery('');
-        else setOpen(false);
+        else close();
       }
     };
     document.addEventListener('mousedown', onDocClick);
@@ -45,12 +53,7 @@ export function MultiSelectDropdown({
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [open, query]);
-
-  // Reset search when the dropdown closes so the next open is clean.
-  useEffect(() => {
-    if (!open) setQuery('');
-  }, [open]);
+  }, [open, query, close]);
 
   const filteredOptions =
     query.trim().length === 0
@@ -63,8 +66,12 @@ export function MultiSelectDropdown({
           );
         });
 
+  // Membership is tested once per option while rendering the list, so a Set
+  // keeps each check O(1) instead of rescanning `selected` every row.
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+
   const toggle = (value: string) => {
-    const next = selected.includes(value)
+    const next = selectedSet.has(value)
       ? selected.filter((v) => v !== value)
       : [...selected, value];
     onChange(next);
@@ -77,8 +84,7 @@ export function MultiSelectDropdown({
         ? `All (${selected.length})`
         : selected.length <= 2
           ? options
-              .filter((o) => selected.includes(o.value))
-              .map((o) => o.label)
+              .flatMap((o) => (selectedSet.has(o.value) ? [o.label] : []))
               .join(', ')
           : `${selected.length} selected`;
 
@@ -94,7 +100,7 @@ export function MultiSelectDropdown({
         <button
           id={buttonId}
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => (open ? close() : setOpen(true))}
           aria-haspopup="listbox"
           aria-expanded={open}
           className="flex w-full min-w-[180px] cursor-pointer items-center justify-between gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-left text-sm text-fg transition-colors hover:border-line-strong"
@@ -160,7 +166,7 @@ export function MultiSelectDropdown({
                 </div>
               ) : (
                 filteredOptions.map((opt) => {
-                  const checked = selected.includes(opt.value);
+                  const checked = selectedSet.has(opt.value);
                   return (
                     <label
                       key={opt.value}

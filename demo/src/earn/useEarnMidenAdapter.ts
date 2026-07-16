@@ -44,6 +44,12 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
         if (!requestSend) {
           throw new Error('Miden wallet adapter not available');
         }
+        // Checked before the send, not after: requestSend broadcasts a real
+        // transaction, so bailing out afterwards would move funds and still
+        // throw, leaving the note unreadable.
+        if (!waitForTransaction) {
+          throw new Error('waitForTransaction not available in adapter');
+        }
 
         const normalizedAmount = BigInt(amountParam);
         if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -58,9 +64,6 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
           Number(normalizedAmount),
         );
         const txId = await requestSend(payload);
-        if (!waitForTransaction) {
-          throw new Error('waitForTransaction not available in adapter');
-        }
         const finalized = await waitForTransaction(txId, 120_000);
         const first = finalized.outputNotes?.[0];
         const noteId = first ? first.id().toString() : '';

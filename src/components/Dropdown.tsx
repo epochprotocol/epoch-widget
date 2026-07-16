@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -86,6 +87,10 @@ export function Dropdown({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  // Options are navigated with ↑/↓ on the listbox itself (roving tabindex), so
+  // each option needs a stable id for aria-activedescendant to point at.
+  const optionIdPrefix = useId();
+  const optionId = (index: number) => `${optionIdPrefix}-opt-${index}`;
 
   const selected = options.find((o) => o.value === value) ?? null;
 
@@ -148,16 +153,19 @@ export function Dropdown({
     };
   }, [open]);
 
-  useEffect(() => {
-    if (open) {
-      const idx = options.findIndex((o) => o.value === value);
-      setHighlight(idx >= 0 ? idx : 0);
-      setQuery('');
-      if (searchable) {
-        requestAnimationFrame(() => searchRef.current?.focus());
-      }
+  // Opening seeds the highlight to the current selection and clears any stale
+  // search. Done here, at the point the menu is opened, so the three setters
+  // batch into one render — and so a mid-interaction `options`/`value` change
+  // no longer resets the user's highlight and query underneath them.
+  const openMenu = () => {
+    const idx = options.findIndex((o) => o.value === value);
+    setHighlight(idx >= 0 ? idx : 0);
+    setQuery('');
+    setOpen(true);
+    if (searchable) {
+      requestAnimationFrame(() => searchRef.current?.focus());
     }
-  }, [open, options, value, searchable]);
+  };
 
   const commit = (v: string) => {
     onChange(v);
@@ -168,7 +176,7 @@ export function Dropdown({
     if (disabled) return;
     if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setOpen(true);
+      openMenu();
     }
   };
 
@@ -215,7 +223,7 @@ export function Dropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={() => !disabled && (open ? setOpen(false) : openMenu())}
         onKeyDown={onTriggerKey}
         className={cn(
           'box-border flex w-full items-center justify-between gap-2.5 rounded-sm border bg-canvas px-3.5 py-3 text-sm text-fg transition-[border-color,box-shadow] duration-150',
@@ -260,6 +268,9 @@ export function Dropdown({
             role="listbox"
             onKeyDown={onListKey}
             tabIndex={-1}
+            aria-activedescendant={
+              filtered[highlight] ? optionId(highlight) : undefined
+            }
             className="fixed z-[10000] flex max-h-60 flex-col overflow-hidden rounded-sm border border-line bg-canvas font-sans shadow-[0_16px_40px_-8px_rgba(15,23,42,0.22),0_0_0_1px_rgba(15,23,42,0.04)] animate-dropdown-in"
           >
             {searchable && (
@@ -288,8 +299,10 @@ export function Dropdown({
                   return (
                     <div
                       key={opt.value}
+                      id={optionId(i)}
                       role="option"
                       aria-selected={isSelected}
+                      tabIndex={-1}
                       onMouseEnter={() => setHighlight(i)}
                       onClick={() => commit(opt.value)}
                       className={cn(

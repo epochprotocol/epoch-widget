@@ -36,7 +36,10 @@
     "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
-    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
+    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\"",
+    "doctor": "npx react-doctor@latest",
+    "test:swap": "node --import tsx --test test/pay-swap-cta.test.ts",
+    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "^0.1.17",

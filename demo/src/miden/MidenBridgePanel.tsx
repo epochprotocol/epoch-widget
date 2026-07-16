@@ -22,6 +22,7 @@ import { getMidenFaucetDecimals } from "./constants/miden-tokens";
 import { useMidenWalletAdapter } from "./hooks/useMidenWalletAdapter";
 import { useEpochIntent } from "./hooks/useEpochIntent";
 import { useIntentFlowStatus } from "./hooks/useIntentFlowStatus";
+import { MidenBridgeFields } from "./components/MidenBridgeFields";
 
 const SEPOLIA_TOKENS: ReadonlyArray<{
   symbol: string;
@@ -197,6 +198,11 @@ export function MidenBridgePanel() {
             throw new Error("Missing Miden account id");
           if (!requestSend)
             throw new Error("Miden wallet adapter not available");
+          // Checked before the send, not after: requestSend broadcasts a real
+          // transaction, so bailing out afterwards would move funds and still
+          // throw, leaving the note unreadable.
+          if (!waitForTransaction)
+            throw new Error("waitForTransaction not available in adapter");
 
           const normalizedAmount = BigInt(amountParam);
           if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -211,8 +217,6 @@ export function MidenBridgePanel() {
             Number(normalizedAmount),
           );
           const txId = await requestSend(payload);
-          if (!waitForTransaction)
-            throw new Error("waitForTransaction not available in adapter");
           const finalized = await waitForTransaction(txId, 120_000);
           const first = finalized.outputNotes?.[0];
           const noteId = first ? first.id().toString() : "";
@@ -377,106 +381,24 @@ export function MidenBridgePanel() {
         </p>
 
         <div className="mt-4 flex flex-col gap-3.5">
-          <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
-              Source asset (Miden)
-            </label>
-            <select
-              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-sans text-sm"
-              value={selectedAssetId}
-              onChange={(e) => {
-                setSelectedAssetId(e.target.value);
-                epoch.clearQuote();
-              }}
-              disabled={midenWallet.isLoadingAssets}
-            >
-              <option value="">
-                {midenWallet.isLoadingAssets ? "Loading…" : "Select asset"}
-              </option>
-              {midenWallet.assets.map((a) => (
-                <option key={a.assetId} value={a.assetId}>
-                  {a.symbol ?? a.assetId.slice(0, 16) + "…"} —{" "}
-                  {a.amount.toString()}
-                </option>
-              ))}
-            </select>
-            <div className="mt-1 text-[0.6875rem] text-fg-muted">
-              Balance: {selectedAsset?.amount?.toString() ?? "—"}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
-                Output token (Sepolia)
-              </label>
-              <select
-                className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-sans text-sm"
-                value={outputToken}
-                onChange={(e) => {
-                  setOutputToken(e.target.value);
-                  epoch.clearQuote();
-                }}
-              >
-                {SEPOLIA_TOKENS.map((t) => (
-                  <option key={t.address} value={t.address}>
-                    {t.symbol}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
-                Min output (wei)
-              </label>
-              <input
-                className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
-                value={minTokenOut}
-                onChange={(e) => {
-                  setMinTokenOut(e.target.value);
-                  epoch.clearQuote();
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
-              Destination chain ID
-            </label>
-            <input
-              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
-              value={chainId}
-              onChange={(e) => {
-                setChainId(e.target.value);
-                epoch.clearQuote();
-              }}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wide text-fg-muted">
-              Destination EVM address
-            </label>
-            <input
-              className="box-border w-full rounded-lg border border-line px-2.5 py-2 font-mono text-sm"
-              value={evmAddress}
-              onChange={(e) => {
-                setEvmAddress(e.target.value);
-                epoch.clearQuote();
-              }}
-              placeholder={address ?? "0x…"}
-            />
-            {address && (
-              <button
-                type="button"
-                className="mt-1.5 cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] text-blue-600 underline"
-                onClick={() => setEvmAddress(address)}
-              >
-                Use connected wallet
-              </button>
-            )}
-          </div>
+          <MidenBridgeFields
+            assets={midenWallet.assets}
+            isLoadingAssets={midenWallet.isLoadingAssets}
+            outputTokens={SEPOLIA_TOKENS}
+            selectedAssetId={selectedAssetId}
+            setSelectedAssetId={setSelectedAssetId}
+            outputToken={outputToken}
+            setOutputToken={setOutputToken}
+            minTokenOut={minTokenOut}
+            setMinTokenOut={setMinTokenOut}
+            chainId={chainId}
+            setChainId={setChainId}
+            evmAddress={evmAddress}
+            setEvmAddress={setEvmAddress}
+            connectedAddress={address}
+            selectedAssetBalance={selectedAsset?.amount}
+            onDirty={() => epoch.clearQuote()}
+          />
 
           {epoch.pendingQuote && (
             <div className="rounded-xl border border-blue-400/35 bg-blue-500/[0.06] p-4">

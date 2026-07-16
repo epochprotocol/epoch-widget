@@ -22,9 +22,6 @@ const MIDEN_FAUCET_DECIMALS: Record<string, number> = {
   "2458e5446128e6b150b75b8ebd9ce1": 6, // MIDEN
 };
 
-/** @deprecated Prefer `DEFAULT_MIDEN_FAUCET` from `@epoch-protocol/epoch-intent-widget`. */
-export const MIDEN_USDC_FAUCET_ID = "0x2458e5446128e6b150b75b8ebd9ce1";
-
 function toMapKey(faucetId: string): string {
   const hex = normalizeMidenIdToHex(faucetId);
   const lower = hex.trim().toLowerCase();

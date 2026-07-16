@@ -90,7 +90,7 @@ export default function App() {
           />
         )}
         {surface === 'swap' && (
-          <SwapSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} network={network} />
+          <SwapSurface onOpenWidget={openWidget} network={network} />
         )}
         {surface === 'earn' && (
           <EarnSurface apiBaseUrl={apiBaseUrl} onOpenWidget={openWidget} />

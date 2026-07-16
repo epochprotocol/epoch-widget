@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from './hooks/use-latest-ref';
 import { type Address, type WalletClient } from 'viem';
 import {
   PaySession,
@@ -86,22 +87,16 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     onErrorCtx,
   } = params;
 
-  const onIntentSentRef = useRef(onIntentSent);
-  onIntentSentRef.current = onIntentSent;
-  const onIntentCompleteRef = useRef(onIntentComplete);
-  onIntentCompleteRef.current = onIntentComplete;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
-  const onRequestCloseRef = useRef(onRequestClose);
-  onRequestCloseRef.current = onRequestClose;
-  const onStartRef = useRef(onStart);
-  onStartRef.current = onStart;
-  const onSignRef = useRef(onSign);
-  onSignRef.current = onSign;
-  const onSuccessRef = useRef(onSuccess);
-  onSuccessRef.current = onSuccess;
-  const onErrorCtxRef = useRef(onErrorCtx);
-  onErrorCtxRef.current = onErrorCtx;
+  // The long-lived PaySession subscribes once and closes over these, so they
+  // must track the newest props without tearing the session down.
+  const onIntentSentRef = useLatestRef(onIntentSent);
+  const onIntentCompleteRef = useLatestRef(onIntentComplete);
+  const onErrorRef = useLatestRef(onError);
+  const onRequestCloseRef = useLatestRef(onRequestClose);
+  const onStartRef = useLatestRef(onStart);
+  const onSignRef = useLatestRef(onSign);
+  const onSuccessRef = useLatestRef(onSuccess);
+  const onErrorCtxRef = useLatestRef(onErrorCtx);
 
   const [status, setStatus] = useState<IntentFlowStatus>('idle');
   const [activeStep, setActiveStep] = useState(0);
@@ -114,8 +109,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const sessionRef = useRef<PaySession | null>(null);
-  const gaslessRef = useRef(gasless);
-  gaslessRef.current = gasless;
+  const gaslessRef = useLatestRef(gasless);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -198,6 +192,18 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     requiredToken,
     requiredAmount,
     intentConfig,
+    // Ref objects from `useLatestRef`. Their identity never changes, so they
+    // can't retrigger this effect — listed because the linter can't see the
+    // `useRef` behind the custom hook and would otherwise call them missing.
+    gaslessRef,
+    onIntentSentRef,
+    onIntentCompleteRef,
+    onStartRef,
+    onSignRef,
+    onSuccessRef,
+    onErrorRef,
+    onErrorCtxRef,
+    onRequestCloseRef,
   ]);
 
   const reset = useCallback(() => {

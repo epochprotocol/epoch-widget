@@ -7,7 +7,6 @@ import { Row } from '../components/Row';
 import type { DemoNetwork } from '../app/AppShell';
 
 interface Props {
-  apiBaseUrl: string;
   onOpenWidget: (props: ScenarioProps) => void;
   network: DemoNetwork;
 }

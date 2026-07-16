@@ -36,6 +36,11 @@ export function Card({
     ...(radius ? { borderRadius: radius } : null),
     ...style,
   };
+  // A clickable card is a real interaction target, so it needs the keyboard
+  // affordances a native button would give for free: focusable, and activated
+  // by Enter/Space. It stays a plain div when there is nothing to click, and
+  // cannot become a <button> because cards nest their own buttons.
+  const isClickable = Boolean(onClick);
   return (
     <div
       className={cn(
@@ -46,6 +51,18 @@ export function Card({
       )}
       style={inlineStyle}
       onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
     >
       {children}
     </div>
