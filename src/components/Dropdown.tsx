@@ -207,6 +207,17 @@ export function Dropdown({
     return out as CSSProperties;
   })();
 
+  // Portal into the containing <dialog> when there is one: a modal opened with
+  // showModal() sits in the browser top layer, above any body-level portal
+  // regardless of z-index, so a menu portalled to document.body would render
+  // behind it. The dialog fills the viewport (inset-0), so the menu's fixed
+  // positioning still resolves to the same coordinates. Falls back to body for
+  // inline (non-modal) rendering.
+  const portalTarget =
+    (typeof document !== 'undefined' &&
+      containerRef.current?.closest('dialog')) ||
+    (typeof document !== 'undefined' ? document.body : null);
+
   const menuPositionStyle: CSSProperties = {
     top: menuRect?.top ?? 0,
     left: menuRect?.left ?? 0,
@@ -261,6 +272,7 @@ export function Dropdown({
 
       {open &&
         menuRect &&
+        portalTarget &&
         createPortal(
           <div
             ref={menuRef}
@@ -334,7 +346,7 @@ export function Dropdown({
               )}
             </div>
           </div>,
-          document.body,
+          portalTarget,
         )}
     </div>
   );

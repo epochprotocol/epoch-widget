@@ -27,11 +27,13 @@ interface ModalProps {
   renderInline?: boolean;
 }
 
-// The <dialog> itself is the overlay, so `classNames.overlay` keeps applying.
-// The leading resets undo the UA's dialog defaults (auto margins, fit-content
-// sizing, border, its own ::backdrop) — we paint the scrim ourselves.
+// The <dialog> is the overlay, so `classNames.overlay` keeps applying. The
+// resets undo the UA dialog defaults (auto margins, fit-content sizing, border,
+// its own ::backdrop). Deliberately NO backdrop-filter here: that would make the
+// dialog a containing block for fixed-positioned descendants, offsetting the
+// portalled dropdown menus by the padding. The scrim paints the blur instead.
 const OVERLAY_CLASSES =
-  'm-0 max-w-none max-h-none w-full h-full border-0 p-4 fixed inset-0 z-[9999] flex items-center justify-center bg-overlay backdrop-blur-md animate-overlay-in [&::backdrop]:bg-transparent';
+  'fixed inset-0 z-[9999] m-0 max-w-none max-h-none w-full h-full border-0 p-4 flex items-center justify-center bg-transparent animate-overlay-in [&::backdrop]:bg-transparent';
 
 const CONTAINER_CLASSES =
   'flex w-full max-w-[480px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
@@ -164,15 +166,15 @@ export function Modal({
         onClose();
       }}
     >
-      {/* Pointer-only convenience: a real close button lives in the header and
-          Escape is handled natively, so this is hidden from assistive tech
-          rather than duplicated as a second tab stop. */}
+      {/* Scrim: paints the blur (kept off the dialog to avoid a containing
+          block) and closes on click. Pointer-only — the header has a real close
+          button and Escape is native — so it's hidden from assistive tech. */}
       <button
         type="button"
         aria-hidden="true"
         tabIndex={-1}
         onClick={onClose}
-        className="absolute inset-0 cursor-default"
+        className="fixed inset-0 bg-overlay backdrop-blur-md cursor-default"
       />
       <div className={cn(CONTAINER_CLASSES, 'relative', cs?.container)}>
         {headerEl}
