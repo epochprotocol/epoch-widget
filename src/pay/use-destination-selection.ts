@@ -5,6 +5,11 @@ import {
   getEpochTokensByChainEnv,
 } from '../epoch-config';
 import type { EpochChain, EpochToken, IntentConfig, IntentProps } from '../types';
+import {
+  MIDEN_CHAIN,
+  MIDEN_VIRTUAL_CHAIN_ID,
+  getMidenChainTokens,
+} from '../earn/miden';
 
 /** The intent's token shape — narrower than a registry `EpochToken`. */
 type RequiredToken = IntentProps['requiredToken'];
@@ -77,16 +82,16 @@ export function useDestinationSelection({
       : intentConfig.destinationChainId) ??
     (isTestnet ? DEFAULT_DEST_CHAIN_ID.testnet : DEFAULT_DEST_CHAIN_ID.mainnet);
 
-  const allTokens = useMemo(
-    (): TokenOnChain[] =>
-      getEpochChains(isTestnet).flatMap((chain) =>
-        getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
-          ...tok,
-          chain,
-        })),
-      ),
-    [isTestnet],
-  );
+  const allTokens = useMemo((): TokenOnChain[] => {
+    const evm = getEpochChains(isTestnet).flatMap((chain) =>
+      getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
+        ...tok,
+        chain,
+      })),
+    );
+    // Offer Miden as a swap destination alongside the EVM chains.
+    return [...evm, ...getMidenChainTokens(isTestnet)];
+  }, [isTestnet]);
 
   const chainId = locked ? pinnedChainId : (active?.chainId ?? pinnedChainId);
   const tokenAddress = locked
@@ -151,7 +156,10 @@ export function useDestinationSelection({
   return {
     allTokens,
     chainId,
-    chain: getEpochChainById(chainId),
+    chain:
+      chainId === MIDEN_VIRTUAL_CHAIN_ID
+        ? MIDEN_CHAIN
+        : getEpochChainById(chainId),
     tokenAddress,
     meta,
     tokenMeta,

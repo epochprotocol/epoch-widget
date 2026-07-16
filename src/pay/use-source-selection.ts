@@ -3,6 +3,11 @@ import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
 import { useTokenPick } from '../hooks/use-token-pick';
 import type { TokenWithChain } from '../components/TokenSelector';
 import type { EpochChain, EpochIntentWidgetProps } from '../types';
+import {
+  MIDEN_CHAIN,
+  MIDEN_VIRTUAL_CHAIN_ID,
+  getMidenChainTokens,
+} from '../earn/miden';
 import { resolveDefaultSource } from './resolve-default-source';
 
 export interface UseSourceSelectionOptions {
@@ -48,24 +53,32 @@ export function useSourceSelection({
   } | null>(null);
   const chainIdPick = pick?.forTestnet === isTestnet ? pick.chainId : null;
 
+  // Miden's virtual chain + tokens, offered alongside the EVM chains (empty when
+  // the active network has none, e.g. mainnet).
+  const midenTokens = useMemo(() => getMidenChainTokens(isTestnet), [isTestnet]);
+
   const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(',') : '';
   const availableChains = useMemo(() => {
     const all = getEpochChains(isTestnet);
-    if (!sourceChainIds || sourceChainIds.length === 0) return all;
-    const allow = new Set(sourceChainIds);
-    return all.filter((c) => allow.has(c.id));
+    const evm =
+      !sourceChainIds || sourceChainIds.length === 0
+        ? all
+        : all.filter((c) => new Set(sourceChainIds).has(c.id));
+    return midenTokens.length ? [...evm, MIDEN_CHAIN] : evm;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTestnet, sourceChainIdsKey]);
+  }, [isTestnet, sourceChainIdsKey, midenTokens]);
 
   const allTokens = useMemo((): TokenWithChain[] => {
     const flat = availableChains.flatMap((chain) =>
-      getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
-        ...tok,
-        chain,
-      })),
+      chain.id === MIDEN_VIRTUAL_CHAIN_ID
+        ? midenTokens
+        : getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
+            ...tok,
+            chain,
+          })),
     );
     return sourceTokenFilter ? flat.filter(sourceTokenFilter) : flat;
-  }, [availableChains, isTestnet, sourceTokenFilter]);
+  }, [availableChains, isTestnet, sourceTokenFilter, midenTokens]);
 
   const defaultSource = useMemo(
     () =>
