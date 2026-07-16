@@ -276,7 +276,6 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
 
   useOnOpen(isOpen, onOpen);
 
-  // Default destination = the position's underlying chain + token.
   const applySmartDestDefaults = useCallback(
     (position: EpochEarnPosition | null) => {
       if (!position) {
@@ -312,12 +311,8 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     [applySmartDestDefaults, selectedPosition, setSmartWithdraw],
   );
 
-  // Switching network invalidates every network-scoped selection. Both entry
-  // points — the `network` prop and the header toggle — funnel through here so
-  // the resets land in the same render as the `isTestnet` flip, instead of
-  // cascading through an effect that watches `isTestnet` and repaints twice.
-  // Only flips the toggle. Everything network-scoped below is keyed on
-  // `isTestnet` and evicts itself, so there is nothing left to reset.
+  // Only flips the toggle — everything network-scoped is keyed on `isTestnet`
+  // and evicts itself, so there is nothing to reset.
   const applyNetwork = useCallback(
     (nextIsTestnet: boolean) =>
       setNetworkOverride({ forNetwork: networkProp, isTestnet: nextIsTestnet }),
@@ -337,14 +332,10 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     defaultSortDir: earnPoolsSortDir,
   });
 
-  // No "reset on close" effect here by design. `EpochIntentWidget` — the only
-  // thing that renders this — returns null while closed, so the whole component
-  // unmounts and every value below reverts to its useState initializer on the
-  // next open. A reset effect would be dead code that silently rots as new
-  // state is added.
+  // No reset-on-close effect: `EpochIntentWidget` unmounts this while closed,
+  // so state reverts to its initializers on the next open.
 
-  // legacy: callers passing `earnMarkets` directly still see them — we render
-  // the configs picker but the deprecated prop is accepted for back-compat.
+  // Deprecated `earnMarkets` prop, still accepted for back-compat.
   void earnMarketsProp;
   void earnPoolsPerChain;
 

@@ -134,7 +134,6 @@ export function resolvePaySwapCta({
   return { action: 'submit', label: labels.submit };
 }
 
-/** Actions the user can actually click. */
 export function isPaySwapCtaEnabled(action: PaySwapCtaAction): boolean {
   return action === 'submit' || action === 'switch';
 }

@@ -1,6 +1,5 @@
 import type { EpochChain, EpochToken } from '../types';
 
-/** A token paired with the chain it lives on. */
 interface TokenOnChain extends EpochToken {
   chain: EpochChain;
 }

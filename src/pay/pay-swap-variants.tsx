@@ -12,7 +12,6 @@ export interface SummaryContext {
   paySymbol: string;
   /** Source token/chain pill — doubles as the "change source" trigger. */
   payTokenPill?: ReactNode;
-  /** What the user ends up with. */
   receiveAmount: string;
   receiveSymbol: string;
   receiveTokenPill?: ReactNode;

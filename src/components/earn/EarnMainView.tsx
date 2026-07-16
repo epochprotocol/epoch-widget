@@ -16,7 +16,6 @@ interface EarnMainViewProps {
   onOpenPosition: () => void;
 }
 
-/** Deposit / Withdraw tabs — the widget's landing view. */
 export function EarnMainView({
   engine,
   onPickToken,

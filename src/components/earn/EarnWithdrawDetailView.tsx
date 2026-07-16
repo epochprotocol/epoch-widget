@@ -14,7 +14,6 @@ interface EarnWithdrawDetailViewProps {
   onPickAnotherPosition: () => void;
 }
 
-/** Amount + Smart Withdraw destination for one position. */
 export function EarnWithdrawDetailView({
   engine,
   position,
