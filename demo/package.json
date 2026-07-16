@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.30",
+    "@epoch-protocol/epoch-intents-sdk": "^1.0.37",
     "@epoch-protocol/epoch-intent-widget": "^0.1.3",
     "@miden-sdk/miden-sdk": "^0.15.2",
     "@miden-sdk/miden-wallet-adapter-base": "^0.15.1",
