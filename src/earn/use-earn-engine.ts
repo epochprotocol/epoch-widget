@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
-import { detectWalletAccountType } from "@epoch-protocol/epoch-intents-sdk";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
 import { useTokenBalance } from "../use-token-balance";
 import { useSessionId } from "../session";
@@ -18,7 +17,9 @@ import {
 } from "./dummy-lending-markets";
 import { resolveApiForNetwork } from "../resolve-api-config";
 import { useEarnIntentFlow } from "./use-earn-intent-flow";
+import { useEffectiveGasless } from "../hooks/use-effective-gasless";
 import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
+import { usePropOverride } from "../hooks/use-prop-override";
 import { useLatestRef } from "../hooks/use-latest-ref";
 import { useOnOpen } from "../hooks/use-on-open";
 import { useTokenPick } from "../hooks/use-token-pick";
@@ -114,36 +115,16 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
 
-  const effectiveAllowGasless = useMemo(
-    () =>
-      allowGasless &&
-      walletClient != null &&
-      detectWalletAccountType(walletClient as never) === "local",
-    [allowGasless, walletClient],
-  );
+  const effectiveAllowGasless = useEffectiveGasless(allowGasless, walletClient);
 
-  const [tabOverride, setTabOverride] = useState<{
-    forDefault: "deposit" | "withdraw";
-    tab: "deposit" | "withdraw";
-  } | null>(null);
-  const earnTab =
-    tabOverride?.forDefault === earnDefaultTab ? tabOverride.tab : earnDefaultTab;
-  const setEarnTab = useCallback(
-    (tab: "deposit" | "withdraw") =>
-      setTabOverride({ forDefault: earnDefaultTab, tab }),
-    [earnDefaultTab],
+  const [earnTab, setEarnTab] = usePropOverride(
+    earnDefaultTab,
+    (t) => t,
   );
-  // The header toggle overrides the `network` prop, but only for the prop value
-  // it was set against: a new `network` from the integrator evicts the override
-  // instead of being silently ignored. Keyed this way, nothing has to reset it.
-  const [networkOverride, setNetworkOverride] = useState<{
-    forNetwork: string;
-    isTestnet: boolean;
-  } | null>(null);
-  const isTestnet =
-    networkOverride?.forNetwork === networkProp
-      ? networkOverride.isTestnet
-      : networkProp === "testnet";
+  const [isTestnet, applyNetwork] = usePropOverride(
+    networkProp,
+    (n) => n === "testnet",
+  );
 
   const [positionsLenderKey, setPositionsLenderKey] = useState("");
 
@@ -309,14 +290,6 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       if (!next) applySmartDestDefaults(selectedPosition);
     },
     [applySmartDestDefaults, selectedPosition, setSmartWithdraw],
-  );
-
-  // Only flips the toggle — everything network-scoped is keyed on `isTestnet`
-  // and evicts itself, so there is nothing to reset.
-  const applyNetwork = useCallback(
-    (nextIsTestnet: boolean) =>
-      setNetworkOverride({ forNetwork: networkProp, isTestnet: nextIsTestnet }),
-    [networkProp],
   );
 
   const picker = useEarnMarketPicker({

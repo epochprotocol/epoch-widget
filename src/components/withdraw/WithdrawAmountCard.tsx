@@ -1,6 +1,7 @@
 import { cn } from '../../lib/cn';
 import { SECTION_LABEL } from '../../lib/styles';
 import { formatAmount, formatBalancePortionForInput } from '../../utils';
+import { formatUsdPrice } from '../../lib/format-usd';
 import { Avatar } from '../Avatar';
 
 const FRACTIONS: { label: string; num: number; den: number }[] = [
@@ -11,15 +12,6 @@ const FRACTIONS: { label: string; num: number; den: number }[] = [
 
 const FRACTION_CHIP =
   'cursor-pointer rounded-full border border-line bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-fg-secondary transition-[background-color,border-color,color,transform] duration-100 hover:border-primary hover:text-primary active:scale-[0.96]';
-
-function formatUsd(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return '—';
-  if (v >= 1)
-    return `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-  if (v >= 0.01) return `$${v.toFixed(4)}`;
-  if (v > 0) return '<$0.01';
-  return '$0.00';
-}
 
 function TokenChainBadge({
   tokenSymbol,
@@ -105,7 +97,7 @@ export function WithdrawAmountCard({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3 text-xs text-fg-muted tabular-nums">
-          <span>≈ {formatUsd(approxUsd)}</span>
+          <span>≈ {formatUsdPrice(approxUsd) ?? '—'}</span>
           <span className="hidden sm:inline">Balance: {balanceHuman}</span>
         </div>
         <div className="flex gap-1.5">

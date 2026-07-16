@@ -1,4 +1,5 @@
 import { cn } from '../lib/cn';
+import { formatUsdPrice } from '../lib/format-usd';
 import { formatAmount } from '../utils';
 import type { EpochEarnPosition } from '../types';
 
@@ -8,14 +9,6 @@ interface Props {
   onWithdrawClick: () => void;
   /** Per-row entry delay (ms) — used to stagger the list on first mount. */
   entryDelayMs?: number;
-}
-
-function formatUsd(v: number | undefined): string | null {
-  if (v === undefined || !Number.isFinite(v)) return null;
-  if (v >= 1) return `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-  if (v >= 0.01) return `$${v.toFixed(4)}`;
-  if (v > 0) return `<$0.01`;
-  return `$0.00`;
 }
 
 const LOGO_CLASSES = 'h-9 w-9 shrink-0 rounded-full bg-surface object-cover';
@@ -35,7 +28,7 @@ export function PositionRow({ position, expanded, onWithdrawClick, entryDelayMs 
   } catch {
     /* keep dash */
   }
-  const usd = formatUsd(position.underlyingUsdValue);
+  const usd = formatUsdPrice(position.underlyingUsdValue);
   const lender = market.lenderName ?? market.lenderKey ?? 'Lender';
 
   return (

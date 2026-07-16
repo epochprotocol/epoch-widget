@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTokenUsdPrice } from "../hooks/use-token-usd-price";
 import { formatAmount } from "../utils";
-import { formatUsdEquivalent } from "../pay/format-usd";
+import { formatUsdEquivalent } from "../lib/format-usd";
 import {
   isPaySwapCtaEnabled,
   resolvePaySwapCta,

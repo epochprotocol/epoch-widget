@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
-import { detectWalletAccountType } from '@epoch-protocol/epoch-intents-sdk';
+import { useEffectiveGasless } from '../hooks/use-effective-gasless';
 import { useGaslessWallet } from '../hooks/use-gasless-wallet-check';
+import { usePropOverride } from '../hooks/use-prop-override';
 import type { UseGaslessWalletResult } from '../hooks/use-gasless-wallet-check';
 import { resolveApiForNetwork } from '../resolve-api-config';
 import { useSessionId } from '../session';
@@ -150,21 +151,9 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   const sessionId = useSessionId(isOpen);
   const [gasless, setGasless] = useState(gaslessProp);
 
-  // The header toggle overrides the `network` prop, but only for the prop value
-  // it was set against: a new `network` from the integrator evicts the override
-  // instead of being silently ignored. Keyed this way, nothing has to reset it.
-  const [networkOverride, setNetworkOverride] = useState<{
-    forNetwork: string;
-    isTestnet: boolean;
-  } | null>(null);
-  const isTestnet =
-    networkOverride?.forNetwork === network
-      ? networkOverride.isTestnet
-      : network === 'testnet';
-  const applyNetwork = useCallback(
-    (nextIsTestnet: boolean) =>
-      setNetworkOverride({ forNetwork: network, isTestnet: nextIsTestnet }),
-    [network],
+  const [isTestnet, applyNetwork] = usePropOverride(
+    network,
+    (n) => n === 'testnet',
   );
 
   const { data: walletClient } = useWalletClient();
@@ -172,13 +161,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
 
-  const effectiveAllowGasless = useMemo(
-    () =>
-      allowGasless &&
-      walletClient != null &&
-      detectWalletAccountType(walletClient as never) === 'local',
-    [allowGasless, walletClient],
-  );
+  const effectiveAllowGasless = useEffectiveGasless(allowGasless, walletClient);
 
   const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
   const resolvedApi = useMemo(
