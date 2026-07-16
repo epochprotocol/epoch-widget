@@ -107,8 +107,15 @@ export function useIntentTransactionStatus(userAddress?: string, intentNonce?: s
     pollCountRef.current = 0;
     console.log(`${LOG} starting polling loop @ ${POLL_INTERVAL}ms`);
     void poll();
-    intervalRef.current = setInterval(poll, POLL_INTERVAL);
-    return () => stopPolling();
+    // Cleanup clears the id this run created rather than whatever the ref holds
+    // — `poll` can call `stopPolling` on a terminal status and swap it out.
+    const id = setInterval(poll, POLL_INTERVAL);
+    intervalRef.current = id;
+    return () => {
+      clearInterval(id);
+      if (intervalRef.current === id) intervalRef.current = null;
+      setIsPolling(false);
+    };
   }, [sdk, userAddress, intentNonce, poll, stopPolling]);
 
   return { statuses, isPolling, error, refetch: poll };
