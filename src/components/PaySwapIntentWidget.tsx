@@ -14,7 +14,7 @@ import { NetworkToggle } from "./NetworkToggle";
 import { TokenChainPill } from "./TokenChainPill";
 import { ActionButton } from "./ui/ActionButton";
 import { PaySwapMainView } from "./pay/PaySwapMainView";
-import { TokenPickerModal } from "./pay/TokenPickerModal";
+import { TokenPickerModal } from "./TokenPickerModal";
 
 export type { PaySwapIntentWidgetProps } from "../pay/pay-swap-props";
 import type { PaySwapIntentWidgetProps } from "../pay/pay-swap-props";

@@ -3,6 +3,11 @@ import { Banner } from './Banner';
 import { CheckIcon } from './Icons';
 import { ProgressStepper } from './ProgressStepper';
 
+/** Flows disagree on which statuses show the tracker — Earn reports `sent`
+ *  where Pay/Swap reports `polling`. */
+export const EARN_PROGRESS_STATUSES = ['submitting', 'sent', 'complete'];
+export const PAY_SWAP_PROGRESS_STATUSES = ['submitting', 'polling', 'complete'];
+
 interface IntentProgressProps {
   status: string;
   /**

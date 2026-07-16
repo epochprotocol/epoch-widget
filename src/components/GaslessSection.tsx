@@ -7,6 +7,7 @@ interface GaslessSectionProps {
   wallet: UseGaslessWalletResult;
   gasless: boolean;
   onChange: (next: boolean) => void;
+  className?: string;
 }
 
 /** Wires `useGaslessWallet` to its button. Shared by every flow's footer area. */
@@ -15,6 +16,7 @@ export function GaslessSection({
   wallet,
   gasless,
   onChange,
+  className,
 }: GaslessSectionProps) {
   if (!allowed) return null;
   return (
@@ -28,6 +30,7 @@ export function GaslessSection({
       checking={wallet.checking}
       onEnable={() => onChange(true)}
       onDisable={() => onChange(false)}
+      className={className}
     />
   );
 }

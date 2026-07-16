@@ -3,10 +3,10 @@ import type { PaySwapEngine } from '../../pay/use-pay-swap-engine';
 import type { EpochClassNames } from '../../types';
 import { Banner } from '../Banner';
 import { GaslessSection } from '../GaslessSection';
-import { IntentProgress } from '../IntentProgress';
-
-/** Statuses Pay/Swap shows the step tracker for. Earn tracks a different set. */
-const PROGRESS_STATUSES = ['submitting', 'polling', 'complete'];
+import {
+  IntentProgress,
+  PAY_SWAP_PROGRESS_STATUSES,
+} from '../IntentProgress';
 
 interface PaySwapMainViewProps {
   engine: PaySwapEngine;
@@ -85,7 +85,7 @@ export function PaySwapMainView({
 
       <IntentProgress
         status={intentFlow.status}
-        showFor={PROGRESS_STATUSES}
+        showFor={PAY_SWAP_PROGRESS_STATUSES}
         activeStep={intentFlow.activeStep}
         statusProgress={intentFlow.statusProgress}
         successMessage={spec.successMessage}

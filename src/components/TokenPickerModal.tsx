@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
-import { Modal } from '../Modal';
-import { TokenSelector, type TokenWithChain } from '../TokenSelector';
+import { Modal } from './Modal';
+import { TokenSelector, type TokenWithChain } from './TokenSelector';
 
 interface TokenPickerModalProps {
   /** Modal chrome shared with every other view of the widget. */
@@ -13,7 +13,7 @@ interface TokenPickerModalProps {
   onBack: () => void;
 }
 
-/** Source and destination pickers differ only in title and list. */
+/** Every flow's token picker differs only in title and list. */
 export function TokenPickerModal({
   chrome,
   title,

@@ -46,7 +46,7 @@ interface ExecutionTx {
   callData: string;
 }
 
-interface EarnQuote {
+export interface EarnQuote {
   tokenIn?: string;
   tokenOut?: string;
   asset?: string;
@@ -55,7 +55,7 @@ interface EarnQuote {
   raw?: unknown;
 }
 
-interface EarnQuoteInput {
+export interface EarnQuoteInput {
   tab: 'deposit' | 'withdraw';
   amount: string;
   market?: EpochEarnMarket | null;
@@ -88,7 +88,7 @@ interface EarnQuoteInput {
   };
 }
 
-interface EarnSubmitInput extends EarnQuoteInput {
+export interface EarnSubmitInput extends EarnQuoteInput {
   quote: EarnQuote | null;
 }
 

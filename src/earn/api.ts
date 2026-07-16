@@ -53,7 +53,7 @@ interface ConfigsState {
   error: Error | null;
 }
 
-interface PositionsState {
+export interface PositionsState {
   positions: EpochEarnPosition[];
   summary: EpochEarnPositionsSummary | null;
   isLoading: boolean;
