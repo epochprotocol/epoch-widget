@@ -6,8 +6,10 @@ import { TaskType } from '@epoch-protocol/epoch-commons-sdk';
 import {
   ActionType,
   CollateralType,
+  DEPOSIT_EXTRADATA_TYPESTRING,
   EpochIntentSDK,
   EVM_TO_MIDEN_EXTRA_TYPESTRING,
+  WITHDRAW_EXTRADATA_TYPESTRING,
   ZERO_BYTES32,
   isUserWalletRejection,
 } from '@epoch-protocol/epoch-intents-sdk';
@@ -399,23 +401,25 @@ export function useEarnIntentFlow({
         : input.sourceChainId === Number(destinationChainId);
       const payAsset = underlyingAddress;
 
-      const extraDataFields = ['string marketUid', 'string action', 'string payAsset'];
-      if (isWithdraw) extraDataFields.push('bool isAll', 'bool simulate');
-      if (isMidenDeposit) extraDataFields.push(...EARN_MIDEN_EXTRA_FIELDS);
-      const extraDataTypestring = extraDataFields.join(',');
+      // Canonical earn extradata typestrings, single-sourced from the SDK so the
+      // fields stay in lockstep with the solver. Miden deposits append the
+      // Miden→EVM witness suffix.
+      const baseTypestring = isWithdraw
+        ? WITHDRAW_EXTRADATA_TYPESTRING
+        : DEPOSIT_EXTRADATA_TYPESTRING;
+      const extraDataTypestring = isMidenDeposit
+        ? `${baseTypestring},${EARN_MIDEN_EXTRA_FIELDS.join(',')}`
+        : baseTypestring;
 
       const extraData: Record<string, string | boolean> = {
         marketUid,
         action: input.tab,
         payAsset,
+        // Declared by the canonical typestring, so it must be present. Pinned
+        // false: a full-exit withdraw resolves its size at execution, and
+        // deposits pass a real amount either way.
+        isAll: false,
       };
-      if (isWithdraw) {
-        // Pinned false to match the SDK's withdraw action: a full-exit withdraw
-        // resolves its size at execution time, which a swap leg can't be quoted
-        // against. The field stays in the typestring — the solver decodes it.
-        extraData.isAll = false;
-        extraData.simulate = true;
-      }
       if (isMidenDeposit && input.midenSource) {
         extraData.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
         extraData.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
