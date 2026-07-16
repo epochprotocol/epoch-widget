@@ -14,7 +14,7 @@ import { NetworkToggle } from "./NetworkToggle";
 import { TokenChainPill } from "./TokenChainPill";
 import { ActionButton } from "./ui/ActionButton";
 import { PaySwapMainView } from "./pay/PaySwapMainView";
-import { TokenPickerModal } from "./TokenPickerModal";
+import { TokenSelector } from "./TokenSelector";
 
 export type { PaySwapIntentWidgetProps } from "../pay/pay-swap-props";
 import type { PaySwapIntentWidgetProps } from "../pay/pay-swap-props";
@@ -86,43 +86,7 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     resolver: engine.usdPriceResolver,
   });
 
-  // Spread, so a modal prop can't be wired on two views and missed on the third.
-  const chrome = { isOpen, onClose, theme, classNames: cn, renderInline };
   const backToMain = () => setView("main");
-
-  if (view === "selectToken") {
-    return (
-      <TokenPickerModal
-        chrome={chrome}
-        title="Select source token"
-        tokens={source.allTokens}
-        selectedTokenAddress={source.tokenAddress}
-        selectedChainId={source.chainId}
-        onSelect={(cid, addr) => {
-          source.select(cid, addr);
-          backToMain();
-        }}
-        onBack={backToMain}
-      />
-    );
-  }
-
-  if (view === "selectDestToken") {
-    return (
-      <TokenPickerModal
-        chrome={chrome}
-        title="Select destination token"
-        tokens={destination.allTokens}
-        selectedTokenAddress={destination.tokenAddress}
-        selectedChainId={destination.chainId}
-        onSelect={(cid, addr) => {
-          destination.select(cid, addr);
-          backToMain();
-        }}
-        onBack={backToMain}
-      />
-    );
-  }
 
   const inlineError = intentFlow.quoteError
     ? `Quote failed: ${intentFlow.quoteError}`
@@ -187,34 +151,87 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     />
   );
 
+  // One <Modal> renders every view — swapping to a different modal component per
+  // view would remount the <dialog> and replay its open animation (a flicker
+  // when picking a token).
+  const modalView = (() => {
+    if (view === "selectToken") {
+      return {
+        title: "Select source token",
+        onBack: backToMain,
+        content: (
+          <TokenSelector
+            tokens={source.allTokens}
+            selectedTokenAddress={source.tokenAddress}
+            selectedChainId={source.chainId}
+            onSelect={(addr, cid) => {
+              source.select(cid, addr);
+              backToMain();
+            }}
+            onBack={backToMain}
+          />
+        ),
+      };
+    }
+    if (view === "selectDestToken") {
+      return {
+        title: "Select destination token",
+        onBack: backToMain,
+        content: (
+          <TokenSelector
+            tokens={destination.allTokens}
+            selectedTokenAddress={destination.tokenAddress}
+            selectedChainId={destination.chainId}
+            onSelect={(addr, cid) => {
+              destination.select(cid, addr);
+              backToMain();
+            }}
+            onBack={backToMain}
+          />
+        ),
+      };
+    }
+    return {
+      title: engine.modalTitle,
+      footer,
+      headerAction: engine.allowNetworkToggle ? (
+        <NetworkToggle
+          isTestnet={engine.isTestnet}
+          onChange={engine.applyNetwork}
+        />
+      ) : undefined,
+      content: (
+        <PaySwapMainView
+          engine={engine}
+          payAmount={payAmountStr}
+          receiveAmount={receiveAmountStr}
+          payTokenPill={sourcePill}
+          receiveTokenPill={destinationPill}
+          balanceStr={
+            source.token && engine.balance !== null
+              ? `Balance: ${formatAmount(engine.balance, source.token.decimals)} ${source.token.symbol}`
+              : undefined
+          }
+          usdEquivalent={formatUsdEquivalent(payAmountStr, priceUsd)}
+          classNames={cn}
+        />
+      ),
+    };
+  })();
+
   return (
     <Modal
-      {...chrome}
-      title={engine.modalTitle}
-      footer={footer}
-      headerAction={
-        engine.allowNetworkToggle ? (
-          <NetworkToggle
-            isTestnet={engine.isTestnet}
-            onChange={engine.applyNetwork}
-          />
-        ) : undefined
-      }
+      isOpen={isOpen}
+      onClose={onClose}
+      theme={theme}
+      classNames={cn}
+      renderInline={renderInline}
+      title={modalView.title}
+      footer={modalView.footer}
+      onBack={modalView.onBack}
+      headerAction={modalView.headerAction}
     >
-      <PaySwapMainView
-        engine={engine}
-        payAmount={payAmountStr}
-        receiveAmount={receiveAmountStr}
-        payTokenPill={sourcePill}
-        receiveTokenPill={destinationPill}
-        balanceStr={
-          source.token && engine.balance !== null
-            ? `Balance: ${formatAmount(engine.balance, source.token.decimals)} ${source.token.symbol}`
-            : undefined
-        }
-        usdEquivalent={formatUsdEquivalent(payAmountStr, priceUsd)}
-        classNames={cn}
-      />
+      {modalView.content}
     </Modal>
   );
 }
