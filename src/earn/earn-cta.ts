@@ -34,10 +34,10 @@ export interface ResolveEarnCtaParams {
   effectiveSourceChainId: number | null;
   effectiveSourceToken: EpochToken | null;
   isWrongNetwork: boolean;
+  /** Entered amount exceeds the funding balance (EVM/Miden deposit or withdraw). */
   insufficientBalance: boolean;
-  selectedToken: EpochToken | null;
-  insufficientMidenBalance: boolean;
-  midenAssetSymbol: string | undefined;
+  /** Token symbol for the insufficient-balance message. */
+  insufficientBalanceSymbol: string;
   /** The active tab's intent built cleanly. */
   buildOk: boolean;
   /** Smart Withdraw destination still equals the position's own chain + token. */
@@ -72,9 +72,7 @@ export function resolveEarnCta({
   effectiveSourceToken,
   isWrongNetwork,
   insufficientBalance,
-  selectedToken,
-  insufficientMidenBalance,
-  midenAssetSymbol,
+  insufficientBalanceSymbol,
   buildOk,
   isSmartWithdrawDegenerate,
   midenSmartDestNotReady,
@@ -124,16 +122,12 @@ export function resolveEarnCta({
     };
   }
 
-  if (insufficientBalance && selectedToken) {
+  if (insufficientBalance) {
     return {
       action: 'disabled',
-      label: `Insufficient ${selectedToken.symbol} balance`,
-    };
-  }
-  if (insufficientMidenBalance && midenAssetSymbol) {
-    return {
-      action: 'disabled',
-      label: `Insufficient ${midenAssetSymbol} balance`,
+      label: insufficientBalanceSymbol
+        ? `Insufficient ${insufficientBalanceSymbol} balance`
+        : 'Insufficient balance',
     };
   }
 

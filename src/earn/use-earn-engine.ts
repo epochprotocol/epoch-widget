@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
 import { useTokenBalance } from "../use-token-balance";
+import { exceedsBalance, positionWithdrawableRaw } from "./balance";
 import { useSessionId } from "../session";
 import type { EpochEarnMarket, EpochEarnPosition } from "../types";
 import { useUserPositions } from "./api";
@@ -550,16 +551,49 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     fundingSource === "evm" &&
     effectiveSourceChainId !== null &&
     chainId !== effectiveSourceChainId;
-  const insufficientBalance =
-    earnTab === "deposit" &&
-    fundingSource === "evm" &&
-    balance !== null &&
-    balance === 0n;
-  const insufficientMidenBalance =
-    earnTab === "deposit" &&
-    fundingSource === "miden" &&
-    miden.balance !== null &&
-    miden.balance === 0n;
+  // Block submit when the entered amount exceeds what the funding source holds:
+  // the EVM/Miden wallet on deposit, the position's withdrawable on withdraw.
+  const { insufficientBalance, insufficientBalanceSymbol } = (() => {
+    const flag = (symbol: string | undefined) => ({
+      insufficientBalance: true,
+      insufficientBalanceSymbol: symbol ?? "",
+    });
+    const ok = { insufficientBalance: false, insufficientBalanceSymbol: "" };
+
+    if (earnTab === "deposit") {
+      if (fundingSource === "miden") {
+        const asset = miden.selectedAsset;
+        if (
+          asset &&
+          miden.balance !== null &&
+          exceedsBalance(earnAmount, asset.decimals, miden.balance)
+        ) {
+          return flag(asset.symbol);
+        }
+        return ok;
+      }
+      if (
+        selectedToken &&
+        balance !== null &&
+        exceedsBalance(earnAmount, selectedToken.decimals, balance)
+      ) {
+        return flag(selectedToken.symbol);
+      }
+      return ok;
+    }
+
+    if (
+      selectedPosition &&
+      exceedsBalance(
+        withdrawAmount,
+        selectedPosition.market.token.decimals,
+        positionWithdrawableRaw(selectedPosition),
+      )
+    ) {
+      return flag(selectedPosition.market.token.symbol);
+    }
+    return ok;
+  })();
   const isBusy = earnFlow.isBusy;
 
   // Cross-chain = the market lives on a different chain than the source the
@@ -593,9 +627,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     effectiveSourceToken,
     isWrongNetwork,
     insufficientBalance,
-    selectedToken,
-    insufficientMidenBalance,
-    midenAssetSymbol: miden.selectedAsset?.symbol,
+    insufficientBalanceSymbol,
     buildOk: activeBuildOk,
     isSmartWithdrawDegenerate,
     midenSmartDestNotReady: miden.smartDestNotReady,
