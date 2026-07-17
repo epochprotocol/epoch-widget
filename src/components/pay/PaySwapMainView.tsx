@@ -53,7 +53,11 @@ export function PaySwapMainView({
       )}
 
       <GaslessSection
-        allowed={engine.effectiveAllowGasless}
+        allowed={
+          engine.effectiveAllowGasless &&
+          !engine.isMidenSource &&
+          !engine.isMidenDest
+        }
         wallet={engine.gaslessWallet}
         gasless={engine.gasless}
         onChange={engine.setGasless}

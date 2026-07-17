@@ -105,7 +105,9 @@ export default function App() {
           <EpochIntentWidget
             {...widgetProps}
             {...(isEarnMode ? { earnSolverUrl } : {})}
-            earnMiden={isEarnMode ? earnMiden : undefined}
+            // One adapter for every flow; the widget wires earn and pay/swap off
+            // it. Testnet only — mainnet has no Miden faucets.
+            miden={network === 'testnet' ? earnMiden : undefined}
             isOpen={widgetOpen}
             onClose={() => setWidgetOpen(false)}
             network={network}

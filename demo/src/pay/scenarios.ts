@@ -1,4 +1,8 @@
 import type { EpochIntentWidgetProps } from "@epoch-protocol/epoch-intent-widget";
+import {
+  DEFAULT_MIDEN_FAUCET,
+  MIDEN_VIRTUAL_CHAIN_ID,
+} from "@epoch-protocol/epoch-intent-widget";
 
 export type ScenarioProps = Omit<
   EpochIntentWidgetProps,
@@ -188,6 +192,7 @@ export const SWAP_TESTNET_SCENARIOS: Scenario[] = [
     props: {
       mode: "swap",
       network: "testnet",
+      allowNetworkToggle: true,
       title: "Swap",
       ctaLabels: SHARED_CTA_LABELS,
       usdPriceFor: SHARED_USD_ORACLE,
@@ -202,6 +207,7 @@ export const SWAP_TESTNET_SCENARIOS: Scenario[] = [
     props: {
       mode: "swap",
       network: "testnet",
+      allowNetworkToggle: true,
       title: "Swap",
       ctaLabels: SHARED_CTA_LABELS,
       usdPriceFor: SHARED_USD_ORACLE,
@@ -221,6 +227,55 @@ export const SWAP_TESTNET_SCENARIOS: Scenario[] = [
           destinationChainId: 11155420,
         },
       },
+    },
+  },
+  {
+    id: "swap-miden-to-evm",
+    name: "Swap (Miden → Base Sepolia)",
+    tagline:
+      "Source funds on Miden — the wallet mints a P2ID note the allocator claims — and receive test USDC on Base Sepolia. Opens with Miden preselected; connect a Miden wallet to sign.",
+    props: {
+      mode: "swap",
+      network: "testnet",
+      allowNetworkToggle: true,
+      title: "Swap from Miden",
+      ctaLabels: SHARED_CTA_LABELS,
+      usdPriceFor: SHARED_USD_ORACLE,
+      intent: SWAP_TESTNET_INITIAL_INTENT,
+      defaultSourceChainId: MIDEN_VIRTUAL_CHAIN_ID,
+      defaultSourceTokenAddress: DEFAULT_MIDEN_FAUCET.faucetId,
+    },
+  },
+  {
+    id: "swap-evm-to-miden",
+    name: "Swap (Base Sepolia → Miden)",
+    tagline:
+      "Pay with test USDC on an EVM chain, receive USDC on Miden. The EVM wallet signs; the recipient is your connected Miden account.",
+    props: {
+      mode: "swap",
+      network: "testnet",
+      allowNetworkToggle: true,
+      title: "Swap to Miden",
+      ctaLabels: SHARED_CTA_LABELS,
+      usdPriceFor: SHARED_USD_ORACLE,
+      intent: {
+        requiredToken: {
+          address: DEFAULT_MIDEN_FAUCET.faucetId,
+          symbol: DEFAULT_MIDEN_FAUCET.symbol,
+          decimals: DEFAULT_MIDEN_FAUCET.decimals,
+        },
+        requiredAmount: BigInt(1_000_000), // 1 USDC (Miden faucet, 6 decimals)
+        destinationChainName: "Miden",
+        positionLabel: "1 USDC on Miden",
+        config: {
+          protocol: "swap",
+          action: "swap",
+          fixedOutput: true,
+          destinationTestnetChainId: MIDEN_VIRTUAL_CHAIN_ID,
+        },
+      },
+      defaultSourceChainId: 84532,
+      defaultSourceTokenAddress: BASE_SEPOLIA_USDC,
     },
   },
 ];

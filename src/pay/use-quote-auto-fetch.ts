@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { useLatestRef } from '../hooks/use-latest-ref';
 import type { EpochToken } from '../types';
+import type {
+  PaySwapMidenSource,
+  PaySwapMidenDest,
+} from './use-pay-swap-miden';
 
 export interface UseQuoteAutoFetchOptions {
   /** Only fixed-output flows need a quote to learn what the user pays. */
@@ -13,9 +17,14 @@ export interface UseQuoteAutoFetchOptions {
   address: string | undefined;
   hasWalletClient: boolean;
   isWrongNetwork: boolean;
+  /** Miden legs must be quoted with the same payload they'll submit with. */
+  midenSource?: PaySwapMidenSource;
+  midenDest?: PaySwapMidenDest;
   fetchQuote: (input: {
     sourceChainId: number;
     sourceToken: EpochToken;
+    midenSource?: PaySwapMidenSource;
+    midenDest?: PaySwapMidenDest;
   }) => void;
 }
 
@@ -36,16 +45,21 @@ export function useQuoteAutoFetch({
   address,
   hasWalletClient,
   isWrongNetwork,
+  midenSource,
+  midenDest,
   fetchQuote,
 }: UseQuoteAutoFetchOptions): void {
   const fetchQuoteRef = useLatestRef(fetchQuote);
   const sourceTokenAddress = sourceToken?.address ?? '';
+  // Re-quote when the Miden payload resolves (e.g. the wallet connects); the
+  // engine already excludes a Miden source from `isWrongNetwork`.
+  const midenKey = `${midenSource?.accountId ?? ''}|${midenDest?.recipientAccount ?? ''}`;
 
   useEffect(() => {
     if (!enabled) return;
     if (!sourceChainId || !sourceToken) return;
     if (!hasWalletClient || !address || isWrongNetwork) return;
-    fetchQuoteRef.current({ sourceChainId, sourceToken });
+    fetchQuoteRef.current({ sourceChainId, sourceToken, midenSource, midenDest });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     enabled,
@@ -56,6 +70,7 @@ export function useQuoteAutoFetch({
     isWrongNetwork,
     destChainId,
     destTokenAddress,
+    midenKey,
     fetchQuoteRef,
   ]);
 }

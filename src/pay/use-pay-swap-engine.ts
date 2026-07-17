@@ -13,9 +13,15 @@ import { buildPayIntentFromFlatProps } from './build-pay-intent';
 import type { PaySwapIntentWidgetProps } from './pay-swap-props';
 import { PAY_SWAP_VARIANTS } from './pay-swap-variants';
 import type { PaySwapVariantSpec } from './pay-swap-variants';
+import { MIDEN_VIRTUAL_CHAIN_ID } from '../earn/miden';
 import { useDestinationSelection } from './use-destination-selection';
 import type { DestinationSelection } from './use-destination-selection';
 import { usePaySwapCallbacks } from './use-pay-swap-callbacks';
+import { usePaySwapMiden } from './use-pay-swap-miden';
+import type {
+  PaySwapMidenSource,
+  PaySwapMidenDest,
+} from './use-pay-swap-miden';
 import { useQuoteAutoFetch } from './use-quote-auto-fetch';
 import { useSourceSelection } from './use-source-selection';
 import type { SourceSelection } from './use-source-selection';
@@ -37,6 +43,21 @@ export interface PaySwapEngine {
   destination: DestinationSelection;
   intentFlow: ReturnType<typeof useIntentFlow>;
   gaslessWallet: UseGaslessWalletResult;
+
+  /** Source tokens for the picker — Miden filtered out when the destination is Miden. */
+  sourceTokens: SourceSelection['allTokens'];
+  /** Destination tokens for the picker — Miden filtered out when the source is Miden. */
+  destinationTokens: DestinationSelection['allTokens'];
+
+  /** The resolved Miden adapter, for the `connectMiden` CTA. */
+  miden: PaySwapIntentWidgetProps['miden'];
+  isMidenSource: boolean;
+  isMidenDest: boolean;
+  midenConnected: boolean;
+  /** Miden→EVM funding payload threaded into submit/quote when the source is Miden. */
+  midenSource: PaySwapMidenSource | undefined;
+  /** EVM→Miden delivery payload threaded into submit/quote when the destination is Miden. */
+  midenDest: PaySwapMidenDest | undefined;
 
   /** The integrator's intent resolved — false means nothing to submit. */
   hasIntent: boolean;
@@ -114,6 +135,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     onSourceTokenChange,
     onQuote,
     routingAndLiquidityOptions,
+    miden,
   } = props;
 
   const spec = PAY_SWAP_VARIANTS[variant];
@@ -185,6 +207,34 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     locked: lockDestinationToken,
   });
 
+  const {
+    isMidenSource,
+    isMidenDest,
+    midenConnected,
+    midenSource,
+    midenDest,
+    midenBalance,
+  } = usePaySwapMiden({ miden, source, destination });
+
+  // Miden lives on both pickers, but the same virtual chain can't be both ends of
+  // a swap — drop it from the opposite list once one side is Miden.
+  const sourceTokens = useMemo(
+    () =>
+      isMidenDest
+        ? source.allTokens.filter((t) => t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID)
+        : source.allTokens,
+    [isMidenDest, source.allTokens],
+  );
+  const destinationTokens = useMemo(
+    () =>
+      isMidenSource
+        ? destination.allTokens.filter(
+            (t) => t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID,
+          )
+        : destination.allTokens,
+    [isMidenSource, destination.allTokens],
+  );
+
   const gaslessWallet = useGaslessWallet({
     allowGasless: effectiveAllowGasless,
     apiBaseUrl,
@@ -200,14 +250,20 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     switchChain,
   });
 
-  const { balance, isLoading: isBalanceLoading } = useTokenBalance(
-    source.chainId,
+  // Skip the EVM RPC entirely for a Miden source — chain 999999999 has no
+  // provider; the Miden balance comes from the adapter instead.
+  const { balance: evmBalance, isLoading: isBalanceLoading } = useTokenBalance(
+    isMidenSource ? null : source.chainId,
     source.tokenAddress,
     address,
     rpcUrls,
   );
+  const balance = isMidenSource ? midenBalance : evmBalance;
 
-  const isWrongNetwork = source.chainId !== null && chainId !== source.chainId;
+  // A Miden source funds off the virtual chain, so the wallet's EVM chain never
+  // needs to match it — exclude it from the wrong-network nudge (mirrors earn).
+  const isWrongNetwork =
+    !isMidenSource && source.chainId !== null && chainId !== source.chainId;
   const insufficientBalance = balance !== null && balance === 0n;
 
   const intentFlow = useIntentFlow({
@@ -222,7 +278,8 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     mode: variant,
     receiver,
     routingAndLiquidityOptions,
-    gasless: effectiveAllowGasless && gasless,
+    // Gasless relay is EVM-collateral only; force it off on any Miden leg.
+    gasless: effectiveAllowGasless && gasless && !isMidenSource && !isMidenDest,
     onIntentSent,
     onIntentComplete,
     onRequestClose: onClose,
@@ -252,6 +309,8 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     address,
     hasWalletClient: !!walletClient,
     isWrongNetwork,
+    midenSource,
+    midenDest,
     fetchQuote: intentFlow.fetchQuote,
   });
 
@@ -268,6 +327,15 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     destination,
     intentFlow,
     gaslessWallet,
+
+    sourceTokens,
+    destinationTokens,
+    miden,
+    isMidenSource,
+    isMidenDest,
+    midenConnected,
+    midenSource,
+    midenDest,
 
     hasIntent,
     flatPayError: flatPayBuild && !flatPayBuild.ok ? flatPayBuild.error : null,
@@ -302,7 +370,12 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
       !isWrongNetwork &&
       !insufficientBalance &&
       !isBusy &&
-      !(intentConfig.fixedOutput && intentFlow.isQuoting),
+      !(intentConfig.fixedOutput && intentFlow.isQuoting) &&
+      // Miden legs need the adapter connected + a resolved payload, and a swap
+      // can't have Miden on both ends.
+      !(isMidenSource && isMidenDest) &&
+      (!isMidenSource || (midenConnected && !!midenSource)) &&
+      (!isMidenDest || (midenConnected && !!midenDest)),
 
     modalTitle: titleProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb),
     modalSubmitText:

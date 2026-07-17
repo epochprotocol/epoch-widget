@@ -46,6 +46,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     earnDepositDefaults,
     earnWithdrawDefaults,
     earnMiden,
+    miden,
     earnChainIds,
     earnLenderFilter,
     earnPoolsPerChain,
@@ -73,6 +74,10 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
   if (!isOpen) {
     return null;
   }
+
+  // One adapter for every flow. `earnMiden` stays a back-compat alias for the
+  // neutral `miden` prop; a caller wiring both flows passes it once.
+  const midenAdapter = miden ?? earnMiden;
 
   const paySwapShared = {
     isOpen,
@@ -111,6 +116,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     onSourceTokenChange,
     onQuote,
     routingAndLiquidityOptions,
+    miden: midenAdapter,
   };
 
   if (!isConnected) {
@@ -150,7 +156,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         earnHideTabs={earnHideTabs}
         earnDepositDefaults={earnDepositDefaults}
         earnWithdrawDefaults={earnWithdrawDefaults}
-        earnMiden={earnMiden}
+        earnMiden={midenAdapter}
         earnChainIds={earnChainIds}
         earnLenderFilter={earnLenderFilter}
         earnPoolsPerChain={earnPoolsPerChain}

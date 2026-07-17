@@ -1,6 +1,10 @@
 import type { EpochChain, EpochToken, EpochIntentWidgetProps } from '../types';
 
-export type PaySwapCtaAction = 'switch' | 'submit' | 'disabled';
+export type PaySwapCtaAction =
+  | 'switch'
+  | 'submit'
+  | 'disabled'
+  | 'connectMiden';
 export type PaySwapCtaTone = 'primary' | 'warning' | 'success';
 
 export interface PaySwapCtaState {
@@ -69,6 +73,12 @@ export interface ResolvePaySwapCtaParams {
   selectedChain: EpochChain | null | undefined;
   insufficientBalance: boolean;
   selectedToken: EpochToken | null;
+  /** Source is the Miden virtual chain (Miden→EVM). */
+  isMidenSource: boolean;
+  /** Destination is the Miden virtual chain (EVM→Miden). */
+  isMidenDest: boolean;
+  /** The Miden wallet adapter reports a connected account. */
+  midenConnected: boolean;
 }
 
 /** Which submit step each `activeStep` corresponds to, for the busy label. */
@@ -96,6 +106,9 @@ export function resolvePaySwapCta({
   selectedChain,
   insufficientBalance,
   selectedToken,
+  isMidenSource,
+  isMidenDest,
+  midenConnected,
 }: ResolvePaySwapCtaParams): PaySwapCtaState {
   // Nothing to submit. A build error is the more specific reason, so prefer it.
   if (!hasIntent) {
@@ -117,7 +130,21 @@ export function resolvePaySwapCta({
     return { action: 'disabled', label: labels.complete, tone: 'success' };
   }
 
-  if (isWrongNetwork && selectedChain) {
+  // Miden is a virtual chain: it can't be both ends of a swap, and either end
+  // needs its wallet connected before the flow can proceed. Both checks precede
+  // the EVM wrong-network nudge (which the engine already skips for a Miden
+  // source), so a user is never told to switch to a chain that doesn't exist.
+  if (isMidenSource && isMidenDest) {
+    return { action: 'disabled', label: 'Select a different destination' };
+  }
+  if ((isMidenSource || isMidenDest) && !midenConnected) {
+    return { action: 'connectMiden', label: 'Connect Miden wallet' };
+  }
+
+  // `!isMidenSource` is belt-and-suspenders: the engine already forces
+  // `isWrongNetwork` false for a Miden source, but guarding here means a "Switch
+  // to Miden" (an impossible EVM chain switch) can never surface even if it leaks.
+  if (isWrongNetwork && selectedChain && !isMidenSource) {
     return {
       action: 'switch',
       label: labels.switchNetwork(selectedChain.name),
@@ -135,5 +162,7 @@ export function resolvePaySwapCta({
 }
 
 export function isPaySwapCtaEnabled(action: PaySwapCtaAction): boolean {
-  return action === 'submit' || action === 'switch';
+  return (
+    action === 'submit' || action === 'switch' || action === 'connectMiden'
+  );
 }

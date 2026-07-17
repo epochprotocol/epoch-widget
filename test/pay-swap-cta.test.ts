@@ -32,6 +32,9 @@ const base = {
     name: "USD Coin",
     chainId: 8453,
   },
+  isMidenSource: false,
+  isMidenDest: false,
+  midenConnected: false,
 };
 
 describe("resolvePaySwapCta", () => {
@@ -119,6 +122,56 @@ describe("resolvePaySwapCta", () => {
       resolvePaySwapCta({ ...base, labels: custom, isWrongNetwork: true }).label,
       "Go to Base",
     );
+  });
+
+  // The four Miden quadrants — the reason the CTA grew Miden inputs at all.
+  it("EVM→EVM: unchanged submit when no Miden leg", () => {
+    const cta = resolvePaySwapCta(base);
+    assert.equal(cta.action, "submit");
+  });
+
+  it("Miden→EVM: prompts a Miden connect before anything else", () => {
+    const cta = resolvePaySwapCta({ ...base, isMidenSource: true });
+    assert.equal(cta.action, "connectMiden");
+    assert.equal(cta.label, "Connect Miden wallet");
+    assert.ok(isPaySwapCtaEnabled(cta.action));
+  });
+
+  it("EVM→Miden: prompts a Miden connect for the recipient account", () => {
+    const cta = resolvePaySwapCta({ ...base, isMidenDest: true });
+    assert.equal(cta.action, "connectMiden");
+  });
+
+  it("Miden→EVM: submits once the Miden wallet is connected", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isMidenSource: true,
+      midenConnected: true,
+    });
+    assert.equal(cta.action, "submit");
+  });
+
+  // The original bug: a Miden source could never advance past "Switch to Miden".
+  it("Miden→EVM: never offers a network switch, even if wrong-network leaks", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isMidenSource: true,
+      midenConnected: true,
+      isWrongNetwork: true,
+    });
+    assert.notEqual(cta.action, "switch");
+    assert.equal(cta.action, "submit");
+  });
+
+  it("Miden→Miden: denied — a virtual chain can't be both ends", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isMidenSource: true,
+      isMidenDest: true,
+      midenConnected: true,
+    });
+    assert.equal(cta.action, "disabled");
+    assert.equal(cta.label, "Select a different destination");
   });
 });
 

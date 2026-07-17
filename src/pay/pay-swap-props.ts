@@ -43,6 +43,7 @@ export type PaySwapIntentWidgetProps = Pick<
   | 'onSourceTokenChange'
   | 'onQuote'
   | 'routingAndLiquidityOptions'
+  | 'miden'
 > & {
   /** `pay` vs `swap` — same SDK path; selects the row in `PAY_SWAP_VARIANTS`. */
   variant: PaySwapVariant;

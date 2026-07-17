@@ -11,6 +11,7 @@ import {
 import { usePaySwapEngine } from "../pay/use-pay-swap-engine";
 import { Modal } from "./Modal";
 import { NetworkToggle } from "./NetworkToggle";
+import { NetworkBadge } from "./NetworkBadge";
 import { TokenChainPill } from "./TokenChainPill";
 import { ActionButton } from "./ui/ActionButton";
 import { PaySwapMainView } from "./pay/PaySwapMainView";
@@ -64,9 +65,16 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     selectedChain: source.chain,
     insufficientBalance: engine.insufficientBalance,
     selectedToken: source.token,
+    isMidenSource: engine.isMidenSource,
+    isMidenDest: engine.isMidenDest,
+    midenConnected: engine.midenConnected,
   });
 
   const handleCtaClick = () => {
+    if (ctaState.action === "connectMiden") {
+      void engine.miden?.connect?.();
+      return;
+    }
     if (ctaState.action === "switch" && source.chain) {
       engine.switchChain?.({ chainId: source.chain.id });
       return;
@@ -76,6 +84,8 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     intentFlow.submit({
       sourceChainId: source.chainId,
       sourceToken: source.token,
+      midenSource: engine.midenSource,
+      midenDest: engine.midenDest,
     });
   };
 
@@ -161,7 +171,7 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
         onBack: backToMain,
         content: (
           <TokenSelector
-            tokens={source.allTokens}
+            tokens={engine.sourceTokens}
             selectedTokenAddress={source.tokenAddress}
             selectedChainId={source.chainId}
             onSelect={(addr, cid) => {
@@ -179,7 +189,7 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
         onBack: backToMain,
         content: (
           <TokenSelector
-            tokens={destination.allTokens}
+            tokens={engine.destinationTokens}
             selectedTokenAddress={destination.tokenAddress}
             selectedChainId={destination.chainId}
             onSelect={(addr, cid) => {
@@ -199,7 +209,9 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
           isTestnet={engine.isTestnet}
           onChange={engine.applyNetwork}
         />
-      ) : undefined,
+      ) : (
+        <NetworkBadge isTestnet={engine.isTestnet} />
+      ),
       content: (
         <PaySwapMainView
           engine={engine}
