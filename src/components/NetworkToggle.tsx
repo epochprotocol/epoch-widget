@@ -14,15 +14,15 @@ const SEGMENT_BASE =
  * colour while the idle segment stays muted, following standard settings-pill
  * conventions.
  */
-export function NetworkToggle({ isTestnet, onChange }: NetworkToggleProps) {
-  const segmentClasses = (active: boolean) =>
-    cn(
-      SEGMENT_BASE,
-      active
-        ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
-        : 'cursor-pointer bg-transparent text-fg-muted',
-    );
+const segmentClasses = (active: boolean) =>
+  cn(
+    SEGMENT_BASE,
+    active
+      ? 'cursor-default bg-primary text-white shadow-[0_1px_2px_rgba(15,23,42,0.12)]'
+      : 'cursor-pointer bg-transparent text-fg-muted',
+  );
 
+export function NetworkToggle({ isTestnet, onChange }: NetworkToggleProps) {
   return (
     <div
       role="tablist"

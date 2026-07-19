@@ -31,34 +31,6 @@ export interface CrossChainIntentParams {
   minTokenOut: string;
 }
 
-export interface EVMToMidenIntentParams {
-  /** EVM chain where `evmTokenAddress` is deployed (align with wallet; mirrors deposit tab chain id). */
-  sourceChainId: number;
-  /**
-   * Intent output chain: must be `MIDEN_DESTINATION_CHAIN_ID` (currently `999999999`) for Miden credit in this stack.
-   * Maps to mandate `destinationChainId` in task data (SIO `tokenOut.chainId`); not the EVM `sourceChainId`.
-   */
-  destinationChainId: number;
-  evmSourceAddress: string;
-  evmTokenAddress: string;
-  /** Human-readable EVM input amount. Omit, empty, or "0" to use reverse-quote path (EVM spend comes from quote). */
-  evmAmount?: string;
-  evmTokenDecimals?: number;
-  midenRecipientId: string;
-  midenFaucetId: string;
-  /**
-   * Withdraw flow no longer depends on frontend faucet-decimals.
-   * Backend should derive decimals from `midenFaucetId` when needed.
-   */
-  midenDecimals?: number;
-  /**
-   * Minimum Miden-side output you want.
-   * Reverse-quote path: paired with `tokenInAmount: "0"` so SIO derives required EVM `tokenIn`.
-   * Forward path (when `evmAmount` is set): optional slippage floor on Miden output.
-   */
-  minTokenOut: string;
-}
-
 export interface IntentResult {
   taskTypeString: string;
   intentData: Record<string, unknown>;

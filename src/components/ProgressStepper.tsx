@@ -54,7 +54,7 @@ export function ProgressStepper({ activeStep, statusProgress, className }: Progr
         );
 
         return (
-          <div key={stepNum}>
+          <div key={label}>
             <div className="flex items-start gap-2.5">
               <div className="mt-px flex w-5 min-w-[20px] items-center justify-center">
                 {iconContent}

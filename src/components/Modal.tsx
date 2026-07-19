@@ -27,8 +27,13 @@ interface ModalProps {
   renderInline?: boolean;
 }
 
+// The <dialog> is the overlay, so `classNames.overlay` keeps applying. The
+// resets undo the UA dialog defaults (auto margins, fit-content sizing, border,
+// its own ::backdrop). Deliberately NO backdrop-filter here: that would make the
+// dialog a containing block for fixed-positioned descendants, offsetting the
+// portalled dropdown menus by the padding. The scrim paints the blur instead.
 const OVERLAY_CLASSES =
-  'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-overlay backdrop-blur-md animate-overlay-in';
+  'fixed inset-0 z-[9999] m-0 max-w-none max-h-none w-full h-full border-0 p-4 flex items-center justify-center bg-transparent animate-overlay-in [&::backdrop]:bg-transparent';
 
 const CONTAINER_CLASSES =
   'flex w-full max-w-[480px] max-h-[90vh] flex-col overflow-hidden rounded-lg border border-line bg-canvas font-sans text-sm text-fg shadow-lg animate-modal-in';
@@ -64,16 +69,18 @@ export function Modal({
   onBack,
   renderInline = false,
 }: ModalProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // showModal() is what buys the focus trap, Escape, and the top layer — none of
+  // which a plain div gets. Opening happens on mount because the component
+  // returns null while closed.
   useEffect(() => {
-    if (!isOpen || renderInline) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose, renderInline]);
+    if (renderInline) return;
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    return () => dialog.close();
+  }, [renderInline]);
 
   useEffect(() => {
     if (!isOpen || renderInline) return;
@@ -82,10 +89,6 @@ export function Modal({
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [isOpen, renderInline]);
-
-  useEffect(() => {
-    if (isOpen && !renderInline) containerRef.current?.focus();
   }, [isOpen, renderInline]);
 
   if (!isOpen) return null;
@@ -151,25 +154,34 @@ export function Modal({
   }
 
   const modal = (
-    <div
+    <dialog
+      ref={dialogRef}
       className={cn(OVERLAY_CLASSES, cs?.overlay)}
       style={cssVars}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
       aria-labelledby="epoch-widget-title"
+      onCancel={(e) => {
+        // Escape: let the widget own closing so state unwinds the same way it
+        // does for the close button.
+        e.preventDefault();
+        onClose();
+      }}
     >
-      <div
-        ref={containerRef}
+      {/* Scrim: paints the blur (kept off the dialog to avoid a containing
+          block) and closes on click. Pointer-only — the header has a real close
+          button and Escape is native — so it's hidden from assistive tech. */}
+      <button
+        type="button"
+        aria-hidden="true"
         tabIndex={-1}
-        className={cn(CONTAINER_CLASSES, cs?.container)}
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={onClose}
+        className="fixed inset-0 bg-overlay backdrop-blur-md cursor-default"
+      />
+      <div className={cn(CONTAINER_CLASSES, 'relative', cs?.container)}>
         {headerEl}
         {bodyEl}
         {footerEl}
       </div>
-    </div>
+    </dialog>
   );
 
   return createPortal(modal, document.body);

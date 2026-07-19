@@ -1,14 +1,15 @@
 import { mainnetGraph, testnetGraph } from "@epoch-protocol/epoch-commons-sdk";
 import {
+  EVM_ZERO_ADDRESS,
   MIDEN_TO_EVM_EXTRA_TYPESTRING,
-  EVM_TO_MIDEN_EXTRA_TYPESTRING,
+  MIDEN_VIRTUAL_CHAIN_ID,
 } from "@epoch-protocol/epoch-intents-sdk";
+import type { EpochChain, EpochToken } from "../types";
 
-/** Virtual chain id used in the widget UI for Miden-sourced deposits. */
-export const MIDEN_VIRTUAL_CHAIN_ID = 999_999_999;
-
-export const EVM_ZERO_ADDRESS =
-  "0x0000000000000000000000000000000000000000" as const;
+// Re-exported (not re-declared) so the widget's public surface keeps these names
+// while the SDK stays the single source of truth — the chain id and the sentinel
+// are the same values the SDK branches its EVM→Miden intent build on.
+export { EVM_ZERO_ADDRESS, MIDEN_VIRTUAL_CHAIN_ID };
 
 /**
  * Default Miden testnet faucet — USDC on Miden, the `tokens.USDC.contractAddress.Miden`
@@ -39,18 +40,6 @@ export function isDefaultMidenFaucet(id: string): boolean {
  * no extra fields).
  */
 export const EARN_MIDEN_EXTRA_FIELDS = MIDEN_TO_EVM_EXTRA_TYPESTRING.split(",");
-
-/**
- * Miden extraData fields for an EVM→Miden delivery — the Smart Withdraw case
- * where a lending position is withdrawn on EVM and the proceeds are bridged to a
- * Miden account. Deliberately carries NO `midenSourceAccount`: its absence is
- * what flags the EVM→Miden direction to smallocator (`isEVMToMidenIntent`).
- * Sourced from the SDK's canonical EVM→Miden suffix (midenRecipientAccount +
- * midenFaucetId) so the assembled witness ends with exactly what the allocator
- * validates.
- */
-export const EARN_MIDEN_WITHDRAW_EXTRA_FIELDS =
-  EVM_TO_MIDEN_EXTRA_TYPESTRING.split(",");
 
 /** A Miden-side token pulled from the Epoch graph (`tokens[*].contractAddress.Miden`). */
 export interface MidenGraphToken {
@@ -89,6 +78,31 @@ export function getMidenGraphTokens(isTestnet: boolean): MidenGraphToken[] {
     });
   }
   return out;
+}
+
+/** The virtual chain Miden tokens live on, shaped like any other EpochChain. */
+export const MIDEN_CHAIN: EpochChain = {
+  id: MIDEN_VIRTUAL_CHAIN_ID,
+  name: "Miden",
+  network: "miden-testnet",
+};
+
+/**
+ * Miden graph tokens as selectable tokens on {@link MIDEN_CHAIN}, so any
+ * chain/token picker can offer Miden alongside the EVM chains. The faucet id is
+ * used as the token address (that's what the intent build reads back).
+ */
+export function getMidenChainTokens(
+  isTestnet: boolean,
+): Array<EpochToken & { chain: EpochChain }> {
+  return getMidenGraphTokens(isTestnet).map((t) => ({
+    address: t.faucetId,
+    symbol: t.symbol,
+    name: t.symbol,
+    decimals: t.decimals,
+    chainId: MIDEN_VIRTUAL_CHAIN_ID,
+    chain: MIDEN_CHAIN,
+  }));
 }
 
 /** Pass-through normalizer — callers should supply hex account/faucet ids from the adapter. */

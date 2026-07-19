@@ -7,15 +7,21 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
+  // Ship widely-compatible output rather than esbuild's default `esnext`, which
+  // can emit syntax that trips older consumer bundlers/browsers.
+  target: 'es2020',
   external: [
     'react',
     'react-dom',
+    'react/jsx-runtime',
     'wagmi',
     'viem',
+    'lucide-react',
+    '@tanstack/react-query',
     '@epoch-protocol/epoch-intents-sdk',
     '@epoch-protocol/epoch-commons-sdk',
     '@epoch-protocol/epoch-flows-sdk',
   ],
-  jsx: 'transform',
+  jsx: 'automatic',
   treeshake: true,
 });

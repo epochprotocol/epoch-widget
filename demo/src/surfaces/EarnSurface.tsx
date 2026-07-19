@@ -94,7 +94,10 @@ export function EarnSurface({ onOpenWidget }: Props) {
   const [lenders, setLenders] = useState<string[]>([]);
 
   const earnChainIds = chains.length
-    ? chains.map((c) => Number(c)).filter(Number.isFinite)
+    ? chains.flatMap((c) => {
+        const id = Number(c);
+        return Number.isFinite(id) ? [id] : [];
+      })
     : undefined;
   const earnLenderFilter = lenders.length ? lenders.join(',') : undefined;
 

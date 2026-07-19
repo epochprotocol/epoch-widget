@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { chainDotColor } from "../chain-colors";
+import { earnChainIdsFor } from "../earn/earn-chains";
 import { getEpochChainById } from "../epoch-config";
 import { SECTION_LABEL } from "../lib/styles";
 import type {
@@ -71,8 +72,9 @@ interface Props {
 }
 
 // Default mainnet earn universe — used when the parent doesn't narrow the
-// chain set. Kept in sync with EarnIntentWidget.EARN_MAINNET_CHAIN_IDS.
-const DEFAULT_CHAIN_IDS = [1, 8453, 42161, 10, 137];
+// chain set. Single-sourced from `earn-chains`; this used to be a hand-copied
+// literal that silently drifted from the widget's own list.
+const DEFAULT_CHAIN_IDS = earnChainIdsFor(false);
 
 // Known lender families with pretty labels. Used as a fallback when the
 // consumer doesn't supply `availableLenders` and as the display lookup for

@@ -3,36 +3,36 @@ import { SendTransaction } from '@miden-sdk/miden-wallet-adapter-base';
 import { useMidenFiWallet } from '@miden-sdk/miden-wallet-adapter-react';
 import { toast } from 'sonner';
 import {
-  DEFAULT_MIDEN_FAUCET,
-  isDefaultMidenFaucet,
+  getMidenGraphTokens,
+  midenFaucetKey,
   type EarnMidenAdapter,
 } from '@epoch-protocol/epoch-intent-widget';
 import { useMidenWalletAdapter } from '../miden/hooks/useMidenWalletAdapter';
 
 /**
- * Bridges the demo's Miden wallet adapter into {@link EarnMidenAdapter} for the earn widget.
- * Surfaces only {@link DEFAULT_MIDEN_FAUCET} (Miden USDC) for now.
+ * Bridges the demo's Miden wallet adapter into {@link EarnMidenAdapter}, shared by
+ * the earn and pay/swap flows. Surfaces every Miden testnet faucet from the Epoch
+ * graph with the wallet's balance overlaid by faucet id.
  */
 export function useEarnMidenAdapter(): EarnMidenAdapter {
   const midenWallet = useMidenWalletAdapter({ enabled: true });
   const { requestSend, waitForTransaction } = useMidenFiWallet();
 
   const assets = useMemo(() => {
-    // Prefer the asset whose faucet id matches the default faucet. The wallet
-    // can report faucet ids in a different encoding (bech32 vs hex), so a strict
-    // match may miss even when the balance exists — fall back to the wallet's
-    // first asset so the default token balance is still surfaced.
-    const walletAsset =
-      midenWallet.assets.find((a) => isDefaultMidenFaucet(a.assetId)) ??
-      midenWallet.assets[0];
-    return [
-      {
-        faucetId: DEFAULT_MIDEN_FAUCET.faucetId,
-        symbol: DEFAULT_MIDEN_FAUCET.symbol,
-        decimals: DEFAULT_MIDEN_FAUCET.decimals,
-        balance: walletAsset?.amount ?? 0n,
-      },
-    ];
+    // Every Miden testnet faucet from the graph, wallet balances overlaid by
+    // faucet id. The wallet can encode ids as bech32 or hex, so match on the
+    // normalized key rather than a raw string compare.
+    return getMidenGraphTokens(true).map((t) => {
+      const match = midenWallet.assets.find(
+        (a) => midenFaucetKey(a.assetId) === midenFaucetKey(t.faucetId),
+      );
+      return {
+        faucetId: t.faucetId,
+        symbol: t.symbol,
+        decimals: t.decimals,
+        balance: match?.amount ?? 0n,
+      };
+    });
   }, [midenWallet.assets]);
 
   const createP2IDNote = useCallback<EarnMidenAdapter['createP2IDNote']>(
@@ -43,6 +43,12 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
         }
         if (!requestSend) {
           throw new Error('Miden wallet adapter not available');
+        }
+        // Checked before the send, not after: requestSend broadcasts a real
+        // transaction, so bailing out afterwards would move funds and still
+        // throw, leaving the note unreadable.
+        if (!waitForTransaction) {
+          throw new Error('waitForTransaction not available in adapter');
         }
 
         const normalizedAmount = BigInt(amountParam);
@@ -58,9 +64,6 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
           Number(normalizedAmount),
         );
         const txId = await requestSend(payload);
-        if (!waitForTransaction) {
-          throw new Error('waitForTransaction not available in adapter');
-        }
         const finalized = await waitForTransaction(txId, 120_000);
         const first = finalized.outputNotes?.[0];
         const noteId = first ? first.id().toString() : '';

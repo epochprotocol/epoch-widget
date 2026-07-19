@@ -299,6 +299,13 @@ export interface EpochIntentWidgetProps {
    * Requires a connected EVM wallet as intent sponsor; Miden supplies collateral via P2IDE note.
    */
   earnMiden?: EarnMidenAdapter;
+  /**
+   * Miden wallet adapter shared by every flow (earn AND pay/swap). Same shape as
+   * {@link earnMiden}, which stays as a back-compat alias — the widget resolves
+   * `miden ?? earnMiden`. Testnet only: mainnet has no Miden faucets, so Miden
+   * never appears in the pickers there.
+   */
+  miden?: EarnMidenAdapter;
 
   /**
    * Restrict which solver liquidity paths SIO may quote for pay, swap, and earn flows.

@@ -3,12 +3,11 @@ import { PaySwapIntentWidget, type PaySwapIntentWidgetProps } from './PaySwapInt
 export type SwapIntentWidgetProps = Omit<PaySwapIntentWidgetProps, 'variant'>;
 
 /**
- * Swap flow — cross-chain swap between two tokens. Visual cues:
- * - Teal accent on the destination card with a top-edge accent stripe
- * - "From" / "To" copy
- * - Swap-flip connector glyph (↕) between source + destination cards
- * - Rendered through `SwapIntentSummary` (a separate file you can fork in
- *   isolation without affecting Pay or Earn).
+ * Swap flow — cross-chain swap between two tokens.
+ *
+ * Swap always lets the user pick what they receive, so it ignores
+ * `lockDestinationToken`. Rendered through `SwapIntentSummary`: stacked
+ * "You pay" / "You receive" cards with a down-arrow chip between them.
  *
  * Logic is shared with Pay via `PaySwapIntentWidget`. Edit
  * `SwapIntentSummary.tsx` for Swap-only visual tweaks; edit this file for

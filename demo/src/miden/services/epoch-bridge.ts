@@ -1,18 +1,10 @@
 import { parseUnits, formatUnits } from "viem";
-import type {
-  CrossChainIntentParams,
-  EVMToMidenIntentParams,
-  IntentResult,
-} from "../types/miden";
-import { MIDEN_DESTINATION_CHAIN_ID } from "../constants/chains";
+import type { CrossChainIntentParams, IntentResult } from "../types/miden";
 import type {
   EpochIntentSDK,
   IntentQuoteResult,
 } from "@epoch-protocol/epoch-intents-sdk";
-import {
-  MIDEN_TO_EVM_EXTRA_TYPESTRING,
-  EVM_TO_MIDEN_EXTRA_TYPESTRING,
-} from "@epoch-protocol/epoch-intents-sdk";
+import { MIDEN_TO_EVM_EXTRA_TYPESTRING } from "@epoch-protocol/epoch-intents-sdk";
 import type {
   CollateralType,
   GetTaskDataParams,
@@ -26,14 +18,6 @@ export interface CrossChainQuote {
   intentData: unknown;
   quoteResult: IntentQuoteResult;
   params: CrossChainIntentParams;
-}
-
-/** Pre-fetched EVM→Miden quote (reverse `tokenInAmount: "0"` + Miden `minTokenOut`). */
-export interface EVMToMidenQuote {
-  taskTypeString: string;
-  intentData: unknown;
-  quoteResult: IntentQuoteResult;
-  params: EVMToMidenIntentParams;
 }
 
 /** Format base-unit token amount for display. */
@@ -169,160 +153,6 @@ export function buildEpochTaskDataParams(
 
   console.log("[EpochBridge] Task data params built:", taskDataParams);
   return taskDataParams;
-}
-
-export function buildEVMToMidenTaskDataParams(params: EVMToMidenIntentParams) {
-  const midenRecipientHex = normalizeMidenIdToHex(params.midenRecipientId);
-  const midenFaucetHex = normalizeMidenIdToHex(params.midenFaucetId);
-  const evmDecimals = params.evmTokenDecimals ?? 18;
-
-  const rawEvm = params.evmAmount?.trim() ?? "";
-  const hasFixedEvmIn = rawEvm !== "" && rawEvm !== "0";
-
-  const minHuman = (params.minTokenOut ?? "").trim();
-  // Do not scale using frontend-provided decimals. Treat minTokenOut as already
-  // being in base units, and let backend derive/validate decimals from faucet id.
-  const scaledMinMidenOut = minHuman ? minHuman : "0";
-
-  const amountInWei = hasFixedEvmIn
-    ? parseUnits(rawEvm, evmDecimals).toString()
-    : "0";
-
-  if (!hasFixedEvmIn && scaledMinMidenOut === "0") {
-    throw new Error(
-      "EVM→Miden: set minTokenOut (minimum Miden tokens to receive) for quote path, or provide evmAmount for a fixed EVM spend.",
-    );
-  }
-
-  const destinationChainId =
-    params.destinationChainId ?? MIDEN_DESTINATION_CHAIN_ID;
-  if (destinationChainId !== MIDEN_DESTINATION_CHAIN_ID) {
-    throw new Error(
-      `EVM→Miden: destinationChainId must be ${MIDEN_DESTINATION_CHAIN_ID} (Miden output). Got ${destinationChainId}.`,
-    );
-  }
-
-  console.log("[EpochBridge] Building EVM→Miden task data params from:", {
-    sourceChainId: params.sourceChainId,
-    destinationChainId,
-    evmSourceAddress: params.evmSourceAddress,
-    evmTokenAddress: params.evmTokenAddress,
-    route: hasFixedEvmIn ? "forward" : "reverse-quote",
-    evmAmount: hasFixedEvmIn ? rawEvm : "0",
-    midenRecipientId: midenRecipientHex,
-    midenFaucetId: midenFaucetHex.slice(0, 16) + "...",
-    minTokenOutHuman: minHuman || "0",
-    amountInWei,
-    scaledMinMidenOut,
-  });
-
-  const taskDataParams = {
-    taskType: "gettokenout" as TaskType,
-    intentData: {
-      isNative: false,
-      depositTokenAddress: params.evmTokenAddress,
-      tokenInAmount: amountInWei,
-      outputTokenAddress: ZERO_ADDRESS,
-      minTokenOut: scaledMinMidenOut, // Miden-side minimum out (base units)
-      destinationChainId: String(destinationChainId),
-      protocolHashIdentifier: ZERO_HASH,
-      recipient: params.evmSourceAddress,
-    },
-    // EVM→Miden carries the recipient on Miden — no source note. Canonical
-    // EVM→Miden suffix from the SDK (midenRecipientAccount + midenFaucetId).
-    extraDataTypestring: EVM_TO_MIDEN_EXTRA_TYPESTRING,
-    extraData: {
-      midenRecipientAccount: midenRecipientHex,
-      midenFaucetId: midenFaucetHex,
-    },
-  };
-
-  console.log(
-    "[EpochBridge] EVM→Miden task data params built:",
-    taskDataParams,
-  );
-  return taskDataParams;
-}
-
-/** Step 1: reverse-quote EVM→Miden (required Miden `minTokenOut` in base units, `tokenInAmount: "0"`). */
-export async function getEVMToMidenQuote(
-  sdk: EpochIntentSDK,
-  params: EVMToMidenIntentParams,
-  sponsorAddress: string,
-): Promise<EVMToMidenQuote> {
-  const quoteParams: EVMToMidenIntentParams = {
-    ...params,
-    evmAmount: undefined,
-  };
-  const taskDataParams = buildEVMToMidenTaskDataParams(quoteParams);
-  const { taskTypeString, intentData } = await sdk.getTaskData(taskDataParams);
-  console.log("[EpochBridge] getEVMToMidenQuote getTaskData:", {
-    taskTypeString,
-    intentData,
-  });
-
-  const quoteResult = await sdk.getIntentQuote({
-    sponsorAddress: sponsorAddress as `0x${string}`,
-    taskTypeString,
-    intentData,
-    isNative: false,
-  });
-  console.log("[EpochBridge] getEVMToMidenQuote quoteResult:", quoteResult);
-
-  if (!quoteResult.success) {
-    throw new Error(quoteResult.error ?? "Quote failed");
-  }
-
-  return { taskTypeString, intentData, quoteResult, params: quoteParams };
-}
-
-export async function buildEVMToMidenIntent(
-  sdk: EpochIntentSDK,
-  params: EVMToMidenIntentParams & { preFetchedQuote?: EVMToMidenQuote },
-): Promise<IntentResult> {
-  let taskTypeString: string;
-  let intentData: unknown;
-  let quoteResult: IntentQuoteResult | undefined;
-
-  if (params.preFetchedQuote) {
-    ({ taskTypeString, intentData, quoteResult } = params.preFetchedQuote);
-    console.log(
-      "[EpochBridge] EVM→Miden using pre-fetched quote, skipping getTaskData",
-    );
-  } else {
-    const taskDataParams = buildEVMToMidenTaskDataParams(params);
-    ({ taskTypeString, intentData } = await sdk.getTaskData(taskDataParams));
-    console.log("[EpochBridge] SDK.getTaskData() response:", {
-      taskTypeString,
-      intentData,
-    });
-  }
-
-  try {
-    const solveResult = await sdk.solveIntent({
-      isNative: false,
-      sponsorAddress: params.evmSourceAddress as `0x${string}`,
-      taskTypeString,
-      intentData,
-      quoteResult,
-      collateralType: "evm" as CollateralType,
-    });
-
-    console.log("[EpochBridge] SDK.solveIntent() response:", solveResult);
-    return {
-      taskTypeString,
-      intentData: intentData as Record<string, unknown>,
-      solveResult,
-    };
-  } catch (err) {
-    console.error("[EpochBridge] EVM→Miden solveIntent failed:", err);
-    return {
-      taskTypeString,
-      intentData: intentData as Record<string, unknown>,
-      error:
-        err instanceof Error ? err.message : "Failed to solve EVM→Miden intent",
-    };
-  }
 }
 
 /** Step 1 of the minTokenOut route: get a reverse quote without executing. */

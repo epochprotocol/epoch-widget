@@ -53,7 +53,7 @@ interface ConfigsState {
   error: Error | null;
 }
 
-interface PositionsState {
+export interface PositionsState {
   positions: EpochEarnPosition[];
   summary: EpochEarnPositionsSummary | null;
   isLoading: boolean;
@@ -193,7 +193,15 @@ export function useLendingPoolsPage(opts: {
   const reqIdRef = useRef(0);
 
   useEffect(() => {
-    if (!enabled || !positionsBaseUrl || chainIds.length === 0) {
+    // Derived from `chainIdsKey` rather than the raw `chainIds` array: the key
+    // is what the deps track, so reading the array here could guard on a stale
+    // length. Note `[].join(',')` is '' and `Number('')` is 0, hence the
+    // truthiness check before parsing — otherwise "no chains" becomes [0].
+    const parsedChainIds = chainIdsKey.split(',').flatMap((s) => {
+      const n = Number(s);
+      return s && Number.isFinite(n) ? [n] : [];
+    });
+    if (!enabled || !positionsBaseUrl || parsedChainIds.length === 0) {
       setState({ rows: [], hasMore: false, isLoading: false, error: null });
       return;
     }
@@ -202,10 +210,6 @@ export function useLendingPoolsPage(opts: {
 
     const controller = new AbortController();
     let cancelled = false;
-    const parsedChainIds = chainIdsKey
-      .split(',')
-      .map((s) => Number(s))
-      .filter(Number.isFinite);
     const parsedLenders = lendersKey ? lendersKey.split(',').filter(Boolean) : [];
     // Upstream accepts `lender=CSV` so multi-lender stays a single request per
     // chain. Multi-chain still requires fan-out (chainId is required + single).

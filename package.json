@@ -36,12 +36,15 @@
     "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
-    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\""
+    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\"",
+    "doctor": "npx react-doctor@latest",
+    "test:swap": "node --import tsx --test test/pay-swap-cta.test.ts",
+    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "^0.1.17",
     "@epoch-protocol/epoch-flows-sdk": "^0.1.7",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.30",
+    "@epoch-protocol/epoch-intents-sdk": "^1.0.37",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
@@ -69,12 +72,16 @@
     "viem": "^2.42.0",
     "wagmi": "^2.9.0"
   },
-  "peerDependenciesMeta": {
-    "@tanstack/react-query": {
-      "optional": false
-    }
-  },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epochprotocol/epoch-widget.git"
+  },
+  "homepage": "https://github.com/epochprotocol/epoch-widget#readme",
+  "bugs": "https://github.com/epochprotocol/epoch-widget/issues",
   "keywords": [
     "epoch",
     "intent",
