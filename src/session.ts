@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { makeId } from '@epoch-protocol/epoch-flows-sdk';
+import { makeId } from './sdk';
 
 /**
  * Returns a stable session ID for the current `isOpen=true` cycle. The ID

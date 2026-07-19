@@ -14,9 +14,6 @@ importers:
       '@epoch-protocol/epoch-commons-sdk':
         specifier: ^0.1.17
         version: 0.1.17(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@epoch-protocol/epoch-flows-sdk':
-        specifier: ^0.1.7
-        version: 0.1.7(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@epoch-protocol/epoch-intents-sdk':
         specifier: link:../smallocator/sdk
         version: link:../smallocator/sdk
@@ -102,11 +99,6 @@ packages:
 
   '@epoch-protocol/epoch-commons-sdk@0.1.17':
     resolution: {integrity: sha512-7fE8F9KQST7TKayjVi5kBufvvf8mimQjSxDI8/jDSH+Q28GOSDxl2sEgiyGlDn8VfChktg4JroeRTRtBrWyuHg==}
-
-  '@epoch-protocol/epoch-flows-sdk@0.1.7':
-    resolution: {integrity: sha512-XwM+zHrAQBCVRv3ZtSr9ME3Y5EwNpad6wmD+nscCk6BWa2WLWdjUDQZBVsM5r05JBMSrJIYBW1tMfuCN6dkKSw==}
-    peerDependencies:
-      viem: ^2.x
 
   '@esbuild/aix-ppc64@0.27.7':
     resolution: {integrity: sha512-EKX3Qwmhz1eMdEJokhALr0YiD0lhQNwDqkPYyPhiSwKrh7/4KRjQc04sZ8db+5DVVnZ1LmbNDI1uAMPEUBnQPg==}
@@ -3533,17 +3525,6 @@ snapshots:
     dependencies:
       ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
-
-  '@epoch-protocol/epoch-flows-sdk@0.1.7(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
-    dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.17(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@epoch-protocol/epoch-intents-sdk': link:../smallocator/sdk
-      viem: 2.51.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript

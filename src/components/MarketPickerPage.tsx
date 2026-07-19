@@ -7,7 +7,7 @@ import type {
   EarnMarketRow,
   PoolSortBy,
   PoolSortDir,
-} from "@epoch-protocol/epoch-flows-sdk";
+} from "../sdk";
 import type {
   EpochEarnMarket,
   OneDeltaConfig,

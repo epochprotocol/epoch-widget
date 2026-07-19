@@ -1,9 +1,9 @@
-import { toEpochEarnMarket } from '@epoch-protocol/epoch-flows-sdk';
+import { toEpochEarnMarket } from '../sdk';
 import type {
   EarnMarketRow,
   PoolSortBy,
   PoolSortDir,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from '../sdk';
 import type { OneDeltaConfig } from '../types';
 
 /** Page size for the market picker — shared by the live and static paths. */

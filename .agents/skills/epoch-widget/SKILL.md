@@ -1,6 +1,6 @@
 ---
 name: epoch-widget
-description: Integrates the Epoch Intent Widget (@epoch-protocol/epoch-intent-widget) into a React app — a drop-in component for cross-chain Pay, Swap, and Earn (lending deposit/withdraw) intents on Epoch Protocol. Applies when adding a payment/checkout, in-app swap, or yield/earn flow with EpochIntentWidget; wiring its wagmi + react-query providers; theming it; handling its callbacks; or using the headless @epoch-protocol/epoch-flows-sdk. Also triggers for "add Epoch pay/swap/earn", "EpochIntentWidget", "epoch intent widget", or "epoch-flows-sdk".
+description: Integrates the Epoch Intent Widget (@epoch-protocol/epoch-intent-widget) into a React app — a drop-in component for cross-chain Pay, Swap, and Earn (lending deposit/withdraw) intents on Epoch Protocol. Applies when adding a payment/checkout, in-app swap, or yield/earn flow with EpochIntentWidget; wiring its wagmi + react-query providers; theming it; handling its callbacks; or using the headless flow logic (EpochFlowsSDK/PaySession/EarnSession) bundled inside the package. Also triggers for "add Epoch pay/swap/earn", "EpochIntentWidget", "epoch intent widget", or "epoch headless SDK".
 user-invocable: false
 ---
 
@@ -78,4 +78,4 @@ Provider setup and per-mode examples (pay/swap/earn), theming, and headless usag
 
 ## Headless escape hatch
 
-For a fully custom UI, use `@epoch-protocol/epoch-flows-sdk` (re-exported from the widget package too): `EpochFlowsSDK`, `PaySession`, `EarnSession`. It exposes the same quote/submit/poll state machine as event emitters. See [reference/recipes.md](./reference/recipes.md#headless-sdk).
+For a fully custom UI, import the headless flow logic straight from the widget package: `EpochFlowsSDK`, `PaySession`, `EarnSession`. It exposes the same quote/submit/poll state machine as event emitters. See [reference/recipes.md](./reference/recipes.md#headless-sdk).

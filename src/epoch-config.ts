@@ -8,4 +8,4 @@ export {
   getEpochTokensBySymbol,
   getEpochChainById,
   getChainName,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';

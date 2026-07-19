@@ -2,4 +2,4 @@ export {
   MOCK_MAINNET_MARKETS,
   MOCK_TESTNET_MARKETS,
   mockPositionsForAddress,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from '../sdk';

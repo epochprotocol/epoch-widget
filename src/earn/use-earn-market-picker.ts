@@ -3,7 +3,7 @@ import type {
   EarnMarketRow,
   PoolSortBy,
   PoolSortDir,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from '../sdk';
 import type { ApiConfig, OneDeltaConfig } from '../types';
 import {
   DEFAULT_EARN_CONFIGS,

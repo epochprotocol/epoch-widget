@@ -1,7 +1,7 @@
 import type { EpochTheme } from './theme';
 
 // ---------------------------------------------------------------------------
-// Re-exports — domain types live in @epoch-protocol/epoch-flows-sdk now.
+// Re-exports — domain types live in `./sdk` (the inlined flow layer).
 // Existing widget imports of `EpochChain`, `IntentProps`, etc. keep working
 // via this barrel so component code never knows the move happened.
 // ---------------------------------------------------------------------------
@@ -30,7 +30,7 @@ export type {
   SessionCtx,
   WidgetFlow,
   WidgetMode,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';
 
 import type {
   ApiConfig as SdkApiConfig,
@@ -51,7 +51,7 @@ import type {
   WidgetFlow,
   WidgetMode,
   RoutingAndLiquidityOptions,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';
 
 /** SDK config plus widget-only testnet endpoint overrides. */
 export interface ApiConfig extends SdkApiConfig {

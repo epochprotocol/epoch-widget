@@ -161,10 +161,10 @@ allowNetworkToggle   // optional in-widget toggle
 
 ## Headless SDK
 
-No widget UI — drive the flow yourself. Re-exported from the widget package, or install `@epoch-protocol/epoch-flows-sdk` directly.
+No widget UI — drive the flow yourself. The headless flow logic is bundled in the widget package.
 
 ```tsx
-import { EpochFlowsSDK } from '@epoch-protocol/epoch-intent-widget'; // or '@epoch-protocol/epoch-flows-sdk'
+import { EpochFlowsSDK } from '@epoch-protocol/epoch-intent-widget';
 import { useWalletClient, useAccount } from 'wagmi';
 
 const sdk = new EpochFlowsSDK({ apiBaseUrl: baseUrl });
@@ -187,4 +187,4 @@ await session.submit({ sourceChainId: 42161, sourceToken });
 // cleanup: unsub(); session.dispose();
 ```
 
-`EarnSession` is analogous (`createEarnSession` + `quote()`/`submit()`). Always `dispose()` on teardown — sessions hold polling intervals. Full SDK docs: `@epoch-protocol/epoch-flows-sdk` README.
+`EarnSession` is analogous (`createEarnSession` + `quote()`/`submit()`). Always `dispose()` on teardown — sessions hold polling intervals. The flow logic lives in `src/sdk` inside this package.

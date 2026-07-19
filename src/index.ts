@@ -80,9 +80,9 @@ export type {
 export type { PaySwapTokenWithChain } from './types';
 
 // ---------------------------------------------------------------------------
-// Headless SDK pass-through. Consumers who want the business logic without
-// the React UI can install `@epoch-protocol/epoch-flows-sdk` directly, or
-// import from the widget package as a convenience.
+// Headless SDK pass-through. The flow logic (sessions, builders, fetchers)
+// lives in `src/sdk` inside this package; consumers who want it without the
+// React UI can import these directly from the widget package.
 // ---------------------------------------------------------------------------
 export {
   EpochFlowsSDK,
@@ -91,7 +91,7 @@ export {
   fetchLendingPools,
   fetchUserPositions,
   fetchTokenBalanceOnChain,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';
 export type {
   EarnIntentFlowStatus,
   EarnQuote,
@@ -99,4 +99,4 @@ export type {
   EarnSubmitInput,
   PayIntentFlowStatus,
   PaySubmitInput,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';

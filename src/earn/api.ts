@@ -6,12 +6,12 @@ import {
   fetchUserPositions,
   flattenConfigsToMarkets,
   HARDCODED_ONEDELTA_CONFIGS,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from '../sdk';
 import type {
   EarnMarketRow,
   PoolSortBy,
   PoolSortDir,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from '../sdk';
 import type {
   ApiConfig,
   EpochEarnMarket,

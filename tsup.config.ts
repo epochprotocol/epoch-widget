@@ -20,7 +20,6 @@ export default defineConfig({
     '@tanstack/react-query',
     '@epoch-protocol/epoch-intents-sdk',
     '@epoch-protocol/epoch-commons-sdk',
-    '@epoch-protocol/epoch-flows-sdk',
   ],
   jsx: 'automatic',
   treeshake: true,

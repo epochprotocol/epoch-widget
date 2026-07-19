@@ -5,7 +5,7 @@ import {
   PaySession,
   type PayIntentFlowStatus,
   type PaySubmitInput,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';
 import type {
   IntentConfig,
   IntentSentPayload,
@@ -59,7 +59,7 @@ interface UseIntentFlowReturn {
 }
 
 /**
- * Thin React adapter over `PaySession` (in `@epoch-protocol/epoch-flows-sdk`).
+ * Thin React adapter over `PaySession` (in `./sdk`).
  * Same surface as before — host components are unchanged. All state/polling
  * logic lives in the SDK; this hook just mirrors session events into React.
  */

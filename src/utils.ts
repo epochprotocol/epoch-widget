@@ -2,7 +2,7 @@
  * @module utils
  * Shared utilities for the Epoch Intent Widget.
  *
- * Pure formatters now live in `@epoch-protocol/epoch-flows-sdk` and are
+ * Pure formatters live in `./sdk` (the inlined flow layer) and are
  * re-exported here so existing import paths keep working.
  */
 
@@ -11,7 +11,7 @@ export {
   truncateAddress,
   trimAmountInput,
   formatBalancePortionForInput,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from './sdk';
 
 /**
  * Merge class names, filtering out falsy values.

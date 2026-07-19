@@ -53,7 +53,7 @@ export interface MidenGraphToken {
  * Miden tokens declared in the Epoch graph — every token that carries a
  * `contractAddress.Miden` faucet id (USDC/DAI/USDT/WETH/WBTC on testnet). This is
  * the source of truth for the Smart Withdraw "receive on Miden" picker: the
- * widget's `getEpochTokensByChainEnv` (epoch-flows-sdk) is EVM-only and returns
+ * widget's `getEpochTokensByChainEnv` (in `../sdk`) is EVM-only and returns
  * nothing for the Miden virtual chain, so the list has to come from the graph.
  */
 export function getMidenGraphTokens(isTestnet: boolean): MidenGraphToken[] {

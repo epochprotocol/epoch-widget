@@ -10,7 +10,7 @@ The widget covers three flows out of the box:
 | `swap` | Picks both the source and destination token — classic exchange UX                  | In-app swaps / bridging                  |
 | `earn` | Deposits into (or withdraws from) a lending market, sourced from 1delta            | Yield / lending integrations             |
 
-Under the hood the widget consumes the headless [`@epoch-protocol/epoch-flows-sdk`](../epoch-flows-sdk). If you want the business logic without the React UI, use that package directly — see [Headless escape hatch](#headless-escape-hatch).
+Under the hood the intent-building, quoting, and settlement-polling logic ships inside this package (`src/sdk`). If you want that business logic without the React UI, import it straight from the widget package — see [Headless escape hatch](#headless-escape-hatch).
 
 > **Deeper docs:**
 >
@@ -595,7 +595,7 @@ It also pass-through re-exports the headless SDK — see below.
 
 ## Headless escape hatch
 
-The widget is a UI layer over [`@epoch-protocol/epoch-flows-sdk`](../epoch-flows-sdk). If you want to build your **own** UI but keep Epoch's intent-building, quoting, and settlement-polling logic, you don't need a separate install — the SDK is re-exported here:
+The widget is a UI layer over the headless flow logic bundled in this package (`src/sdk`). If you want to build your **own** UI but keep Epoch's intent-building, quoting, and settlement-polling logic, import it directly from the widget package — no separate install:
 
 ```ts
 import {
@@ -604,8 +604,6 @@ import {
   EarnSession,
 } from "@epoch-protocol/epoch-intent-widget";
 ```
-
-…or depend on `@epoch-protocol/epoch-flows-sdk` directly. See that package's README for the full headless API.
 
 ---
 
