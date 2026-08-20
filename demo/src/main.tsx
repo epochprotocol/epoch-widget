@@ -14,6 +14,7 @@ import {
   WalletAdapterNetwork,
 } from '@miden-sdk/miden-wallet-adapter-base';
 import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
+import { MidenProvider } from '@miden-sdk/react';
 import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
 import App from './app/App';
 
@@ -58,7 +59,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             appName="Epoch Intent Widget Demo"
             allowedPrivateData={AllowedPrivateData.Assets}
           >
-            <App />
+            {/* Powers the @miden-sdk/react hooks the P2IDE note factory needs —
+                without a client it cannot read the synced chain tip, and the
+                mandate-binding note can't be minted. */}
+            <MidenProvider config={{ rpcUrl: 'testnet' }}>
+              <App />
+            </MidenProvider>
             <Toaster position="bottom-right" closeButton duration={5000} />
           </MidenFiSignerProvider>
         </RainbowKitProvider>

@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { SendTransaction } from "@miden-sdk/miden-wallet-adapter-base";
-import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import type { SolveIntentParams } from "@epoch-protocol/epoch-intents-sdk/dist/types";
 import type { CrossChainIntentParams } from "../types/miden";
+import { useMidenP2IDNoteFactory } from "./useMidenP2IDNoteFactory";
 
 interface UseMidenBridgeIntentOptions {
   epoch: {
@@ -61,7 +60,6 @@ export function useMidenBridgeIntent({
   outputToken,
   resolvedEvmRecipient,
 }: UseMidenBridgeIntentOptions): MidenBridgeIntent {
-  const { requestSend, waitForTransaction } = useMidenFiWallet();
   const [confirmStatus, setConfirmStatus] = useState("");
   const [localMidenNoteId, setLocalMidenNoteId] = useState<string>();
   const [localIntentNonce, setLocalIntentNonce] = useState<string>();
@@ -83,48 +81,14 @@ export function useMidenBridgeIntent({
     });
   };
 
-  const createMidenP2IDNote: SolveIntentParams["createMidenP2IDNote"] = async (
-    faucetIdParam,
-    amountParam,
-    allocatorId,
-  ) => {
-    setConfirmStatus("Creating P2IDE note on Miden…");
-    try {
-      if (!midenAccountIdHex) throw new Error("Missing Miden account id");
-      if (!requestSend) throw new Error("Miden wallet adapter not available");
-      // Checked before the send, not after: requestSend broadcasts a real
-      // transaction, so bailing out afterwards would move funds and still
-      // throw, leaving the note unreadable.
-      if (!waitForTransaction)
-        throw new Error("waitForTransaction not available in adapter");
-
-      const normalizedAmount = BigInt(amountParam);
-      if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
-        throw new Error("Amount too large for wallet adapter send");
-      }
-
-      const payload = new SendTransaction(
-        midenAccountIdHex,
-        allocatorId,
-        faucetIdParam,
-        "public",
-        Number(normalizedAmount),
-      );
-      const txId = await requestSend(payload);
-      const finalized = await waitForTransaction(txId, 120_000);
-      const first = finalized.outputNotes?.[0];
-      const noteId = first ? first.id().toString() : "";
-      if (!noteId)
-        throw new Error(`Could not read output note id for tx ${txId}`);
-      setLocalMidenNoteId(noteId);
-      return { success: true, noteId };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      };
-    }
-  };
+  // Mints the P2IDE note *with* its reclaim height and mandate-binding
+  // attachment — a plain wallet send carries neither, and the allocator rejects
+  // such a note as "not bound to the intent mandate".
+  const createMidenP2IDNote = useMidenP2IDNoteFactory({
+    midenAccountId: midenAccountIdHex ?? null,
+    onStatus: setConfirmStatus,
+    onNoteCreated: setLocalMidenNoteId,
+  });
 
   const confirm = () => {
     if (!epoch.pendingQuote) return;

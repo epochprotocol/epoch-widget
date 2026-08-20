@@ -152,11 +152,33 @@ export interface EarnMidenP2IDNoteResult {
   error?: string;
 }
 
-/** Creates a P2IDE note on Miden during earn deposit submit (SDK callback). */
+/**
+ * Mints the reclaimable P2IDE collateral note on Miden during deposit submit.
+ *
+ * Called by the Epoch SDK with all five arguments — the last two are not
+ * optional in practice, and a host that ignores them mints a note the allocator
+ * rejects:
+ *  - `recallBlocks` is RELATIVE (allocator minimum + buffer). A note minted
+ *    without a reclaim height is a plain P2ID and fails validation as
+ *    non-reclaimable, stranding the deposit.
+ *  - `bindingAttachmentFelts` are the mandate-binding hash the SDK derived from
+ *    the final mandate. Write them verbatim as the note's attachment — never
+ *    recompute them. Without the attachment the note is a bearer token any
+ *    intent could claim, and the allocator rejects it with "Miden note is not
+ *    bound to the intent mandate".
+ *
+ * `SendTransaction` on the wallet adapter cannot carry an attachment; build a
+ * custom transaction around `Note.createP2IDENote(…, reclaimHeight, …,
+ * attachment)`, which is the only API that supports reclaim + attachment
+ * together. Note the reclaim height that call wants is ABSOLUTE — add
+ * `recallBlocks` to the synced chain tip.
+ */
 export type EarnMidenCreateP2IDNote = (
   faucetId: string,
   amount: string,
   allocatorAccountId: string,
+  recallBlocks: number,
+  bindingAttachmentFelts: bigint[],
 ) => Promise<EarnMidenP2IDNoteResult>;
 
 /**
