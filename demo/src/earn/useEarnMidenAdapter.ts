@@ -1,85 +1,36 @@
 import { useCallback, useMemo } from 'react';
-import { SendTransaction } from '@miden-sdk/miden-wallet-adapter-base';
-import { useMidenFiWallet } from '@miden-sdk/miden-wallet-adapter-react';
 import { toast } from 'sonner';
-import {
-  getMidenGraphTokens,
-  midenFaucetKey,
-  type EarnMidenAdapter,
-} from '@epoch-protocol/epoch-intent-widget';
+import { type EarnMidenAdapter } from '@epoch-protocol/epoch-intent-widget';
 import { useMidenWalletAdapter } from '../miden/hooks/useMidenWalletAdapter';
+import { useMidenP2IDNoteFactory } from '../miden/hooks/useMidenP2IDNoteFactory';
 
 /**
  * Bridges the demo's Miden wallet adapter into {@link EarnMidenAdapter}, shared by
- * the earn and pay/swap flows. Surfaces every Miden testnet faucet from the Epoch
- * graph with the wallet's balance overlaid by faucet id.
+ * the earn and pay/swap flows.
  */
 export function useEarnMidenAdapter(): EarnMidenAdapter {
   const midenWallet = useMidenWalletAdapter({ enabled: true });
-  const { requestSend, waitForTransaction } = useMidenFiWallet();
 
   const assets = useMemo(() => {
-    // Every Miden testnet faucet from the graph, wallet balances overlaid by
-    // faucet id. The wallet can encode ids as bech32 or hex, so match on the
-    // normalized key rather than a raw string compare.
-    return getMidenGraphTokens(true).map((t) => {
-      const match = midenWallet.assets.find(
-        (a) => midenFaucetKey(a.assetId) === midenFaucetKey(t.faucetId),
-      );
-      return {
-        faucetId: t.faucetId,
-        symbol: t.symbol,
-        decimals: t.decimals,
-        balance: match?.amount ?? 0n,
-      };
-    });
+    // What the wallet actually holds, passed through as-is. The widget decides
+    // which faucets it can offer (graph tokens) and overlays these balances by
+    // faucet id, falling back to symbol. Pre-mapping to the graph here would
+    // drop the wallet's symbol — and with it that fallback — so a faucet id the
+    // widget couldn't match would silently read as a zero balance.
+    return midenWallet.assets.map((a) => ({
+      faucetId: a.assetId,
+      symbol: a.symbol ?? '',
+      decimals: a.decimals ?? 6,
+      balance: a.amount,
+    }));
   }, [midenWallet.assets]);
 
-  const createP2IDNote = useCallback<EarnMidenAdapter['createP2IDNote']>(
-    async (faucetIdParam, amountParam, allocatorId) => {
-      try {
-        if (!midenWallet.accountId?.hex) {
-          throw new Error('Connect Miden wallet first');
-        }
-        if (!requestSend) {
-          throw new Error('Miden wallet adapter not available');
-        }
-        // Checked before the send, not after: requestSend broadcasts a real
-        // transaction, so bailing out afterwards would move funds and still
-        // throw, leaving the note unreadable.
-        if (!waitForTransaction) {
-          throw new Error('waitForTransaction not available in adapter');
-        }
-
-        const normalizedAmount = BigInt(amountParam);
-        if (normalizedAmount > BigInt(Number.MAX_SAFE_INTEGER)) {
-          throw new Error('Amount too large for wallet adapter send');
-        }
-
-        const payload = new SendTransaction(
-          midenWallet.accountId.hex,
-          allocatorId,
-          faucetIdParam,
-          'public',
-          Number(normalizedAmount),
-        );
-        const txId = await requestSend(payload);
-        const finalized = await waitForTransaction(txId, 120_000);
-        const first = finalized.outputNotes?.[0];
-        const noteId = first ? first.id().toString() : '';
-        if (!noteId) {
-          throw new Error(`Could not read output note id for tx ${txId}`);
-        }
-        return { success: true, noteId };
-      } catch (err) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : String(err),
-        };
-      }
-    },
-    [midenWallet.accountId?.hex, requestSend, waitForTransaction],
-  );
+  // The SDK also hands this callback a relative `recallBlocks` and the
+  // mandate-binding attachment felts; both have to make it into the note, so the
+  // minting lives in the shared factory rather than a plain wallet send.
+  const createP2IDNote = useMidenP2IDNoteFactory({
+    midenAccountId: midenWallet.accountId?.hex ?? null,
+  });
 
   const connect = useCallback(async () => {
     try {

@@ -30,6 +30,8 @@ export type {
   EarnWithdrawIntentDefaults,
   EarnMidenAdapter,
   EarnMidenAsset,
+  EarnMidenCreateP2IDNote,
+  EarnMidenP2IDNoteResult,
   OneDeltaConfig,
   OneDeltaMarketRow,
   OneDeltaUnderlyingAsset,

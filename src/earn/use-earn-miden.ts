@@ -96,7 +96,11 @@ export function useEarnMiden({
   const assets = useMemo<MidenAsset[]>(() => {
     const adapterAssets = earnMiden?.assets ?? [];
     if (graphTokens.length === 0) return adapterAssets;
-    return graphTokens.map((t) => {
+    // A connected wallet that reports no entry for a faucet holds none of it —
+    // that's a real 0, not an unknown, so the picker shows a number rather than
+    // a dash. Before connecting, balances stay undefined.
+    const connected = !!earnMiden?.connected;
+    const mapped = graphTokens.map((t) => {
       const match =
         adapterAssets.find(
           (a) => midenFaucetKey(a.faucetId) === midenFaucetKey(t.faucetId),
@@ -108,11 +112,22 @@ export function useEarnMiden({
         faucetId: t.faucetId,
         symbol: t.symbol,
         decimals: t.decimals,
-        balance: match?.balance,
+        balance: match?.balance ?? (connected ? 0n : undefined),
         logoURI: match?.logoURI,
       };
     });
-  }, [earnMiden?.assets, graphTokens]);
+    // Funded faucets first — otherwise the graph's order buries whatever the
+    // wallet actually holds below four zero-balance rows.
+    return mapped
+      .map((asset, index) => ({ asset, index }))
+      .sort((a, b) => {
+        const aFunded = (a.asset.balance ?? 0n) > 0n;
+        const bFunded = (b.asset.balance ?? 0n) > 0n;
+        if (aFunded !== bFunded) return aFunded ? -1 : 1;
+        return a.index - b.index;
+      })
+      .map(({ asset }) => asset);
+  }, [earnMiden?.assets, earnMiden?.connected, graphTokens]);
 
   // Falls back to the first asset, so a faucet id left over from another network
   // can never strand the picker on nothing.
