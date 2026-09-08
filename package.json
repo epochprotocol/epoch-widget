@@ -42,9 +42,9 @@
     "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "^0.1.19",
-    "@epoch-protocol/epoch-flows-sdk": "^0.1.7",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.38",
+    "@epoch-protocol/epoch-commons-sdk": "file:../epoch-commons-sdk",
+    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
+    "@epoch-protocol/epoch-intents-sdk": "file:../smallocator/sdk",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
@@ -69,7 +69,7 @@
     "tsup": "^8.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.5.0",
-    "viem": "^2.42.0",
+    "viem": "^2.56.3",
     "wagmi": "^2.9.0"
   },
   "license": "MIT",
