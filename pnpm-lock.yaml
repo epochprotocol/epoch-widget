@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@epoch-protocol/epoch-commons-sdk':
-        specifier: ^0.1.19
-        version: 0.1.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+        specifier: file:../epoch-commons-sdk
+        version: file:../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@epoch-protocol/epoch-flows-sdk':
-        specifier: ^0.1.7
-        version: 0.1.7(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        specifier: file:../epoch-flows-sdk
+        version: file:../epoch-flows-sdk(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@epoch-protocol/epoch-intents-sdk':
-        specifier: ^1.0.38
-        version: 1.0.38(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        specifier: file:../smallocator/sdk
+        version: file:../smallocator/sdk(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -108,16 +108,16 @@ packages:
     peerDependencies:
       '@noble/ciphers': ^1.0.0
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.19':
-    resolution: {integrity: sha512-M1ZSzK5LQyTWFPx4gHLVVOaAFHT23DKKP3c2G3cPsavmnyckxFayoIXIS9UyMTDn1g0QPeoL5R1YmKBmP7HE8Q==}
+  '@epoch-protocol/epoch-commons-sdk@file:../epoch-commons-sdk':
+    resolution: {directory: ../epoch-commons-sdk, type: directory}
 
-  '@epoch-protocol/epoch-flows-sdk@0.1.7':
-    resolution: {integrity: sha512-XwM+zHrAQBCVRv3ZtSr9ME3Y5EwNpad6wmD+nscCk6BWa2WLWdjUDQZBVsM5r05JBMSrJIYBW1tMfuCN6dkKSw==}
+  '@epoch-protocol/epoch-flows-sdk@file:../epoch-flows-sdk':
+    resolution: {directory: ../epoch-flows-sdk, type: directory}
     peerDependencies:
       viem: ^2.x
 
-  '@epoch-protocol/epoch-intents-sdk@1.0.38':
-    resolution: {integrity: sha512-DS/JltAxR1cb5relGrssrj6EenIaVfWw/y4n4BkmiAODG/jhEf4qHFacn+ydZnJaQCxKjNdAvdNmbUYqevNW4g==}
+  '@epoch-protocol/epoch-intents-sdk@file:../smallocator/sdk':
+    resolution: {directory: ../smallocator/sdk, type: directory}
     peerDependencies:
       viem: ^2.x
 
@@ -3611,7 +3611,7 @@ snapshots:
     dependencies:
       '@noble/ciphers': 1.3.0
 
-  '@epoch-protocol/epoch-commons-sdk@0.1.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@epoch-protocol/epoch-commons-sdk@file:../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
     dependencies:
       ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -3621,10 +3621,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@0.1.7(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
+  '@epoch-protocol/epoch-flows-sdk@file:../epoch-flows-sdk(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@epoch-protocol/epoch-intents-sdk': 1.0.38(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+      '@epoch-protocol/epoch-commons-sdk': file:../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@epoch-protocol/epoch-intents-sdk': file:../smallocator/sdk(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
@@ -3633,9 +3633,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intents-sdk@1.0.38(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
+  '@epoch-protocol/epoch-intents-sdk@file:../smallocator/sdk(bufferutil@4.1.0)(supports-color@5.5.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@epoch-protocol/epoch-commons-sdk': file:../epoch-commons-sdk(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@metamask/smart-accounts-kit': 1.7.0(supports-color@5.5.0)(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
     transitivePeerDependencies:
@@ -4059,7 +4059,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
       '@types/debug': 4.1.13
-      debug: 4.3.4(supports-color@5.5.0)
+      debug: 4.4.3(supports-color@5.5.0)
       pony-cause: 2.1.11
       semver: 7.8.5
       uuid: 9.0.1
@@ -4073,7 +4073,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
       '@types/debug': 4.1.13
-      debug: 4.3.4(supports-color@5.5.0)
+      debug: 4.4.3(supports-color@5.5.0)
       pony-cause: 2.1.11
       semver: 7.8.5
       uuid: 9.0.1
@@ -6893,11 +6893,11 @@ snapshots:
   ox@0.6.7(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
-      '@scure/bip32': 1.6.2
-      '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@5.9.3)(zod@3.25.76)
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -6956,7 +6956,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
