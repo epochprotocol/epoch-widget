@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { WagmiProvider, http } from "wagmi";
-import { defineChain } from "viem";
+import { robinhood, robinhoodTestnet } from "viem/chains";
 import {
   arbitrum,
   base,
@@ -29,32 +29,6 @@ import {
   LIGHT_THEME,
 } from "@epoch-protocol/epoch-intent-widget";
 import App from "./app/App";
-
-const robinhood = defineChain({
-  id: 4663,
-  name: "Robinhood Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } },
-  blockExplorers: {
-    default: {
-      name: "Blockscout",
-      url: "https://robinhoodchain.blockscout.com",
-    },
-  },
-});
-
-const robinhoodTestnet = defineChain({
-  id: 46630,
-  name: "Robinhood Chain Testnet",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.testnet.chain.robinhood.com"] } },
-  blockExplorers: {
-    default: {
-      name: "Robinhood Testnet Explorer",
-      url: "https://explorer.testnet.chain.robinhood.com",
-    },
-  },
-});
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
 // utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
