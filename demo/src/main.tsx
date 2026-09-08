@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { WagmiProvider, http } from 'wagmi';
+import { robinhood, robinhoodTestnet } from 'viem/chains';
 import { arbitrum, base, baseSepolia, optimism, optimismSepolia, polygon, sepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
@@ -34,8 +35,10 @@ import App from './app/App';
 const config = getDefaultConfig({
   appName: 'EpochIntentWidget Demo',
   projectId: 'demo', // WalletConnect project ID — replace with a real one for WC support
-  chains: [base, optimism, polygon, arbitrum, baseSepolia, sepolia, optimismSepolia],
+  chains: [robinhood, robinhoodTestnet, base, optimism, polygon, arbitrum, baseSepolia, sepolia, optimismSepolia],
   transports: {
+    [robinhood.id]: http(robinhood.rpcUrls.default.http[0]),
+    [robinhoodTestnet.id]: http(robinhoodTestnet.rpcUrls.default.http[0]),
     [base.id]:       http('https://mainnet.base.org'),
     [optimism.id]:   http('https://mainnet.optimism.io'),
     [polygon.id]:    http('https://polygon.lava.build'),
