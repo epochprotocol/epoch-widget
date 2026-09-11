@@ -10,7 +10,14 @@ export default defineConfig({
     format: 'es',
   },
   resolve: {
-    dedupe: ['react', 'react-dom', 'wagmi', 'viem', '@tanstack/react-query'],
+    dedupe: [
+      'react',
+      'react-dom',
+      'wagmi',
+      'viem',
+      '@tanstack/react-query',
+      '@epoch-protocol/epoch-commons-sdk',
+    ],
   },
   optimizeDeps: {
     exclude: ['@miden-sdk/miden-sdk'],

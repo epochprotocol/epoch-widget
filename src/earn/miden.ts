@@ -18,7 +18,7 @@ export { EVM_ZERO_ADDRESS, MIDEN_VIRTUAL_CHAIN_ID };
  * USDC — SIO resolves faucets against the graph, so that id NO_QUOTE'd.)
  */
 export const DEFAULT_MIDEN_FAUCET = {
-  faucetId: "0xfc90f0f4da30e51168453b60eafed7",
+  faucetId: "0x537c15a622074e91188aa894456c52",
   symbol: "USDC",
   decimals: 6,
 } as const;

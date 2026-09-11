@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import {
   AllowedPrivateData,
@@ -8,7 +9,6 @@ import {
 } from "@miden-sdk/miden-wallet-adapter-base";
 import { useAssetMetadata, toBech32AccountId } from "@miden-sdk/react";
 import { AccountId, Address } from "@miden-sdk/miden-sdk";
-import type { Asset } from "@miden-sdk/miden-wallet-adapter-base";
 
 export interface NormalizedMidenAccountId {
   hex: string;
@@ -96,13 +96,13 @@ export function useMidenWalletAdapter(
     connect: adapterConnect,
     address,
     requestAssets,
+    connecting,
     select,
     wallet,
     wallets,
   } = useMidenFiWallet();
 
   const [accountId, setAccountId] = useState<NormalizedMidenAccountId | null>(null);
-  const [rawAssets, setRawAssets] = useState<Asset[]>([]);
 
   // AccountId parsing touches WASM and often fails on first render. Keep the raw
   // wallet address usable immediately, then upgrade to canonical hex once ready.
@@ -141,28 +141,33 @@ export function useMidenWalletAdapter(
       cancelled = true;
     };
   }, [address, connected]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
-  const [assetsError, setAssetsError] = useState<string | null>(null);
+  const {
+    data: rawAssets = [],
+    isFetching: isLoadingAssets,
+    error: assetsRequestError,
+    refetch,
+  } = useQuery({
+    queryKey: ["miden-assets", address],
+    queryFn: async () => (await requestAssets!()) ?? [],
+    enabled: enabled && connected && !!address && !!requestAssets,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
+
+  const assetsError =
+    enabled && connected && !requestAssets
+      ? "Connected wallet does not support requestAssets()"
+      : assetsRequestError instanceof Error
+        ? assetsRequestError.message
+        : assetsRequestError
+          ? "Failed to load assets"
+          : null;
 
   const refreshAssets = useCallback(async () => {
-    if (!enabled || !connected) return;
-    if (!requestAssets) {
-      setRawAssets([]);
-      setAssetsError("Connected wallet does not support requestAssets()");
-      return;
-    }
-    setIsLoadingAssets(true);
-    setAssetsError(null);
-    try {
-      const raw = await requestAssets();
-      setRawAssets(raw ?? []);
-    } catch (err) {
-      setRawAssets([]);
-      setAssetsError(err instanceof Error ? err.message : "Failed to load assets");
-    } finally {
-      setIsLoadingAssets(false);
-    }
-  }, [enabled, connected, requestAssets]);
+    await refetch();
+  }, [refetch]);
 
   const faucetIds = useMemo(() => rawAssets.map((a) => a.faucetId), [rawAssets]);
   const { assetMetadata } = useAssetMetadata(faucetIds);
@@ -189,48 +194,40 @@ export function useMidenWalletAdapter(
   );
 
   const connect = useCallback(async () => {
-    if (connected) {
-      await refreshAssets();
+    if (connected || connecting) {
       return;
     }
 
-    // MidenFiSignerProvider auto-selects a single wallet on the next render,
-    // but connect() throws WalletNotSelectedError if called before that lands.
-    // Connect through the adapter directly when the context wallet isn't ready.
-    const target = wallet ?? wallets[0] ?? null;
+    const target = wallet ?? wallets.find(
+      ({ readyState }) =>
+        readyState === WalletReadyState.Installed ||
+        readyState === WalletReadyState.Loadable,
+    );
     if (!target) {
-      throw new Error('No Miden wallet adapter available');
+      throw new Error("No Miden wallet adapter is available");
     }
 
     if (!wallet) {
+      // The provider selects its sole extension on the next render. Connect the
+      // detected adapter once so the first click cannot fail with WalletNotSelected.
       select(target.adapter.name);
-    }
-
-    if (
-      target.readyState === WalletReadyState.Installed ||
-      target.readyState === WalletReadyState.Loadable
-    ) {
       await target.adapter.connect(
         PrivateDataPermission.UponRequest,
         WalletAdapterNetwork.Testnet,
         AllowedPrivateData.Assets,
       );
-    } else {
-      await adapterConnect();
-    }
-
-    await refreshAssets();
-  }, [connected, adapterConnect, refreshAssets, wallet, wallets, select]);
-
-  useEffect(() => {
-    if (!enabled || !connected) {
-      setRawAssets([]);
-      setAssetsError(null);
-      setIsLoadingAssets(false);
       return;
     }
-    void refreshAssets();
-  }, [enabled, connected, refreshAssets]);
+
+    if (
+      wallet.readyState !== WalletReadyState.Installed &&
+      wallet.readyState !== WalletReadyState.Loadable
+    ) {
+      throw new Error("Miden wallet is initializing. Wait a moment and try again.");
+    }
+
+    await adapterConnect();
+  }, [adapterConnect, connected, connecting, select, wallet, wallets]);
 
   return {
     connected,
@@ -243,4 +240,3 @@ export function useMidenWalletAdapter(
     refreshAssets,
   };
 }
-

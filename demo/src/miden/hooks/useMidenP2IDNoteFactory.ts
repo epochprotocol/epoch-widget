@@ -11,6 +11,7 @@ import {
   NoteAttachment,
   NoteType,
   TransactionRequestBuilder,
+  Word,
 } from "@miden-sdk/miden-sdk";
 import type { EarnMidenCreateP2IDNote } from "@epoch-protocol/epoch-intent-widget";
 
@@ -27,6 +28,12 @@ const WAIT_FOR_TRANSACTION_TIMEOUT_MS = 120_000;
 function toAccountId(id: string): AccountId {
   const s = id.trim();
   return s.startsWith("0x") ? AccountId.fromHex(s) : AccountId.fromBech32(s);
+}
+
+function createFeeConversionSalt(): Word {
+  return new Word(
+    BigUint64Array.from(crypto.getRandomValues(new Uint32Array(4)), BigInt),
+  );
 }
 
 /**
@@ -53,7 +60,7 @@ export function useMidenP2IDNoteFactory({
   const { requestTransaction, waitForTransaction } = useMidenFiWallet();
   // useMiden() is non-throwing (unlike useMidenClient, which throws before the
   // client initializes); readiness is gated inside the callback instead.
-  const { client, isReady } = useMiden();
+  const { client, isReady, isInitializing, error: initError } = useMiden();
 
   return useCallback<EarnMidenCreateP2IDNote>(
     async (
@@ -75,8 +82,15 @@ export function useMidenP2IDNoteFactory({
           throw new Error("Wallet does not support custom transactions");
         }
         if (!isReady || !client) {
+          if (initError) {
+            throw new Error(
+              `Miden client initialization failed: ${initError.message}`,
+            );
+          }
           throw new Error(
-            "Miden client not ready yet — retry once it initializes",
+            isInitializing
+              ? "Miden client is still initializing — retry in a moment"
+              : "Miden client is not initialized",
           );
         }
 
@@ -113,6 +127,7 @@ export function useMidenP2IDNoteFactory({
         }
 
         const txRequest = new TransactionRequestBuilder()
+          .withFeeConversionSalt(createFeeConversionSalt())
           .withOwnOutputNotes(new NoteArray([note]))
           .build();
 
@@ -149,6 +164,8 @@ export function useMidenP2IDNoteFactory({
       waitForTransaction,
       client,
       isReady,
+      isInitializing,
+      initError,
       onStatus,
       onNoteCreated,
     ],
