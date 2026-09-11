@@ -74,11 +74,8 @@ export interface EarnMiden {
  * funding payload, and the Smart Withdraw delivery target.
  *
  * Faucet ids are canonical to the Epoch graph, never to the wallet. The host
- * adapter supplies *balances* only, overlaid here by faucet id and falling back
- * to symbol, since wallets may encode the same id as bech32 or hex. An earlier
- * version filtered adapter assets by the bundled default faucet — whose id had
- * gone stale against the graph — so deposits quoted against an unresolvable
- * faucet and failed with NO_QUOTE.
+ * adapter supplies balances overlaid by faucet id; `midenFaucetKey` normalizes
+ * hex and bech32 representations of the same asset. Symbols are not asset ids.
  */
 export function useEarnMiden({
   earnMiden,
@@ -101,13 +98,9 @@ export function useEarnMiden({
     // a dash. Before connecting, balances stay undefined.
     const connected = !!earnMiden?.connected;
     const mapped = graphTokens.map((t) => {
-      const match =
-        adapterAssets.find(
-          (a) => midenFaucetKey(a.faucetId) === midenFaucetKey(t.faucetId),
-        ) ??
-        adapterAssets.find(
-          (a) => (a.symbol ?? '').toUpperCase() === t.symbol.toUpperCase(),
-        );
+      const match = adapterAssets.find(
+        (a) => midenFaucetKey(a.faucetId) === midenFaucetKey(t.faucetId),
+      );
       return {
         faucetId: t.faucetId,
         symbol: t.symbol,

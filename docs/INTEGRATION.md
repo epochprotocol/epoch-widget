@@ -383,7 +383,7 @@ Caveats: **Earn has no real testnet** (1delta doesn't index testnet pools — du
 
 - **Dedupe singletons.** Ensure a single copy of `react`, `react-dom`, `wagmi`, `viem`, `@tanstack/react-query`. Duplicate copies break wagmi's hooks/context once the widget and your wallet UI both pull them in. In Vite: `resolve.dedupe: ['react','react-dom','wagmi','viem','@tanstack/react-query']`.
 - **Portalled modal + theme.** The modal mounts into `document.body`; project `--epoch-*` onto `:root` (Step 2) if your own chrome shares those tokens.
-- **Miden earn only.** Miden funding needs WASM + top-level-await support from your bundler (e.g. `vite-plugin-wasm` + `vite-plugin-top-level-await`) and the Miden SDK excluded from dep pre-bundling. Skip all of it unless you integrate Miden — it's not needed for EVM pay/swap/earn.
+- **Miden earn only.** Miden funding needs WASM support from your bundler (for Vite, `vite-plugin-wasm`) and the Miden SDK excluded from dep pre-bundling. Skip all of it unless you integrate Miden — it's not needed for EVM pay/swap/earn.
 
 ---
 
