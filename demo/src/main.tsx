@@ -49,24 +49,26 @@ const config = getDefaultConfig({
 
 const queryClient = new QueryClient();
 
+const midenConfig = {
+  rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim(),
+  noteTransportUrl: import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim(),
+};
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <MidenFiSignerProvider
-            network={WalletAdapterNetwork.Testnet}
-            appName="Epoch Intent Widget Demo"
-            allowedPrivateData={AllowedPrivateData.Assets}
-          >
-            {/* Powers the @miden-sdk/react hooks the P2IDE note factory needs —
-                without a client it cannot read the synced chain tip, and the
-                mandate-binding note can't be minted. */}
-            <MidenProvider config={{ rpcUrl: 'testnet' }}>
+          <MidenProvider config={midenConfig}>
+            <MidenFiSignerProvider
+              network={WalletAdapterNetwork.Testnet}
+              appName="Epoch Intent Widget Demo"
+              allowedPrivateData={AllowedPrivateData.Assets}
+            >
               <App />
-            </MidenProvider>
-            <Toaster position="bottom-right" closeButton duration={5000} />
-          </MidenFiSignerProvider>
+            </MidenFiSignerProvider>
+          </MidenProvider>
+          <Toaster position="bottom-right" closeButton duration={5000} />
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

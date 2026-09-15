@@ -17,10 +17,14 @@ pnpm run typecheck
 
 ## Environment
 
+Copy `.env.example` to `.env`, then set the local service URLs as needed.
+
 | Variable | Purpose |
 |----------|---------|
 | `VITE_EPOCH_API_BASE_URL` | Epoch allocator / API base URL (default `http://0.0.0.0:3000`) |
 | `VITE_ALLOCATOR_URL` | Fallback if `VITE_EPOCH_API_BASE_URL` is unset |
+| `VITE_MIDEN_RPC_URL` | Miden testnet RPC URL (`https://rpc.testnet.miden.io`) |
+| `VITE_MIDEN_NOTE_TRANSPORT_URL` | Miden testnet note transport URL (`https://transport.miden.io`) |
 | `VITE_MIDENSCAN_URL` | Optional Miden explorer base (Advanced tab) |
 
 ## Where to copy from

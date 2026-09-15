@@ -12,11 +12,8 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
   const midenWallet = useMidenWalletAdapter({ enabled: true });
 
   const assets = useMemo(() => {
-    // What the wallet actually holds, passed through as-is. The widget decides
-    // which faucets it can offer (graph tokens) and overlays these balances by
-    // faucet id, falling back to symbol. Pre-mapping to the graph here would
-    // drop the wallet's symbol — and with it that fallback — so a faucet id the
-    // widget couldn't match would silently read as a zero balance.
+    // Keep the wallet's exact faucet ids. The widget matches these against graph
+    // faucets after normalizing hex and bech32 forms; symbols are not identities.
     return midenWallet.assets.map((a) => ({
       faucetId: a.assetId,
       symbol: a.symbol ?? '',
