@@ -1,4 +1,4 @@
-import type { EpochTheme } from './theme';
+import type { EpochTheme } from "./theme";
 
 // ---------------------------------------------------------------------------
 // Re-exports — domain types live in @epoch-protocol/epoch-flows-sdk now.
@@ -30,7 +30,7 @@ export type {
   SessionCtx,
   WidgetFlow,
   WidgetMode,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from "@epoch-protocol/epoch-flows-sdk";
 
 import type {
   ApiConfig as SdkApiConfig,
@@ -51,7 +51,8 @@ import type {
   WidgetFlow,
   WidgetMode,
   RoutingAndLiquidityOptions,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from "@epoch-protocol/epoch-flows-sdk";
+import type { OpenSolanaEscrow } from "@epoch-protocol/epoch-intents-sdk";
 
 /** SDK config plus widget-only testnet endpoint overrides. */
 export interface ApiConfig extends SdkApiConfig {
@@ -119,12 +120,7 @@ export interface EpochClassNames {
 
 /** Lifecycle status emitted by the widget for `onStatus`. */
 export type WidgetLifecycleStatus =
-  | 'idle'
-  | 'submitting'
-  | 'sent'
-  | 'polling'
-  | 'complete'
-  | 'error';
+  "idle" | "submitting" | "sent" | "polling" | "complete" | "error";
 
 export interface OnStatusCtx extends SessionCtx {
   status: WidgetLifecycleStatus;
@@ -193,6 +189,41 @@ export interface EarnMidenAdapter {
   assets: EarnMidenAsset[];
   connect?: () => void | Promise<void>;
   createP2IDNote: EarnMidenCreateP2IDNote;
+}
+
+// ---------------------------------------------------------------------------
+// Solana funding (optional)
+// ---------------------------------------------------------------------------
+
+/** A supported SPL mint, optionally with the connected account's raw balance. */
+export interface SolanaAsset {
+  /** Base58 SPL mint. Case-sensitive — do not lowercase. */
+  mint: string;
+  symbol: string;
+  decimals: number;
+  /** Raw base-unit balance, when the host wallet has fetched it. */
+  balance?: bigint;
+  logoURI?: string;
+}
+
+/**
+ * Host-provided Solana wallet boundary for pay, swap, and testnet Earn deposits.
+ *
+ * The widget intentionally does not bundle a wallet adapter or @solana/web3.js.
+ * The host owns connection, RPC policy and signing; Epoch only needs the public
+ * account, selectable mint balances and the post-quote escrow callback.
+ */
+export interface SolanaAdapter {
+  /** Set false to hide Solana even when an adapter is passed. */
+  enabled?: boolean;
+  connected: boolean;
+  /** Connected base58 wallet account. */
+  accountId?: string | null;
+  /** SPL assets this integration supports and may display in the picker. */
+  assets: SolanaAsset[];
+  connect?: () => void | Promise<void>;
+  /** Required only when Solana is selected as the source/collateral chain. */
+  openEscrow?: OpenSolanaEscrow;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,14 +309,15 @@ export interface EpochIntentWidgetProps {
    * (chainId, token). Result is cached per `(chainId, address)` for the
    * lifetime of the widget. When omitted, the widget renders no "≈ $…" line.
    */
-  usdPriceFor?: (token: { chainId: number; address: string; symbol: string }) =>
-    | number
-    | null
-    | Promise<number | null>;
+  usdPriceFor?: (token: {
+    chainId: number;
+    address: string;
+    symbol: string;
+  }) => number | null | Promise<number | null>;
 
   // ---- Earn -----------------------------------------------------------------
 
-  earnDefaultTab?: 'deposit' | 'withdraw';
+  earnDefaultTab?: "deposit" | "withdraw";
   earnHideTabs?: boolean;
   earnDepositDefaults?: EarnDepositIntentDefaults;
   earnWithdrawDefaults?: EarnWithdrawIntentDefaults;
@@ -308,13 +340,13 @@ export interface EpochIntentWidgetProps {
   earnPoolsPerChain?: number;
   /** /pools sort field. Default `totalDepositsUsd`. */
   earnPoolsSortBy?:
-    | 'depositRate'
-    | 'variableBorrowRate'
-    | 'totalDepositsUsd'
-    | 'totalLiquidityUsd'
-    | 'utilization';
+    | "depositRate"
+    | "variableBorrowRate"
+    | "totalDepositsUsd"
+    | "totalLiquidityUsd"
+    | "utilization";
   /** /pools sort direction. Default `DESC`. */
-  earnPoolsSortDir?: 'ASC' | 'DESC';
+  earnPoolsSortDir?: "ASC" | "DESC";
   /** @deprecated retained for backwards compatibility. */
   earnUseMockData?: boolean;
   /** Optional Miden wallet adapter for funding earn deposits from Miden (testnet).
@@ -328,6 +360,11 @@ export interface EpochIntentWidgetProps {
    * never appears in the pickers there.
    */
   miden?: EarnMidenAdapter;
+  /**
+   * Optional Solana wallet adapter for pay/swap source and destination legs,
+   * plus Solana Devnet collateral for testnet Earn deposits.
+   */
+  solana?: SolanaAdapter;
 
   /**
    * Restrict which solver liquidity paths SIO may quote for pay, swap, and earn flows.
@@ -341,7 +378,7 @@ export interface EpochIntentWidgetProps {
 
   // ---- Network --------------------------------------------------------------
 
-  network?: 'mainnet' | 'testnet';
+  network?: "mainnet" | "testnet";
   /** Allow the user to toggle mainnet/testnet inside the widget. Default: false for pay/swap; earn defaults to true. */
   allowNetworkToggle?: boolean;
   /** Allow the user to toggle gasless EIP-7702 Compact deposits. Default: true. */
@@ -366,14 +403,17 @@ export interface EpochIntentWidgetProps {
   onIntentComplete?: (data: IntentCompletePayload) => void;
 
   /** Fires whenever the user (or default) picks a different source chain/token. */
-  onSourceTokenChange?: (sel: { chainId: number; tokenAddress: `0x${string}` }) => void;
+  onSourceTokenChange?: (sel: {
+    chainId: number;
+    tokenAddress: string;
+  }) => void;
   /**
    * Fires once per quote settle (success or failure). Only relevant when the
    * intent has `fixedOutput: true`.
    */
   onQuote?: (quote: {
     sourceChainId: number;
-    sourceTokenAddress: `0x${string}`;
+    sourceTokenAddress: string;
     paySymbol: string;
     payAmount: string | null;
     payAmountRaw: bigint | null;
@@ -385,7 +425,7 @@ export interface EpochIntentWidgetProps {
   title?: string;
   submitButtonText?: string;
   classNames?: EpochClassNames;
-  theme?: 'light' | 'dark' | EpochTheme;
+  theme?: "light" | "dark" | EpochTheme;
 }
 
-export type { EpochTheme } from './theme';
+export type { EpochTheme } from "./theme";

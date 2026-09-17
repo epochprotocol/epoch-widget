@@ -2,6 +2,7 @@ import type {
   ApiConfig,
   EarnDepositIntentDefaults,
   EarnMidenAdapter,
+  SolanaAdapter,
   EarnWithdrawIntentDefaults,
   EpochClassNames,
   EpochEarnMarket,
@@ -44,6 +45,8 @@ export interface EarnIntentWidgetProps {
   earnSolverUrl?: string;
   /** Optional Miden wallet adapter for testnet earn deposits funded from Miden. */
   earnMiden?: EarnMidenAdapter;
+  /** Optional Solana wallet + escrow adapter for testnet earn deposits. */
+  solana?: SolanaAdapter;
   /**
    * Chain IDs to fan /pools fetches over. Forwarded as one `chainId=` per
    * request. Default: [1, 8453, 42161, 10, 137]. Set to a single chain to

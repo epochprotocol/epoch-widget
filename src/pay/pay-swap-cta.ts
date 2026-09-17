@@ -1,11 +1,8 @@
-import type { EpochChain, EpochToken, EpochIntentWidgetProps } from '../types';
+import type { EpochChain, EpochToken, EpochIntentWidgetProps } from "../types";
 
 export type PaySwapCtaAction =
-  | 'switch'
-  | 'submit'
-  | 'disabled'
-  | 'connectMiden';
-export type PaySwapCtaTone = 'primary' | 'warning' | 'success';
+  "switch" | "submit" | "disabled" | "connectMiden" | "connectSolana";
+export type PaySwapCtaTone = "primary" | "warning" | "success";
 
 export interface PaySwapCtaState {
   action: PaySwapCtaAction;
@@ -27,7 +24,7 @@ export interface PaySwapCtaLabels {
   configureRequired: string;
 }
 
-type CtaLabelOverrides = EpochIntentWidgetProps['ctaLabels'];
+type CtaLabelOverrides = EpochIntentWidgetProps["ctaLabels"];
 
 /**
  * Fill integrator overrides in over the defaults.
@@ -43,16 +40,17 @@ export function resolvePaySwapCtaLabels(
     submit: overrides?.submit ?? fallbacks.submit,
     switchNetwork:
       overrides?.switchNetwork ?? ((chain: string) => `Switch to ${chain}`),
-    quoting: overrides?.quoting ?? 'Fetching quote…',
-    preparing: overrides?.preparing ?? 'Preparing…',
-    signing: overrides?.signing ?? 'Signing…',
-    submitting: overrides?.submitting ?? 'Submitting…',
-    polling: overrides?.polling ?? 'Waiting for execution…',
-    complete: overrides?.complete ?? 'Completed ✓',
+    quoting: overrides?.quoting ?? "Fetching quote…",
+    preparing: overrides?.preparing ?? "Preparing…",
+    signing: overrides?.signing ?? "Signing…",
+    submitting: overrides?.submitting ?? "Submitting…",
+    polling: overrides?.polling ?? "Waiting for execution…",
+    complete: overrides?.complete ?? "Completed ✓",
     insufficientBalance:
       overrides?.insufficientBalance ??
       ((sym: string) => `Insufficient ${sym} balance`),
-    configureRequired: overrides?.configureRequired ?? fallbacks.configureRequired,
+    configureRequired:
+      overrides?.configureRequired ?? fallbacks.configureRequired,
   };
 }
 
@@ -79,13 +77,23 @@ export interface ResolvePaySwapCtaParams {
   isMidenDest: boolean;
   /** The Miden wallet adapter reports a connected account. */
   midenConnected: boolean;
+  /** Source is Solana (Solana→EVM/Miden). */
+  isSolanaSource: boolean;
+  /** Destination is Solana (EVM/Miden→Solana). */
+  isSolanaDest: boolean;
+  /** The host-provided Solana adapter reports a connected account. */
+  solanaConnected: boolean;
+  /** A host adapter exists and has not explicitly disabled Solana. */
+  solanaConfigured: boolean;
+  /** An escrow opener is mandatory only for a Solana-funded intent. */
+  solanaCanOpenEscrow: boolean;
 }
 
 /** Which submit step each `activeStep` corresponds to, for the busy label. */
 const SUBMIT_STEP_LABEL: Record<number, keyof PaySwapCtaLabels> = {
-  1: 'preparing',
-  2: 'signing',
-  3: 'submitting',
+  1: "preparing",
+  2: "signing",
+  3: "submitting",
 };
 
 /**
@@ -109,25 +117,33 @@ export function resolvePaySwapCta({
   isMidenSource,
   isMidenDest,
   midenConnected,
+  isSolanaSource,
+  isSolanaDest,
+  solanaConnected,
+  solanaConfigured,
+  solanaCanOpenEscrow,
 }: ResolvePaySwapCtaParams): PaySwapCtaState {
   // Nothing to submit. A build error is the more specific reason, so prefer it.
   if (!hasIntent) {
-    return { action: 'disabled', label: buildError ?? labels.configureRequired };
+    return {
+      action: "disabled",
+      label: buildError ?? labels.configureRequired,
+    };
   }
 
   if (fixedOutput && flow.isQuoting) {
-    return { action: 'disabled', label: labels.quoting };
+    return { action: "disabled", label: labels.quoting };
   }
 
-  if (flow.status === 'submitting') {
+  if (flow.status === "submitting") {
     const key = SUBMIT_STEP_LABEL[flow.activeStep];
-    if (key) return { action: 'disabled', label: labels[key] as string };
+    if (key) return { action: "disabled", label: labels[key] as string };
   }
-  if (flow.status === 'polling') {
-    return { action: 'disabled', label: labels.polling };
+  if (flow.status === "polling") {
+    return { action: "disabled", label: labels.polling };
   }
-  if (flow.status === 'complete') {
-    return { action: 'disabled', label: labels.complete, tone: 'success' };
+  if (flow.status === "complete") {
+    return { action: "disabled", label: labels.complete, tone: "success" };
   }
 
   // Miden is a virtual chain: it can't be both ends of a swap, and either end
@@ -135,34 +151,49 @@ export function resolvePaySwapCta({
   // the EVM wrong-network nudge (which the engine already skips for a Miden
   // source), so a user is never told to switch to a chain that doesn't exist.
   if (isMidenSource && isMidenDest) {
-    return { action: 'disabled', label: 'Select a different destination' };
+    return { action: "disabled", label: "Select a different destination" };
+  }
+  if (isSolanaSource && isSolanaDest) {
+    return { action: "disabled", label: "Select a different destination" };
   }
   if ((isMidenSource || isMidenDest) && !midenConnected) {
-    return { action: 'connectMiden', label: 'Connect Miden wallet' };
+    return { action: "connectMiden", label: "Connect Miden wallet" };
+  }
+  if ((isSolanaSource || isSolanaDest) && !solanaConfigured) {
+    return { action: "disabled", label: "Configure Solana wallet" };
+  }
+  if ((isSolanaSource || isSolanaDest) && !solanaConnected) {
+    return { action: "connectSolana", label: "Connect Solana wallet" };
+  }
+  if (isSolanaSource && !solanaCanOpenEscrow) {
+    return { action: "disabled", label: "Configure Solana escrow" };
   }
 
   // `!isMidenSource` is belt-and-suspenders: the engine already forces
   // `isWrongNetwork` false for a Miden source, but guarding here means a "Switch
   // to Miden" (an impossible EVM chain switch) can never surface even if it leaks.
-  if (isWrongNetwork && selectedChain && !isMidenSource) {
+  if (isWrongNetwork && selectedChain && !isMidenSource && !isSolanaSource) {
     return {
-      action: 'switch',
+      action: "switch",
       label: labels.switchNetwork(selectedChain.name),
-      tone: 'warning',
+      tone: "warning",
     };
   }
   if (insufficientBalance && selectedToken) {
     return {
-      action: 'disabled',
+      action: "disabled",
       label: labels.insufficientBalance(selectedToken.symbol),
     };
   }
 
-  return { action: 'submit', label: labels.submit };
+  return { action: "submit", label: labels.submit };
 }
 
 export function isPaySwapCtaEnabled(action: PaySwapCtaAction): boolean {
   return (
-    action === 'submit' || action === 'switch' || action === 'connectMiden'
+    action === "submit" ||
+    action === "switch" ||
+    action === "connectMiden" ||
+    action === "connectSolana"
   );
 }

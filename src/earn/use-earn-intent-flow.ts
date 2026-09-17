@@ -25,7 +25,9 @@ import type {
   OnSignCtx,
   OnStartCtx,
   OnSuccessCtx,
+  SolanaAdapter,
 } from '../types';
+import { SOLANA_TO_EVM_EXTRA_TYPESTRING } from '@epoch-protocol/epoch-intents-sdk';
 import {
   EARN_MIDEN_EXTRA_FIELDS,
   EVM_ZERO_ADDRESS,
@@ -71,6 +73,13 @@ export interface EarnQuoteInput {
     faucetId: string;
     decimals: number;
     createP2IDNote: EarnMidenCreateP2IDNote;
+  };
+  /** Solana Devnet collateral. The SDK opens its escrow only after quoting. */
+  solanaSource?: {
+    accountId: string;
+    mint: string;
+    decimals: number;
+    openEscrow: NonNullable<SolanaAdapter['openEscrow']>;
   };
   /** Withdraw-only. When true, the intent declares a cross-token / cross-chain
    *  delivery: SIO chains 1delta withdraw on the position chain with a
@@ -220,9 +229,10 @@ function smartWithdrawDestAsset(input: EarnQuoteInput): string {
 }
 
 /**
- * Compact quote/submit uses `walletClient.chain.id` as the intent origin chain.
- * Miden-funded earn deposits must override this to the virtual Miden chain id even
- * when the connected EVM wallet is on Sepolia (same pattern as demo Miden bridge).
+ * Compact quote/submit uses `walletClient.chain.id` as the allocator/arbiter
+ * chain. Only Miden deposits replace it with the virtual Miden chain ID.
+ * A Solana-funded deposit still uses the connected EVM chain's allocator;
+ * its Solana origin is carried by the mandate fields and escrow callback.
  */
 function createEarnIntentSdk(
   apiBaseUrl: string,
@@ -277,6 +287,11 @@ export function useEarnIntentFlow({
   const [quote, setQuote] = useState<EarnQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A Solana submission can lock tokens before the allocator accepts the
+  // intent. Once that attempt starts, the quote must never be submitted again:
+  // the SDK may derive a second escrow/nonce and lock the same amount twice.
+  const [requiresFreshSolanaQuote, setRequiresFreshSolanaQuote] =
+    useState(false);
   // Live label for the CURRENT sub-stage of a submit (which quote is in flight,
   // waiting on the wallet, submitting…). Surfaced on the CTA so the button says
   // exactly what round-trip is happening instead of a generic "Routing…".
@@ -285,6 +300,7 @@ export function useEarnIntentFlow({
   const mountedRef = useRef(true);
   const gaslessRef = useLatestRef(gasless);
   const quoteCallIdRef = useRef(0);
+  const solanaSubmissionStartedRef = useRef(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCheckingRef = useRef(false);
   // Cache last quote params so submit() can reuse without a re-quote.
@@ -292,7 +308,9 @@ export function useEarnIntentFlow({
     taskTypeString: string;
     intentData: any;
     quoteResult: any;
-    /** Origin chain forwarded to Compact/SIO (Miden virtual id for P2ID deposits). */
+    /** Exact built intent snapshot that produced this quote. */
+    quoteInputKey: string;
+    /** Origin chain forwarded to Compact/SIO (Miden virtual id for P2IDE deposits). */
     originChainId?: number;
   } | null>(null);
 
@@ -326,8 +344,10 @@ export function useEarnIntentFlow({
     setQuote(null);
     setQuoteError(null);
     setError(null);
+    setRequiresFreshSolanaQuote(false);
     setStepLabel(null);
     pendingQuoteRef.current = null;
+    solanaSubmissionStartedRef.current = false;
   }, []);
 
   // Build the params an Epoch intent needs for an earn (lending) deposit/withdraw.
@@ -384,6 +404,7 @@ export function useEarnIntentFlow({
 
       const isWithdraw = input.tab === 'withdraw';
       const isMidenDeposit = !isWithdraw && !!input.midenSource;
+      const isSolanaDeposit = !isWithdraw && !!input.solanaSource;
 
       const protocolHashIdentifier = keccak256(toBytes(earnProtocolName(marketUid)));
       const underlyingAddress = market.token.address as string;
@@ -396,20 +417,22 @@ export function useEarnIntentFlow({
       const destinationChainId = actionChainId;
       const tokenOutAddress = underlyingAddress as `0x${string}`;
 
-      const isSameChain = isMidenDeposit
+      const isSameChain = isMidenDeposit || isSolanaDeposit
         ? false
         : input.sourceChainId === Number(destinationChainId);
       const payAsset = underlyingAddress;
 
       // Canonical earn extradata typestrings, single-sourced from the SDK so the
-      // fields stay in lockstep with the solver. Miden deposits append the
-      // Miden→EVM witness suffix.
+      // fields stay in lockstep with the solver. Virtual-chain deposits append
+      // their canonical collateral suffix.
       const baseTypestring = isWithdraw
         ? WITHDRAW_EXTRADATA_TYPESTRING
         : DEPOSIT_EXTRADATA_TYPESTRING;
       const extraDataTypestring = isMidenDeposit
         ? `${baseTypestring},${EARN_MIDEN_EXTRA_FIELDS.join(',')}`
-        : baseTypestring;
+        : isSolanaDeposit
+          ? `${baseTypestring},${SOLANA_TO_EVM_EXTRA_TYPESTRING}`
+          : baseTypestring;
 
       const extraData: Record<string, string | boolean> = {
         marketUid,
@@ -426,18 +449,42 @@ export function useEarnIntentFlow({
         extraData.midenNoteType = 'P2IDE';
         extraData.midenNoteId = '';
       }
+      if (isSolanaDeposit && input.solanaSource) {
+        // Base58 identifiers are case-sensitive. The SDK adds intentNonce from
+        // the final Compact envelope before opening the escrow.
+        extraData.solanaSourceAccount = input.solanaSource.accountId;
+        extraData.solanaSourceMint = input.solanaSource.mint;
+      }
 
       const tokenInDecimals = isMidenDeposit
         ? input.midenSource!.decimals
-        : sourceToken.decimals;
+        : isSolanaDeposit
+          ? input.solanaSource!.decimals
+          : sourceToken.decimals;
       const tokenInAmount = parseUnits(
         input.amount.trim().replace(/,/g, ''),
         tokenInDecimals,
       ).toString();
 
-      const tokenInAddress = isMidenDeposit
+      const tokenInAddress = isMidenDeposit || isSolanaDeposit
         ? (EVM_ZERO_ADDRESS as `0x${string}`)
         : (sourceToken.address as `0x${string}`);
+
+      // Bind the quote cache to the exact task inputs. Re-quoting is debounced,
+      // so a quick edit followed by Submit must not reuse the previous amount,
+      // source, market, or recipient during that debounce window.
+      const quoteInputKey = JSON.stringify({
+        tokenInAmount,
+        destinationChainId,
+        protocolHashIdentifier,
+        tokenInAddress,
+        tokenOutAddress,
+        recipient: address ?? '',
+        extraDataTypestring,
+        extraData,
+        isMidenDeposit,
+        isSolanaDeposit,
+      });
 
       return {
         tokenInAmount,
@@ -450,7 +497,10 @@ export function useEarnIntentFlow({
         extraData,
         isSameChain,
         isMidenDeposit,
+        isSolanaDeposit,
         midenSource: input.midenSource,
+        solanaSource: input.solanaSource,
+        quoteInputKey,
       };
     },
     [address],
@@ -492,6 +542,7 @@ export function useEarnIntentFlow({
         setStatus('quoting');
         setQuote(null);
         setQuoteError(null);
+        setError(null);
         pendingQuoteRef.current = null;
         try {
           const sdk = createEarnIntentSdk(apiBaseUrl, walletClient);
@@ -529,6 +580,8 @@ export function useEarnIntentFlow({
             resourceLockRequired: true,
             raw: quoteResult,
           });
+          solanaSubmissionStartedRef.current = false;
+          setRequiresFreshSolanaQuote(false);
           setStatus('idle');
         } catch (err) {
           if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
@@ -550,10 +603,13 @@ export function useEarnIntentFlow({
       setStatus('quoting');
       setQuote(null);
       setQuoteError(null);
+      setError(null);
       pendingQuoteRef.current = null;
 
       try {
-        const originChainId = params.isMidenDeposit ? input.sourceChainId : undefined;
+        const originChainId = params.isMidenDeposit
+          ? input.sourceChainId
+          : undefined;
         const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         const { taskTypeString, intentData } = await sdk.getTaskData({
@@ -605,8 +661,11 @@ export function useEarnIntentFlow({
           taskTypeString,
           intentData,
           quoteResult,
+          quoteInputKey: params.quoteInputKey,
           originChainId,
         };
+        solanaSubmissionStartedRef.current = false;
+        setRequiresFreshSolanaQuote(false);
         setStatus('idle');
       } catch (err) {
         if (callId !== quoteCallIdRef.current || !mountedRef.current) return;
@@ -869,10 +928,26 @@ export function useEarnIntentFlow({
       setStepLabel(input.tab === 'withdraw' ? 'Withdrawing…' : 'Depositing…');
       onStartRef.current?.({ sessionId, mode: 'earn' });
 
+      // Keep recovery data in a mutable object. `openEscrow` assigns this from
+      // inside the SDK callback; TypeScript does not track assignment to a
+      // local variable through that closure, and would otherwise incorrectly
+      // narrow it to `null` in the catch block below.
+      const openedSolanaEscrow: {
+        current: {
+          escrow: string;
+          signature?: string;
+        } | null;
+      } = { current: null };
+
       try {
         const submitParams = buildParams(input);
+        const cachedQuote =
+          pendingQuoteRef.current?.quoteInputKey ===
+          submitParams.quoteInputKey
+            ? pendingQuoteRef.current
+            : null;
         const originChainId =
-          pendingQuoteRef.current?.originChainId ??
+          cachedQuote?.originChainId ??
           (submitParams.isMidenDeposit ? input.sourceChainId : undefined);
         const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
@@ -880,8 +955,8 @@ export function useEarnIntentFlow({
         let intentData: any;
         let quoteResult: any;
 
-        if (pendingQuoteRef.current) {
-          ({ taskTypeString, intentData, quoteResult } = pendingQuoteRef.current);
+        if (cachedQuote) {
+          ({ taskTypeString, intentData, quoteResult } = cachedQuote);
         } else {
           const params = submitParams;
           const td = await sdk.getTaskData({
@@ -937,9 +1012,46 @@ export function useEarnIntentFlow({
           solvePayload.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
           solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
         }
+        if (submitParams.isSolanaDeposit && input.solanaSource) {
+          if (solanaSubmissionStartedRef.current) {
+            throw new Error(
+              'This Solana quote was already submitted. Fetch a fresh quote before trying again.',
+            );
+          }
+          solvePayload.collateralType = CollateralType.Solana;
+          solvePayload.solanaSourceAccount = input.solanaSource.accountId;
+          solvePayload.solanaSourceMint = input.solanaSource.mint;
+          const hostOpenEscrow = input.solanaSource.openEscrow;
+          const trackedOpenEscrow: NonNullable<SolanaAdapter['openEscrow']> =
+            async (params) => {
+              const result = await hostOpenEscrow(params);
+              if (result.success && result.escrow) {
+                openedSolanaEscrow.current = {
+                  escrow: result.escrow,
+                  signature: result.signature,
+                };
+              }
+              return result;
+            };
+          solvePayload.openSolanaEscrow = trackedOpenEscrow;
+        }
 
-        if (gaslessRef.current && !submitParams.isMidenDeposit) {
+        if (
+          gaslessRef.current &&
+          !submitParams.isMidenDeposit &&
+          !submitParams.isSolanaDeposit
+        ) {
           solvePayload.gasless = true;
+        }
+
+        if (submitParams.isSolanaDeposit) {
+          // Match the reference integration's "spent on attempt" rule. Set the
+          // ref before the first await that may open an escrow so rapid clicks
+          // and post-deposit failures cannot reuse this quote.
+          solanaSubmissionStartedRef.current = true;
+          setRequiresFreshSolanaQuote(true);
+          pendingQuoteRef.current = null;
+          setQuote(null);
         }
 
         const data = await sdk.solveIntent(solvePayload as never);
@@ -960,7 +1072,17 @@ export function useEarnIntentFlow({
 
         beginPolling(responseNonce ? responseNonce.toString() : null, data, sdk);
       } catch (err) {
-        const e = err instanceof Error ? err : new Error(String(err));
+        const cause = err instanceof Error ? err : new Error(String(err));
+        const escrowDetail = openedSolanaEscrow.current
+          ? ` Escrow ${openedSolanaEscrow.current.escrow}${
+              openedSolanaEscrow.current.signature
+                ? ` was finalized in transaction ${openedSolanaEscrow.current.signature}`
+                : ' was finalized'
+            }. Do not resubmit this quote; fetch a fresh quote and retain these details for reclaim.`
+          : solanaSubmissionStartedRef.current
+            ? ' This Solana quote is now spent; fetch a fresh quote before trying again.'
+            : '';
+        const e = new Error(`${cause.message}${escrowDetail}`);
         if (mountedRef.current) {
           setError(e.message);
           setStatus('error');
@@ -999,6 +1121,7 @@ export function useEarnIntentFlow({
     quote,
     quoteError,
     error,
+    requiresFreshSolanaQuote,
     stepLabel,
     isQuoting: status === 'quoting',
     isBusy:

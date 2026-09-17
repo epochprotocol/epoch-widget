@@ -39,11 +39,15 @@ export function EarnMainView({
     gasless,
     gaslessWallet,
     handleConnectMiden,
+    handleConnectSolana,
     isBalanceLoading,
     isConnected,
     isTestnet,
     miden,
     midenEnabled,
+    solana,
+    solanaAdapter,
+    solanaEnabled,
     pillChain,
     pillToken,
     positionsChainId,
@@ -120,6 +124,8 @@ export function EarnMainView({
             walletBalance={
               fundingSource === "miden"
                 ? miden.balance
+                : fundingSource === "solana"
+                  ? solana.balance
                 : isConnected
                   ? balance
                   : null
@@ -127,18 +133,25 @@ export function EarnMainView({
             sourceTokenDecimals={
               fundingSource === "miden"
                 ? (miden.selectedAsset?.decimals ?? 18)
+                : fundingSource === "solana"
+                  ? (solana.selectedAsset?.decimals ?? 6)
                 : (selectedToken?.decimals ?? 18)
             }
             balanceLoading={
               fundingSource === "miden"
                 ? false
+                : fundingSource === "solana"
+                  ? false
                 : isConnected && !!selectedToken && isBalanceLoading
             }
             midenEnabled={midenEnabled}
+            solanaEnabled={solanaEnabled}
             fundingSource={fundingSource}
             onFundingSourceChange={setFundingSource}
             midenConnected={!!earnMiden?.connected}
             onConnectMiden={handleConnectMiden}
+            solanaConnected={!!solanaAdapter?.connected}
+            onConnectSolana={handleConnectSolana}
           />
         </>
       ) : (

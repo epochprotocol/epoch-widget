@@ -1,22 +1,28 @@
-import { useCallback, useMemo, useState } from 'react';
-import { getEpochChains, getEpochTokensByChainEnv } from '../epoch-config';
-import { useTokenPick } from '../hooks/use-token-pick';
-import type { TokenWithChain } from '../components/TokenSelector';
-import type { EpochChain, EpochIntentWidgetProps } from '../types';
+import { useCallback, useMemo, useState } from "react";
+import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
+import { useTokenPick } from "../hooks/use-token-pick";
+import type { TokenWithChain } from "../components/TokenSelector";
+import type {
+  EpochChain,
+  EpochIntentWidgetProps,
+  SolanaAdapter,
+} from "../types";
 import {
   MIDEN_CHAIN,
   MIDEN_VIRTUAL_CHAIN_ID,
   getMidenChainTokens,
-} from '../earn/miden';
-import { resolveDefaultSource } from './resolve-default-source';
+} from "../earn/miden";
+import { getSolanaChain, getSolanaChainTokens } from "../solana";
+import { resolveDefaultSource } from "./resolve-default-source";
 
 export interface UseSourceSelectionOptions {
   /** Also the eviction key: a pick made on one network can't survive a flip. */
   isTestnet: boolean;
   sourceChainIds?: number[];
-  sourceTokenFilter?: EpochIntentWidgetProps['sourceTokenFilter'];
+  sourceTokenFilter?: EpochIntentWidgetProps["sourceTokenFilter"];
   defaultSourceChainId?: number;
   defaultSourceTokenAddress?: string;
+  solana?: SolanaAdapter;
 }
 
 export interface SourceSelection {
@@ -44,6 +50,7 @@ export function useSourceSelection({
   sourceTokenFilter,
   defaultSourceChainId,
   defaultSourceTokenAddress,
+  solana,
 }: UseSourceSelectionOptions): SourceSelection {
   // Stores which network the pick was made on, so flipping networks evicts it
   // rather than leaving a chain that no longer exists in the list.
@@ -55,30 +62,57 @@ export function useSourceSelection({
 
   // Miden's virtual chain + tokens, offered alongside the EVM chains (empty when
   // the active network has none, e.g. mainnet).
-  const midenTokens = useMemo(() => getMidenChainTokens(isTestnet), [isTestnet]);
+  const midenTokens = useMemo(
+    () => getMidenChainTokens(isTestnet),
+    [isTestnet],
+  );
+  const solanaTokens = useMemo(
+    () =>
+      solana?.enabled === false
+        ? []
+        : solana
+          ? getSolanaChainTokens(isTestnet)
+          : [],
+    [isTestnet, solana],
+  );
 
-  const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(',') : '';
+  const sourceChainIdsKey = sourceChainIds ? sourceChainIds.join(",") : "";
   const availableChains = useMemo(() => {
     const all = getEpochChains(isTestnet);
     const evm =
       !sourceChainIds || sourceChainIds.length === 0
         ? all
         : all.filter((c) => new Set(sourceChainIds).has(c.id));
-    return midenTokens.length ? [...evm, MIDEN_CHAIN] : evm;
+    const withMiden = midenTokens.length ? [...evm, MIDEN_CHAIN] : evm;
+    const solanaChain = getSolanaChain(isTestnet);
+    const solanaAllowed =
+      solanaTokens.length > 0 &&
+      (!sourceChainIds ||
+        sourceChainIds.length === 0 ||
+        sourceChainIds.includes(solanaChain.id));
+    return solanaAllowed ? [...withMiden, solanaChain] : withMiden;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTestnet, sourceChainIdsKey, midenTokens]);
+  }, [isTestnet, sourceChainIdsKey, midenTokens, solanaTokens]);
 
   const allTokens = useMemo((): TokenWithChain[] => {
     const flat = availableChains.flatMap((chain) =>
       chain.id === MIDEN_VIRTUAL_CHAIN_ID
         ? midenTokens
-        : getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
-            ...tok,
-            chain,
-          })),
+        : chain.id === getSolanaChain(isTestnet).id
+          ? solanaTokens
+          : getEpochTokensByChainEnv(chain.id, isTestnet).map((tok) => ({
+              ...tok,
+              chain,
+            })),
     );
     return sourceTokenFilter ? flat.filter(sourceTokenFilter) : flat;
-  }, [availableChains, isTestnet, sourceTokenFilter, midenTokens]);
+  }, [
+    availableChains,
+    isTestnet,
+    sourceTokenFilter,
+    midenTokens,
+    solanaTokens,
+  ]);
 
   const defaultSource = useMemo(
     () =>
@@ -101,10 +135,11 @@ export function useSourceSelection({
 
   // The token pick needs no eviction key: it already resolves against the
   // active list, so a token from the other network simply isn't found.
-  const { address, token, setPick: setTokenPick } = useTokenPick(
-    availableTokens,
-    defaultSource?.address,
-  );
+  const {
+    address,
+    token,
+    setPick: setTokenPick,
+  } = useTokenPick(availableTokens, defaultSource?.address);
 
   const select = useCallback(
     (nextChainId: number, nextTokenAddress: string) => {

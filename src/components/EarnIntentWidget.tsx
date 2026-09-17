@@ -35,6 +35,9 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
     isTestnet,
     miden,
     midenEnabled,
+    solana,
+    solanaEnabled,
+    solanaTokens,
     modalTitle,
     picker,
     selectPosition,
@@ -44,6 +47,7 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
     setEarnSelectedMarket,
     setSelectedChainId,
     setSelectedMidenFaucetId,
+    setSelectedSolanaMint,
     setSmartWithdraw,
     setTokenAddressPick,
     setWithdrawAmount,
@@ -150,6 +154,24 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
                 setSelectedMidenFaucetId(faucetId);
                 backToMain();
               }}
+            />
+          ),
+        };
+      }
+      if (fundingSource === "solana" && solanaEnabled) {
+        return {
+          title: "Select Solana asset",
+          onBack: backToMain,
+          content: (
+            <TokenSelector
+              tokens={solanaTokens}
+              selectedTokenAddress={solana.selectedAsset?.mint ?? ""}
+              selectedChainId={solana.chain.id}
+              onSelect={(mint) => {
+                setSelectedSolanaMint(mint);
+                backToMain();
+              }}
+              onBack={backToMain}
             />
           ),
         };

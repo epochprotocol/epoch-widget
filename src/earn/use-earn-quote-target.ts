@@ -12,7 +12,7 @@ import { MIDEN_VIRTUAL_CHAIN_ID } from './miden';
 
 export interface UseEarnQuoteTargetOptions {
   earnTab: 'deposit' | 'withdraw';
-  fundingSource: 'evm' | 'miden';
+  fundingSource: 'evm' | 'miden' | 'solana';
   earnSelectedMarket: EpochEarnMarket | null;
   earnAmount: string;
   selectedPosition: EpochEarnPosition | null;
@@ -24,6 +24,8 @@ export interface UseEarnQuoteTargetOptions {
   selectedToken: EpochToken | null;
   /** Miden source token, when funding from Miden. */
   midenSourceToken: EpochToken | null;
+  /** Solana source token, when funding from Solana Devnet. */
+  solanaSourceToken: EpochToken | null;
   smartWithdraw: boolean;
   smartDestChainId: number | null;
   smartDestTokenAddress: string;
@@ -72,6 +74,7 @@ export function useEarnQuoteTarget({
   selectedChainId,
   selectedToken,
   midenSourceToken,
+  solanaSourceToken,
   smartWithdraw,
   smartDestChainId,
   smartDestTokenAddress,
@@ -134,6 +137,8 @@ export function useEarnQuoteTarget({
       ? withdrawSourceToken
       : fundingSource === 'miden'
         ? midenSourceToken
+        : fundingSource === 'solana'
+          ? solanaSourceToken
         : selectedToken;
 
   const effectiveSourceChainId =
@@ -141,6 +146,8 @@ export function useEarnQuoteTarget({
       ? withdrawSourceChainId
       : fundingSource === 'miden'
         ? MIDEN_VIRTUAL_CHAIN_ID
+        : fundingSource === 'solana'
+          ? (solanaSourceToken?.chainId ?? null)
         : selectedChainId;
 
   // Smart Withdraw pointing back at the position's own chain + token is a no-op:

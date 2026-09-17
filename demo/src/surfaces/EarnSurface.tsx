@@ -121,7 +121,7 @@ export function EarnSurface({ onOpenWidget }: Props) {
           token they hold; withdrawals come back to the same wallet. Use the Mainnet / Testnet toggle
           in the modal header to try dummy-lending on Base Sepolia and Ethereum Sepolia (fund from
           Optimism Sepolia, Ethereum Sepolia, Base Sepolia, or Miden on testnet), with
-          optional Miden as a deposit source on testnet.
+          optional Miden or Solana Devnet as a deposit source on testnet.
         </p>
       </header>
 
@@ -157,9 +157,9 @@ export function EarnSurface({ onOpenWidget }: Props) {
         <div className="rounded-md border border-line bg-surface p-5 shadow-sm">
           <div className="mb-2 text-base font-semibold text-fg">Deposit</div>
           <p className="mb-4 text-[13px] text-fg-muted">
-            Pick a lending market and deposit from an EVM wallet or Miden (testnet). Toggle{' '}
-            <strong>Testnet</strong> in the modal, then use the EVM / Miden source switch on the
-            deposit form.
+            Pick a lending market and deposit from an EVM wallet, Miden, or Solana Devnet.
+            Toggle <strong>Testnet</strong> in the modal, then choose EVM / Miden / Solana on
+            the deposit form. Solana deposits use Phantom and a post-quote escrow transaction.
           </p>
           <button
             type="button"
