@@ -11,6 +11,7 @@ import { SwapSurface } from '../surfaces/SwapSurface';
 import { EarnSurface } from '../surfaces/EarnSurface';
 import { AdvancedSurface } from '../surfaces/AdvancedSurface';
 import { useEarnMidenAdapter } from '../earn/useEarnMidenAdapter';
+import { useDemoSolanaAdapter } from '../pay/useDemoSolanaAdapter';
 
 /**
  * Read `?advanced=1` once on mount. When set, the Advanced (Miden → EVM)
@@ -39,7 +40,9 @@ export default function App() {
   const showAdvanced = useAdvancedFlag();
   const earnMiden = useEarnMidenAdapter();
 
-  const [network, setNetwork] = useState<DemoNetwork>('mainnet');
+  // The demo currently exercises the public Solana Devnet rail.
+  const [network, setNetwork] = useState<DemoNetwork>('testnet');
+  const solana = useDemoSolanaAdapter(network);
   const tabs = useMemo(() => {
     const base = [PAY_TAB, SWAP_TAB, EARN_TAB];
     return showAdvanced ? [...base, ADVANCED_TAB] : base;
@@ -108,6 +111,7 @@ export default function App() {
             // One adapter for every flow; the widget wires earn and pay/swap off
             // it. Testnet only — mainnet has no Miden faucets.
             miden={network === 'testnet' ? earnMiden : undefined}
+            solana={solana}
             isOpen={widgetOpen}
             onClose={() => setWidgetOpen(false)}
             network={network}

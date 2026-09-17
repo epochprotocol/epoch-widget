@@ -35,6 +35,11 @@ const base = {
   isMidenSource: false,
   isMidenDest: false,
   midenConnected: false,
+  isSolanaSource: false,
+  isSolanaDest: false,
+  solanaConnected: false,
+  solanaConfigured: false,
+  solanaCanOpenEscrow: false,
 };
 
 describe("resolvePaySwapCta", () => {
@@ -117,9 +122,13 @@ describe("resolvePaySwapCta", () => {
       { submit: "Trade now", switchNetwork: (c) => `Go to ${c}` },
       { submit: "Swap", configureRequired: "Configure swap" },
     );
-    assert.equal(resolvePaySwapCta({ ...base, labels: custom }).label, "Trade now");
     assert.equal(
-      resolvePaySwapCta({ ...base, labels: custom, isWrongNetwork: true }).label,
+      resolvePaySwapCta({ ...base, labels: custom }).label,
+      "Trade now",
+    );
+    assert.equal(
+      resolvePaySwapCta({ ...base, labels: custom, isWrongNetwork: true })
+        .label,
       "Go to Base",
     );
   });
@@ -173,10 +182,65 @@ describe("resolvePaySwapCta", () => {
     assert.equal(cta.action, "disabled");
     assert.equal(cta.label, "Select a different destination");
   });
+
+  it("Solana→EVM prompts for the Solana wallet before a network switch", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isSolanaSource: true,
+      solanaConfigured: true,
+      isWrongNetwork: true,
+    });
+    assert.equal(cta.action, "connectSolana");
+    assert.equal(cta.label, "Connect Solana wallet");
+  });
+
+  it("Solana→EVM requires an escrow callback after connecting", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isSolanaSource: true,
+      solanaConfigured: true,
+      solanaConnected: true,
+    });
+    assert.equal(cta.action, "disabled");
+    assert.equal(cta.label, "Configure Solana escrow");
+  });
+
+  it("EVM→Solana submits after the destination wallet connects", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isSolanaDest: true,
+      solanaConfigured: true,
+      solanaConnected: true,
+    });
+    assert.equal(cta.action, "submit");
+  });
+
+  it("Solana→Solana is denied", () => {
+    const cta = resolvePaySwapCta({
+      ...base,
+      isSolanaSource: true,
+      isSolanaDest: true,
+      solanaConfigured: true,
+      solanaConnected: true,
+      solanaCanOpenEscrow: true,
+    });
+    assert.equal(cta.action, "disabled");
+    assert.equal(cta.label, "Select a different destination");
+  });
+
+  it("requires a host adapter instead of showing an inert connect button", () => {
+    const cta = resolvePaySwapCta({ ...base, isSolanaDest: true });
+    assert.equal(cta.action, "disabled");
+    assert.equal(cta.label, "Configure Solana wallet");
+  });
 });
 
 const chain = (id: number, name: string) => ({ id, name, network: name });
-const token = (address: string, symbol: string, c: ReturnType<typeof chain>) => ({
+const token = (
+  address: string,
+  symbol: string,
+  c: ReturnType<typeof chain>,
+) => ({
   address,
   symbol,
   decimals: 6,
