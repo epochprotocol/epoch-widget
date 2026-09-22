@@ -13,11 +13,14 @@ import { Toaster } from 'sonner';
 import {
   AllowedPrivateData,
   WalletAdapterNetwork,
-} from '@miden-sdk/miden-wallet-adapter-base';
-import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
-import { MidenProvider } from '@miden-sdk/react';
-import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
-import App from './app/App';
+} from "@miden-sdk/miden-wallet-adapter-base";
+import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
+import { MidenProvider } from "@miden-sdk/react";
+import {
+  themeToCssVars,
+  LIGHT_THEME,
+} from "@epoch-protocol/epoch-intent-widget";
+import App from "./app/App";
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
 // utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
