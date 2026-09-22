@@ -13,12 +13,14 @@ export const DUMMY_LENDING_SOURCE_EVM_CHAIN_IDS = [
   84532, // Base Sepolia
   11155111, // Ethereum Sepolia
   11155420, // Optimism Sepolia — fund only; markets are on other testnets
+  46630, // Robinhood Testnet
 ] as const;
 
 /** Chains where dummy-lending earn markets can be selected (deposit destination). */
 export const DUMMY_LENDING_DESTINATION_CHAIN_IDS = [
   84532, // Base Sepolia
   11155111, // Ethereum Sepolia
+  46630, // Robinhood Testnet
 ] as const;
 
 /** @deprecated Alias — markets are deployed only on destination chains. */
