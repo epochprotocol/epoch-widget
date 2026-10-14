@@ -4,6 +4,8 @@ import {
   fetchLendingPoolsPage,
   fetchLendingPoolsPageMulti,
   fetchUserPositions,
+  fetchVaultPositions,
+  fetchVaultsPage,
   flattenConfigsToMarkets,
   HARDCODED_ONEDELTA_CONFIGS,
 } from '@epoch-protocol/epoch-flows-sdk';
@@ -12,10 +14,13 @@ import type {
   PoolSortBy,
   PoolSortDir,
 } from '@epoch-protocol/epoch-flows-sdk';
+import { getEpochChainById } from '../epoch-config';
 import type {
   ApiConfig,
   EpochEarnMarket,
   EpochEarnPosition,
+  EpochEarnVault,
+  EpochEarnVaultPosition,
   EpochEarnPositionsSummary,
   OneDeltaConfig,
 } from '../types';
@@ -58,6 +63,43 @@ export interface PositionsState {
   summary: EpochEarnPositionsSummary | null;
   isLoading: boolean;
   error: Error | null;
+  partial?: boolean;
+}
+
+export interface VaultsPageState {
+  vaults: EpochEarnVault[];
+  hasMore: boolean;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+export function useVaultsPage(opts: {
+  api: ApiConfig; enabled?: boolean; chainIds: number[]; start: number; limit: number;
+}): VaultsPageState {
+  const positionsBaseUrl = opts.api.positionsBaseUrl?.replace(/\/$/, '');
+  const chainIdsKey = opts.chainIds.join(',');
+  const [state, setState] = useState<VaultsPageState>({ vaults: [], hasMore: false, isLoading: false, error: null });
+  const requestId = useRef(0);
+  useEffect(() => {
+    if (!opts.enabled || !positionsBaseUrl || !chainIdsKey) {
+      setState({ vaults: [], hasMore: false, isLoading: false, error: null });
+      return;
+    }
+    const id = ++requestId.current;
+    const controller = new AbortController();
+    setState((old) => ({ ...old, isLoading: true, error: null }));
+    Promise.allSettled(chainIdsKey.split(',').map((chain) => fetchVaultsPage({
+      positionsBaseUrl, chainId: Number(chain), start: opts.start, limit: opts.limit, signal: controller.signal,
+    }))).then((results) => {
+      if (id !== requestId.current) return;
+      const successful = results.flatMap((r) => r.status === 'fulfilled' ? [r.value] : []);
+      const failures = results.filter((r) => r.status === 'rejected');
+      setState({ vaults: successful.flatMap((r) => r.items), hasMore: successful.some((r) => r.hasMore), isLoading: false,
+        error: successful.length ? null : failures.length ? new Error(String((failures[0] as PromiseRejectedResult).reason)) : null });
+    });
+    return () => { controller.abort(); };
+  }, [positionsBaseUrl, opts.enabled, chainIdsKey, opts.start, opts.limit]);
+  return state;
 }
 
 /**
@@ -434,17 +476,33 @@ export function useUserPositions(opts: {
 
     const run = async () => {
       try {
-        const { positions, summary } = await fetchUserPositions({
-          address,
-          network,
-          positionsBaseUrl,
-          configs,
-          chainsOverride,
-          lendersOverride,
-          signal: controller.signal,
+        const lendingPromise = fetchUserPositions({
+          address, network, positionsBaseUrl, configs, chainsOverride, lendersOverride, signal: controller.signal,
         });
+        const chainIds = (chainsOverride ?? '').split(',').map(Number).filter((n) => Number.isSafeInteger(n) && n > 0);
+        const vaultPromise = positionsBaseUrl && network === 'mainnet'
+          ? fetchVaultPositions({ positionsBaseUrl, account: address, chainIds, signal: controller.signal })
+          : Promise.resolve({ items: [] as EpochEarnVaultPosition[], partial: false, failedChains: [] as number[] });
+        const [lendingResult, vaultResult] = await Promise.allSettled([lendingPromise, vaultPromise]);
         if (cancelled || id !== reqIdRef.current) return;
-        setState({ positions, summary, isLoading: false, error: null });
+        const lending = lendingResult.status === 'fulfilled' ? lendingResult.value : { positions: [], summary: null };
+        const vaults = vaultResult.status === 'fulfilled' ? vaultResult.value : { items: [], partial: true, failedChains: chainIds };
+        const vaultPositions = vaults.items.filter((p) => BigInt(p.sharesRaw) > 0n).map((p) => {
+          const chainName = getEpochChainById(p.chainId)?.name ?? `Chain ${p.chainId}`;
+          const providerName = p.provider === 'euler-earn' ? 'Euler Earn' : p.provider[0].toUpperCase() + p.provider.slice(1);
+          const market: EpochEarnMarket = {
+            id: `vault:${p.chainId}:${p.vaultAddress.toLowerCase()}`, displayName: `${p.shareSymbol} · ${providerName}`,
+            chainLabel: chainName, aprDecimal: 0, vaultAddress: p.vaultAddress, underlyingAddress: p.underlyingAddress,
+            productKind: 'vault', providerKey: p.provider,
+            token: { address: p.underlyingAddress, symbol: p.underlyingSymbol, decimals: p.underlyingDecimals },
+            destinationChainName: chainName, chainId: p.chainId, lenderName: providerName,
+          };
+          return { id: market.id, market, shareBalanceRaw: p.sharesRaw, underlyingBalanceRaw: p.assetsRaw,
+            withdrawableRaw: p.assetsRaw, underlyingUsdValue: p.usdValue } as EpochEarnPosition;
+        });
+        const lendingFailed = lendingResult.status === 'rejected';
+        setState({ positions: [...lending.positions, ...vaultPositions], summary: lending.summary, isLoading: false,
+          error: null, partial: lendingFailed || vaults.partial || vaultResult.status === 'rejected' });
       } catch (err) {
         if (cancelled || id !== reqIdRef.current) return;
         if (err instanceof DOMException && err.name === 'AbortError') return;

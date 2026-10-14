@@ -138,6 +138,7 @@ const swLog = (stage: string, data?: Record<string, unknown>) => {
 function isSmartWithdrawInput(input: EarnQuoteInput): boolean {
   return (
     input.tab === 'withdraw' &&
+    (input.market ?? input.position?.market)?.productKind !== 'vault' &&
     input.smartWithdraw === true &&
     input.smartDestChainId != null &&
     (!!input.smartDestTokenAddress || !!input.midenDest)
@@ -346,8 +347,9 @@ export function useEarnIntentFlow({
     (input: EarnQuoteInput) => {
       const market = input.market ?? input.position?.market;
       if (!market) throw new Error('Market missing');
+      const isVault = market.productKind === 'vault';
       const marketUid = market.oneDeltaMarketUid;
-      if (!marketUid) throw new Error('Market is missing the 1delta marketUid');
+      if (!isVault && !marketUid) throw new Error('Market is missing the 1delta marketUid');
 
       const sourceToken = input.sourceToken;
       if (!sourceToken) throw new Error('Source token missing');
@@ -359,7 +361,7 @@ export function useEarnIntentFlow({
       // tuple and settle against another. Fail fast at intent-build time with
       // a message that points at the offending field — easier than chasing a
       // revert in the solver.
-      const muidParts = marketUid.split(':');
+      const muidParts = marketUid?.split(':') ?? [];
       const muidChain = muidParts[1];
       const muidUnderlying = muidParts[2];
       if (
@@ -384,11 +386,15 @@ export function useEarnIntentFlow({
 
       const isWithdraw = input.tab === 'withdraw';
       const isMidenDeposit = !isWithdraw && !!input.midenSource;
+      if (isVault && input.midenSource) throw new Error('Synchronous vault deposits require an EVM source token');
 
-      const protocolHashIdentifier = keccak256(toBytes(earnProtocolName(marketUid)));
-      const underlyingAddress = market.token.address as string;
-      const actionChainId =
-        market.chainId != null ? String(market.chainId) : muidChain ?? '1';
+      const protocolHashIdentifier = keccak256(toBytes(isVault ? ONEDELTA_PROTOCOL_NAME : earnProtocolName(marketUid!)));
+      const underlyingAddress = (isVault ? market.underlyingAddress : market.token.address) as string;
+      if (isVault && (!underlyingAddress || !/^0x[\da-f]{40}$/i.test(underlyingAddress) || !/^0x[\da-f]{40}$/i.test(market.vaultAddress))) {
+        throw new Error('Vault selection is missing valid vault or underlying addresses');
+      }
+      const actionChainId = market.chainId != null ? String(market.chainId) : muidChain ?? '1';
+      if (isVault && market.chainId == null) throw new Error('Vault selection is missing its chain ID');
 
       // Smart Withdraw is handled by `submitSmartWithdraw` (a 2-leg batch:
       // withdraw → cross-chain swap), so buildParams only ever builds the plain
@@ -407,18 +413,16 @@ export function useEarnIntentFlow({
       const baseTypestring = isWithdraw
         ? WITHDRAW_EXTRADATA_TYPESTRING
         : DEPOSIT_EXTRADATA_TYPESTRING;
-      const extraDataTypestring = isMidenDeposit
-        ? `${baseTypestring},${EARN_MIDEN_EXTRA_FIELDS.join(',')}`
-        : baseTypestring;
+      const vaultTypestring = 'string productKind,string action,uint256 chainId,address vault,address underlying,address payAsset,bool isAll';
+      const extraDataTypestring = isVault
+        ? vaultTypestring
+        : isMidenDeposit ? `${baseTypestring},${EARN_MIDEN_EXTRA_FIELDS.join(',')}` : baseTypestring;
 
-      const extraData: Record<string, string | boolean> = {
-        marketUid,
-        action: input.tab,
-        payAsset,
-        // Declared by the canonical typestring, so it must be present. Pinned
-        // false: a full-exit withdraw resolves its size at execution, and
-        // deposits pass a real amount either way.
-        isAll: false,
+      const extraData: Record<string, string | boolean | number> = isVault ? {
+        productKind: 'vault', action: input.tab, chainId: Number(actionChainId),
+        vault: market.vaultAddress, underlying: underlyingAddress, payAsset, isAll: false,
+      } : {
+        marketUid: marketUid!, action: input.tab, payAsset, isAll: false,
       };
       if (isMidenDeposit && input.midenSource) {
         extraData.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
@@ -427,9 +431,7 @@ export function useEarnIntentFlow({
         extraData.midenNoteId = '';
       }
 
-      const tokenInDecimals = isMidenDeposit
-        ? input.midenSource!.decimals
-        : sourceToken.decimals;
+      const tokenInDecimals = isMidenDeposit ? input.midenSource!.decimals : isWithdraw ? market.token.decimals : sourceToken.decimals;
       const tokenInAmount = parseUnits(
         input.amount.trim().replace(/,/g, ''),
         tokenInDecimals,
@@ -437,7 +439,7 @@ export function useEarnIntentFlow({
 
       const tokenInAddress = isMidenDeposit
         ? (EVM_ZERO_ADDRESS as `0x${string}`)
-        : (sourceToken.address as `0x${string}`);
+        : (isWithdraw ? underlyingAddress : sourceToken.address) as `0x${string}`;
 
       return {
         tokenInAmount,

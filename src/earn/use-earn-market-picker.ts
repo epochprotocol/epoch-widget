@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type {
+  EpochEarnVault,
   EarnMarketRow,
   PoolSortBy,
   PoolSortDir,
@@ -9,6 +10,7 @@ import {
   DEFAULT_EARN_CONFIGS,
   useEarnConfigs,
   useLendingPoolsPage,
+  useVaultsPage,
 } from './api';
 import {
   ALL_LENDERS,
@@ -42,6 +44,9 @@ export interface UseEarnMarketPickerOptions {
 
 export interface EarnMarketPicker {
   rows: EarnMarketRow[];
+  vaults: EpochEarnVault[];
+  vaultsLoading: boolean;
+  vaultsError: Error | null;
   hasMore: boolean;
   isLoading: boolean;
   error: Error | null;
@@ -162,6 +167,14 @@ export function useEarnMarketPicker({
     // once the upstream behavior is stable.
   });
 
+  const vaultsPage = useVaultsPage({
+    api,
+    enabled: enabled && useLivePools,
+    chainIds: requestedChainIds,
+    start: page * MARKETS_PAGE_SIZE,
+    limit: MARKETS_PAGE_SIZE,
+  });
+
   const staticConfigsState = useEarnConfigs({
     enabled: configsEnabled && !useLivePools,
     source: earnMarketsSource ?? DEFAULT_EARN_CONFIGS,
@@ -246,6 +259,9 @@ export function useEarnMarketPicker({
 
   return {
     rows: source.rows,
+    vaults: vaultsPage.vaults,
+    vaultsLoading: vaultsPage.isLoading,
+    vaultsError: vaultsPage.error,
     hasMore: source.hasMore,
     isLoading: source.isLoading,
     error: source.error,
