@@ -11,15 +11,10 @@ import type { EpochChain, EpochToken } from "../types";
 // are the same values the SDK branches its EVM→Miden intent build on.
 export { EVM_ZERO_ADDRESS, MIDEN_VIRTUAL_CHAIN_ID };
 
-/**
- * Default Miden testnet faucet — USDC on Miden, the `tokens.USDC.contractAddress.Miden`
- * entry in the Epoch graph. Used only as a fallback; the live token lists come from
- * {@link getMidenGraphTokens}. (The old value `0x2458e544…` was the MIDEN faucet, not
- * USDC — SIO resolves faucets against the graph, so that id NO_QUOTE'd.)
- */
+/** Official USDCX faucet used as the default Miden testnet asset. */
 export const DEFAULT_MIDEN_FAUCET = {
-  faucetId: "0x537c15a622074e91188aa894456c52",
-  symbol: "USDC",
+  faucetId: "0x4cbdcaffe75f0a317482224dae6436",
+  symbol: "USDCX",
   decimals: 6,
 } as const;
 
