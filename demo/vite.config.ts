@@ -23,6 +23,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@miden-sdk/miden-sdk"],
   },
+  preview: {
+    allowedHosts: ["miden-integration-example.epochprotocol.xyz"],
+  },
   build: {
     target: "esnext",
     minify: false,
