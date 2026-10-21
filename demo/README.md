@@ -6,6 +6,14 @@ This directory is a **standalone reference shell** for integrators. It depends o
 - **Earn** — collect amount + market selection, show an APR-only yield preview, then open the widget with a vault-style deposit intent.
 - **Advanced** — Miden → EVM bridge (optional; not required for typical EVM integrations).
 
+## Local EVM signer
+
+The demo header offers **Local signer** beside **Connect Wallet**. Enter a development account's private key (64 hexadecimal characters, with or without `0x`) and select an EVM network. Disconnect an existing wallet first. The signer connects through the demo's Wagmi configuration, so the unchanged widget can use it in Pay, Swap, and Earn.
+
+The masked input clears on submission. Keys stay in page memory and are forgotten on disconnect or reload; cached clients lose signing authority on disconnect. Local signing happens without extension confirmation popups. All signer code lives under `demo/` and is excluded from the published widget package.
+
+Run the signer tests from the repository root with `node --import tsx --test demo/test/local-signer.test.ts`.
+
 ## Scripts
 
 ```bash
