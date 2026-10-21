@@ -616,6 +616,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     },
     isConnected,
     midenConnected: !!earnMiden?.connected,
+    midenSourceReady: !!miden.quoteSource,
     hasSelectedMarket: !!earnSelectedMarket,
     depositAmount: earnAmount,
     hasSelectedPosition: !!selectedPosition,
@@ -667,6 +668,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       return;
     }
     if (ctaState.action !== "submit") return;
+    if (fundingSource === "miden" && !miden.quoteSource) return;
     if (
       effectiveSourceChainId == null ||
       !effectiveSourceToken ||
