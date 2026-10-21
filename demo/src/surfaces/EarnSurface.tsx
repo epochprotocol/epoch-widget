@@ -120,8 +120,8 @@ export function EarnSurface({ onOpenWidget }: Props) {
           Show a list of lending and yield markets right inside your app. Users deposit with any
           token they hold; withdrawals come back to the same wallet. Use the Mainnet / Testnet toggle
           in the modal header to try dummy-lending on Base Sepolia and Ethereum Sepolia (fund from
-          Optimism Sepolia, Ethereum Sepolia, Base Sepolia, or Miden on testnet), with
-          optional Miden as a deposit source on testnet.
+          Optimism Sepolia, Ethereum Sepolia, or Base Sepolia), with
+          Miden USDCX as a deposit source on mainnet.
         </p>
       </header>
 
@@ -157,8 +157,8 @@ export function EarnSurface({ onOpenWidget }: Props) {
         <div className="rounded-md border border-line bg-surface p-5 shadow-sm">
           <div className="mb-2 text-base font-semibold text-fg">Deposit</div>
           <p className="mb-4 text-[13px] text-fg-muted">
-            Pick a lending market and deposit from an EVM wallet or Miden (testnet). Toggle{' '}
-            <strong>Testnet</strong> in the modal, then use the EVM / Miden source switch on the
+            Pick a lending market and deposit from an EVM wallet or Miden USDCX on mainnet. Keep{' '}
+            <strong>Mainnet</strong> selected, then use the EVM / Miden source switch on the
             deposit form.
           </p>
           <button

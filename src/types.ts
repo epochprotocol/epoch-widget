@@ -133,7 +133,7 @@ export interface OnStatusCtx extends SessionCtx {
 }
 
 // ---------------------------------------------------------------------------
-// Earn — Miden funding (optional, testnet)
+// Earn — Miden funding (optional)
 // ---------------------------------------------------------------------------
 
 /** Miden faucet asset surfaced in the earn deposit source picker. */
@@ -317,15 +317,15 @@ export interface EpochIntentWidgetProps {
   earnPoolsSortDir?: 'ASC' | 'DESC';
   /** @deprecated retained for backwards compatibility. */
   earnUseMockData?: boolean;
-  /** Optional Miden wallet adapter for funding earn deposits from Miden (testnet).
+  /** Optional Miden wallet adapter for funding earn deposits from Miden on the active network.
    * Requires a connected EVM wallet as intent sponsor; Miden supplies collateral via P2IDE note.
    */
   earnMiden?: EarnMidenAdapter;
   /**
    * Miden wallet adapter shared by every flow (earn AND pay/swap). Same shape as
    * {@link earnMiden}, which stays as a back-compat alias — the widget resolves
-   * `miden ?? earnMiden`. Testnet only: mainnet has no Miden faucets, so Miden
-   * never appears in the pickers there.
+   * `miden ?? earnMiden`. The active network graph determines which Miden faucets
+   * appear in the pickers.
    */
   miden?: EarnMidenAdapter;
 
