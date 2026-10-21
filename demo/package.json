@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "https://github.com/epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30",
-    "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8",
+    "@epoch-protocol/epoch-commons-sdk": "https://github.com/epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0",
+    "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675",
     "@epoch-protocol/epoch-intents-sdk": "^1.0.38",
     "@epoch-protocol/epoch-intent-widget": "file:../",
     "@miden-sdk/miden-sdk": "0.17.5",

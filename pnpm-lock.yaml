@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@epoch-protocol/epoch-commons-sdk':
-        specifier: 0.1.20
-        version: 0.1.20(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
+        specifier: https://github.com/epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0
+        version: git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-flows-sdk':
-        specifier: https://github.com/epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8
-        version: git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
+        specifier: https://github.com/epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675
+        version: git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk':
         specifier: 1.0.39
         version: 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
@@ -70,11 +70,11 @@ importers:
   demo:
     dependencies:
       '@epoch-protocol/epoch-commons-sdk':
-        specifier: https://github.com/epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30
-        version: git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+        specifier: https://github.com/epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0
+        version: git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@epoch-protocol/epoch-flows-sdk':
-        specifier: https://github.com/epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8
-        version: git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        specifier: https://github.com/epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675
+        version: git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@epoch-protocol/epoch-intent-widget':
         specifier: file:../
         version: file:(@tanstack/react-query@5.101.4(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.33.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.101.4)(@tanstack/react-query@5.101.4(react@18.3.1))(@types/react@18.3.31)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
@@ -276,12 +276,12 @@ packages:
   '@epoch-protocol/epoch-commons-sdk@0.1.20':
     resolution: {integrity: sha512-KvM6hkKHik/x8Dp3cpu0wwgQfqwOEndkdh3GhTvnQrLi+QcSrHQ2BLy6ZElV3Jv8vO2TA2yWHCMUl+Ks8GyuPg==}
 
-  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30':
-    resolution: {commit: 2728ac9443e4376e76dab76ef069bc24516d8c30, repo: git@github.com:epochprotocol/epoch-commons-sdk.git, type: git}
-    version: 0.1.20
+  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0':
+    resolution: {commit: caa9e302c7d8d1e663f3f725fee3c57eab3269a0, repo: git@github.com:epochprotocol/epoch-commons-sdk.git, type: git}
+    version: 0.1.21-mainnet.0
 
-  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8':
-    resolution: {commit: 0906a506c98309f5adcf1eb42d666cda479884f8, repo: git@github.com:epochprotocol/epoch-flows-sdk.git, type: git}
+  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675':
+    resolution: {commit: 812a2c814dee1bc7b1b3c2ed20748372b79a2675, repo: git@github.com:epochprotocol/epoch-flows-sdk.git, type: git}
     version: 0.1.7
     peerDependencies:
       viem: ^2.x
@@ -4374,7 +4374,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
     dependencies:
       ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -4384,7 +4384,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)':
+  '@epoch-protocol/epoch-commons-sdk@git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)':
     dependencies:
       ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem: 2.42.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
@@ -4394,9 +4394,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
+  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
     transitivePeerDependencies:
@@ -4406,9 +4406,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
+  '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
+      '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
     transitivePeerDependencies:
@@ -4420,8 +4420,8 @@ snapshots:
 
   '@epoch-protocol/epoch-intent-widget@file:(@tanstack/react-query@5.101.4(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.33.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.101.4)(@tanstack/react-query@5.101.4(react@18.3.1))(@types/react@18.3.31)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@epoch-protocol/epoch-commons-sdk': 0.1.20(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@epoch-protocol/epoch-flows-sdk': git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+      '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@epoch-protocol/epoch-flows-sdk': git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@tanstack/react-query': 5.101.4(react@18.3.1)
       clsx: 2.1.1
