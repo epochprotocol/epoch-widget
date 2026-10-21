@@ -73,7 +73,7 @@ export function EarnWithdrawDetailView({
           midenRecipientAccount={earnMiden?.accountId}
           midenFaucets={miden.destFaucets}
           buildError={withdrawBuildError}
-          quoteError={earnFlow.quoteError}
+          quoteError={earnFlow.error ?? earnFlow.quoteError}
           isQuoting={earnFlow.isQuoting}
           approxUsd={(() => {
             const usd = position.underlyingUsdValue;

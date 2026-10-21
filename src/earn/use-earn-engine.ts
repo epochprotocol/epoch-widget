@@ -499,6 +499,16 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       (!earnMiden?.connected || !miden.quoteSource)
     )
       return;
+    // A withdraw is sourced from the selected position's chain. Do not quote
+    // while the connected EVM wallet is still on another chain: the SDK would
+    // otherwise use the wallet chain as the intent origin and can construct a
+    // malformed route (for example, an Optimism token looked up on Base).
+    if (
+      fundingSource === "evm" &&
+      effectiveSourceChainId !== null &&
+      chainId !== effectiveSourceChainId
+    )
+      return;
     // Destination not yet moved off the position's own chain/token → no route
     // to quote. Skip until the user picks a real destination.
     if (isSmartWithdrawDegenerate) return;
@@ -526,6 +536,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     activeMarket,
     effectiveSourceChainId,
     effectiveSourceToken?.address,
+    chainId,
     address,
     earnTab,
     smartWithdraw,

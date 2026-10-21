@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@epoch-protocol/epoch-intents-sdk@1.0.39':
+    hash: mpz3uqsople55es62obpsuzahq
+    path: patches/@epoch-protocol__epoch-intents-sdk.patch
+
 importers:
 
   .:
@@ -16,7 +21,7 @@ importers:
         version: git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       '@epoch-protocol/epoch-intents-sdk':
         specifier: 1.0.39
-        version: 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
+        version: 1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -80,7 +85,7 @@ importers:
         version: file:(@tanstack/react-query@5.101.4(react@18.3.1))(bufferutil@4.1.0)(lucide-react@1.33.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.101.4)(@tanstack/react-query@5.101.4(react@18.3.1))(@types/react@18.3.31)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       '@epoch-protocol/epoch-intents-sdk':
         specifier: ^1.0.38
-        version: 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        version: 1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@miden-sdk/miden-sdk':
         specifier: 0.17.5
         version: 0.17.5
@@ -4397,7 +4402,7 @@ snapshots:
   '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
@@ -4409,7 +4414,7 @@ snapshots:
   '@epoch-protocol/epoch-flows-sdk@git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
-      '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)
       viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
@@ -4422,7 +4427,7 @@ snapshots:
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': git+https://git@github.com:epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@epoch-protocol/epoch-flows-sdk': git+https://git@github.com:epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
-      '@epoch-protocol/epoch-intents-sdk': 1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+      '@epoch-protocol/epoch-intents-sdk': 1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@tanstack/react-query': 5.101.4(react@18.3.1)
       clsx: 2.1.1
       lucide-react: 1.33.0(react@18.3.1)
@@ -4438,7 +4443,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intents-sdk@1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
+  '@epoch-protocol/epoch-intents-sdk@1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': 0.1.20(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@metamask/smart-accounts-kit': 1.7.0(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
@@ -4450,7 +4455,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@epoch-protocol/epoch-intents-sdk@1.0.39(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
+  '@epoch-protocol/epoch-intents-sdk@1.0.39(patch_hash=mpz3uqsople55es62obpsuzahq)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@epoch-protocol/epoch-commons-sdk': 0.1.20(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       '@metamask/smart-accounts-kit': 1.7.0(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))(zod@4.4.3)

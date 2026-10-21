@@ -553,7 +553,14 @@ export function useEarnIntentFlow({
       pendingQuoteRef.current = null;
 
       try {
-        const originChainId = params.isMidenDeposit ? input.sourceChainId : undefined;
+        // Withdrawals originate on the position's chain, not necessarily on
+        // the wallet's currently selected chain. Keeping this explicit avoids
+        // asking SIO/dex solvers to resolve a position token on the wrong EVM
+        // chain while the UI is switching networks.
+        const originChainId =
+          params.isMidenDeposit || input.tab === 'withdraw'
+            ? input.sourceChainId
+            : undefined;
         const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         const { taskTypeString, intentData } = await sdk.getTaskData({
@@ -625,6 +632,22 @@ export function useEarnIntentFlow({
       try {
         const statusList = await sdk.getIntentStatus(address, nonceStr);
         if (!mountedRef.current) return;
+        const failed = Array.isArray(statusList) && statusList.some(
+          (s: { status?: string }) => s.status?.toLowerCase() === 'failed',
+        );
+        if (failed) {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          const failure = new Error('Intent execution failed on-chain. No deposit was completed.');
+          setStatus('error');
+          setError(failure.message);
+          setStatusProgress(0);
+          setActiveStep(0);
+          onErrorRef.current?.({ sessionId, error: failure });
+          return;
+        }
         const isComplete = Array.isArray(statusList)
           ? statusList.some(
               (s: { status?: string }) =>
@@ -740,7 +763,7 @@ export function useEarnIntentFlow({
       setStatus('submitting');
       setActiveStep(1);
       setStatusProgress(10);
-      setStepLabel('Quoting withdrawal…');
+      setStepLabel('Preparing withdrawal and bridge quote…');
       onStartRef.current?.({ sessionId, mode: 'earn' });
       swLog('submit:begin — executeActions(Withdraw)', {
         amount: input.amount,
@@ -873,7 +896,9 @@ export function useEarnIntentFlow({
         const submitParams = buildParams(input);
         const originChainId =
           pendingQuoteRef.current?.originChainId ??
-          (submitParams.isMidenDeposit ? input.sourceChainId : undefined);
+          (submitParams.isMidenDeposit || input.tab === 'withdraw'
+            ? input.sourceChainId
+            : undefined);
         const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         let taskTypeString: string;

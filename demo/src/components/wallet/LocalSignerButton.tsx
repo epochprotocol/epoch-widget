@@ -37,8 +37,6 @@ export function LocalSignerButton({ network, className }: Props) {
       <button
         type="button"
         onClick={() => { setError(undefined); setIsOpen(true); }}
-        disabled={isConnected && !isLocal}
-        title={isConnected && !isLocal ? 'Disconnect your wallet before using a local signer' : undefined}
         className={cn('cursor-pointer whitespace-nowrap rounded-md border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-fg shadow-sm hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50', className)}
       >
         {isLocal && address ? `Local · ${truncateAddress(address)}` : 'Local signer'}
@@ -51,7 +49,7 @@ export function LocalSignerButton({ network, className }: Props) {
               <p className="m-0 text-sm text-fg-muted">{chain?.name} · Signs locally</p>
               {error && <p role="alert" className="m-0 text-sm text-error">{error}</p>}
               <button type="button" onClick={disconnect} disabled={isPending} className="cursor-pointer rounded-sm border-0 bg-primary px-3.5 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                {isPending ? 'Disconnecting…' : 'Disconnect local signer'}
+                {isPending ? 'Clearing…' : 'Clear local signer'}
               </button>
             </div>
           ) : (
