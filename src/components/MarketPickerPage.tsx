@@ -10,10 +10,12 @@ import type {
 } from "@epoch-protocol/epoch-flows-sdk";
 import type {
   EpochEarnMarket,
+  EpochEarnVault,
   OneDeltaConfig,
   OneDeltaMarketRow,
 } from "../types";
 import { MarketRowCard } from "./earn/MarketRowCard";
+import { VaultMarketRowCard } from "./earn/VaultMarketRowCard";
 import { ArrowDownUpIcon } from "./Icons";
 import { FilterDropdown, type FilterOption } from "./ui/FilterDropdown";
 import { SearchInput } from "./ui/SearchInput";
@@ -29,6 +31,9 @@ interface Props {
    * re-sort, re-filter (except the page-local text search), or slice.
    */
   rows: EarnMarketRow[];
+  vaults?: EpochEarnVault[];
+  vaultsLoading?: boolean;
+  vaultsError?: Error | null;
   selectedId?: string;
   isLoading: boolean;
   error: Error | null;
@@ -37,6 +42,7 @@ interface Props {
     row: OneDeltaMarketRow,
     config: OneDeltaConfig,
   ) => void;
+  onSelectVault?: (market: EpochEarnMarket) => void;
 
   /** Chain filter — forwarded to the API as `chainId` (or all). */
   chainFilter: number | "all";
@@ -172,10 +178,14 @@ function rowMatches(item: EarnMarketRow, query: string): boolean {
 
 export function MarketPickerPage({
   rows,
+  vaults = [],
+  vaultsLoading = false,
+  vaultsError = null,
   selectedId,
   isLoading,
   error,
   onSelect,
+  onSelectVault,
   chainFilter,
   onChainChange,
   lenderFilter,
@@ -241,17 +251,14 @@ export function MarketPickerPage({
     () => rows.filter((item) => rowMatches(item, query)),
     [rows, query],
   );
-
-  if (error) {
-    return (
-      <p className="m-0 text-[13px] text-error">
-        Failed to load markets: {error.message}
-      </p>
-    );
-  }
+  const visibleVaults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return vaults.filter((v) => !q || `${v.share.symbol} ${v.share.address} ${v.underlying.symbol} ${v.provider} ${v.providerName}`.toLowerCase().includes(q));
+  }, [vaults, query]);
 
   return (
     <div className="flex flex-col gap-4">
+      {error && <p className="m-0 text-[13px] text-error">Failed to load lending markets: {error.message}</p>}
       <SearchInput
         value={query}
         onChange={setQuery}
@@ -294,7 +301,7 @@ export function MarketPickerPage({
         />
       </div>
 
-      {isLoading ? (
+      {error ? null : isLoading ? (
         <div className="flex flex-col gap-2">
           <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
           <Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" />
@@ -347,6 +354,29 @@ export function MarketPickerPage({
               Next
             </button>
           </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+        <span className={SECTION_LABEL}>Synchronous vaults</span>
+      </div>
+      {vaultsError && <p className="m-0 text-[12px] text-fg-muted">Vault listings unavailable: {vaultsError.message}</p>}
+      {vaultsLoading ? (
+        <div className="flex flex-col gap-2"><Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" /><Skeleton width="100%" height={72} radius="var(--epoch-radius-sm)" /></div>
+      ) : visibleVaults.length === 0 ? (
+        <p className="my-2 text-[13px] text-fg-muted">No synchronous vaults found on this page.</p>
+      ) : (
+        <div className="flex flex-col overflow-x-hidden">
+          {visibleVaults.map((vault) => (
+            <VaultMarketRowCard key={vault.id} vault={vault} selected={selectedId === vault.id} onClick={() => onSelectVault?.({
+              id: vault.id, displayName: vault.share.symbol, chainLabel: getEpochChainById(vault.chainId)?.name ?? `Chain ${vault.chainId}`,
+              aprDecimal: vault.apyPercent / 100, vaultAddress: vault.vaultAddress, underlyingAddress: vault.underlying.address,
+              productKind: 'vault', providerKey: vault.provider,
+              token: { address: vault.underlying.address, symbol: vault.underlying.symbol, decimals: vault.underlying.decimals, logoURI: vault.underlying.logoURI },
+              destinationChainName: getEpochChainById(vault.chainId)?.name ?? `Chain ${vault.chainId}`, chainId: vault.chainId,
+              lenderName: vault.providerName,
+            })} />
+          ))}
         </div>
       )}
     </div>
