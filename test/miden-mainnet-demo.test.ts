@@ -73,3 +73,29 @@ test("private Miden accounts are rejected before quote construction", () => {
     "0xpublic",
   );
 });
+
+test("a private Bread account still resolves as Miden source metadata", async () => {
+  const compatModule = await import(
+    "../demo/src/miden/lib/mainnet-wallet-compat"
+  );
+  const normalizeMidenAccount = (
+    compatModule as typeof compatModule & {
+      normalizeMidenAccount?: (accountId: {
+        toString(): string;
+        isPublic(): boolean;
+      }) => { hex: string; isPublic: boolean };
+    }
+  ).normalizeMidenAccount;
+
+  assert.equal(typeof normalizeMidenAccount, "function");
+  assert.deepEqual(
+    normalizeMidenAccount?.({
+      toString: () => "0x0e9089055fb6f54170bbf6159da028",
+      isPublic: () => false,
+    }),
+    {
+      hex: "0x0e9089055fb6f54170bbf6159da028",
+      isPublic: false,
+    },
+  );
+});

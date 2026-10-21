@@ -9,15 +9,21 @@ import type { WalletAdapterNetwork } from "@miden-sdk/miden-wallet-adapter-base"
  */
 export const MIDEN_MAINNET_WALLET_NETWORK = "mainnet" as WalletAdapterNetwork;
 
-interface PublicAccountId {
+interface MidenAccountId {
   isPublic(): boolean;
   toString(): string;
 }
 
 /** Reject private accounts before a quote can be requested. */
-export function requirePublicMidenAccount(accountId: PublicAccountId): string {
+export function normalizeMidenAccount(
+  accountId: MidenAccountId,
+): { hex: string; isPublic: boolean } {
+  return { hex: accountId.toString(), isPublic: accountId.isPublic() };
+}
+
+export function requirePublicMidenAccount(accountId: MidenAccountId): string {
   if (!accountId.isPublic()) {
     throw new Error("A public Miden account is required for this bridge");
   }
-  return accountId.toString();
+  return normalizeMidenAccount(accountId).hex;
 }

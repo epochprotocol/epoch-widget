@@ -190,6 +190,8 @@ export interface EarnMidenAdapter {
   enabled?: boolean;
   connected: boolean;
   accountId?: string | null;
+  /** Whether the connected account uses public storage. Unknown adapters may omit it. */
+  accountIsPublic?: boolean | null;
   assets: EarnMidenAsset[];
   connect?: () => void | Promise<void>;
   createP2IDNote: EarnMidenCreateP2IDNote;

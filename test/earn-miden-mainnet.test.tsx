@@ -10,6 +10,8 @@ import { base } from "wagmi/chains";
 import { useEarnEngine } from "../src/earn/use-earn-engine";
 import type { EarnMidenAdapter } from "../src/types";
 import { resolveEarnCta } from "../src/earn/earn-cta";
+import { useEarnMiden } from "../src/earn/use-earn-miden";
+import { DEFAULT_MIDEN_FAUCET, MIDEN_VIRTUAL_CHAIN_ID } from "../src/earn/miden";
 
 const wagmiConfig = createConfig({
   chains: [base],
@@ -93,5 +95,35 @@ test("Miden earn submits once source metadata is ready", () => {
   assert.deepEqual(
     resolveEarnCta({ ...midenCtaParams, midenSourceReady: true }),
     { action: "submit", label: "Bridge from Miden + Deposit" },
+  );
+});
+
+function PrivateMidenDestinationProbe() {
+  const miden = useEarnMiden({
+    earnMiden: {
+      enabled: true,
+      connected: true,
+      accountId: "0x0e9089055fb6f54170bbf6159da028",
+      accountIsPublic: false,
+      assets: [],
+      createP2IDNote: async () => ({ success: false }),
+    } as EarnMidenAdapter,
+    isTestnet: false,
+    midenEnabled: true,
+    fundingSource: "evm",
+    selectedMidenFaucetId: DEFAULT_MIDEN_FAUCET.faucetId,
+    earnTab: "withdraw",
+    smartWithdraw: true,
+    smartDestChainId: MIDEN_VIRTUAL_CHAIN_ID,
+    smartDestTokenAddress: DEFAULT_MIDEN_FAUCET.faucetId,
+  });
+
+  return createElement("output", null, String(miden.smartDestNotReady));
+}
+
+test("private Miden accounts remain blocked as withdrawal destinations", () => {
+  assert.equal(
+    renderToStaticMarkup(createElement(PrivateMidenDestinationProbe)),
+    "<output>true</output>",
   );
 });

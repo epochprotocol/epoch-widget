@@ -10,11 +10,12 @@ import { useAssetMetadata, toBech32AccountId } from "@miden-sdk/react";
 import { AccountId, Address } from "@miden-sdk/miden-sdk";
 import {
   MIDEN_MAINNET_WALLET_NETWORK,
-  requirePublicMidenAccount,
+  normalizeMidenAccount,
 } from "../lib/mainnet-wallet-compat";
 
 export interface NormalizedMidenAccountId {
   hex: string;
+  isPublic: boolean;
 }
 
 export interface MidenWalletAsset {
@@ -89,7 +90,7 @@ const resolveAccountId = (
 
   if (!id) return null;
   try {
-    return { hex: requirePublicMidenAccount(id) };
+    return normalizeMidenAccount(id);
   } catch {
     return null;
   }
@@ -115,7 +116,7 @@ export function useMidenWalletAdapter(
   );
 
   // AccountId parsing touches WASM and often fails on first render. Keep quote
-  // eligibility disabled until the address parses and AccountId.isPublic() passes.
+  // eligibility disabled until the address parses.
   useEffect(() => {
     if (!address?.trim()) {
       setAccountId(null);
@@ -162,13 +163,7 @@ export function useMidenWalletAdapter(
     refetchOnReconnect: false,
   });
 
-  const publicAccountError =
-    enabled && connected && !!address && !accountId
-      ? "A public Miden account is required for this bridge"
-      : null;
-
   const assetsError =
-    publicAccountError ??
     (enabled && connected && !requestAssets
       ? "Connected wallet does not support requestAssets()"
       : assetsRequestError instanceof Error
