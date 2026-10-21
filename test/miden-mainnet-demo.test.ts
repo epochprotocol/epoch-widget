@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -40,6 +41,15 @@ test("browser API configuration uses the Vite value and otherwise stays same-ori
 
 test("widget demo is built beneath the hosted /widget/ path", () => {
   assert.equal(viteConfig.base, "/widget/");
+});
+
+test("production positions API base is an absolute HTTPS URL", () => {
+  const env = readFileSync(new URL("../demo/.env", import.meta.url), "utf8");
+  const value = env.match(/^VITE_POSITIONS_API_BASE_URL=(.+)$/m)?.[1];
+  assert.ok(value, "VITE_POSITIONS_API_BASE_URL must be configured");
+
+  const url = new URL(value);
+  assert.equal(url.protocol, "https:");
 });
 
 test("Bread compatibility boundary sends the raw mainnet wire value", () => {
