@@ -1,4 +1,4 @@
-import { WagmiProvider, http } from "wagmi";
+import { WagmiProvider, createConfig, http } from "wagmi";
 import {
   arbitrum,
   base,
@@ -9,7 +9,7 @@ import {
   sepolia,
 } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { Toaster } from "sonner";
 import { AllowedPrivateData } from "@miden-sdk/miden-wallet-adapter-base";
 import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
@@ -21,6 +21,7 @@ import {
 import App from "./app/App";
 import { MIDEN_MAINNET } from "./config/miden-mainnet";
 import { MIDEN_MAINNET_WALLET_NETWORK } from "./miden/lib/mainnet-wallet-compat";
+import { localSigner } from "./wallet/local-signer";
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
 // utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
@@ -35,9 +36,13 @@ import { MIDEN_MAINNET_WALLET_NETWORK } from "./miden/lib/mainnet-wallet-compat"
   }
 }
 
-const config = getDefaultConfig({
+const { connectors } = getDefaultWallets({
   appName: "EpochIntentWidget Demo",
   projectId: "demo", // WalletConnect project ID — replace with a real one for WC support
+});
+
+const config = createConfig({
+  connectors: [...connectors, localSigner()],
   chains: [
     base,
     optimism,
