@@ -1,22 +1,32 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { WagmiProvider, http } from 'wagmi';
-import { arbitrum, base, baseSepolia, optimism, optimismSepolia, polygon, sepolia } from 'wagmi/chains';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
-import './index.css';
-import '@epoch-protocol/epoch-intent-widget/styles.css';
-import '@rainbow-me/rainbowkit/styles.css';
-import 'sonner/dist/styles.css';
-import { Toaster } from 'sonner';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { WagmiProvider, http } from "wagmi";
 import {
-  AllowedPrivateData,
-  WalletAdapterNetwork,
-} from '@miden-sdk/miden-wallet-adapter-base';
-import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
-import { MidenProvider } from '@miden-sdk/react';
-import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
-import App from './app/App';
+  arbitrum,
+  base,
+  baseSepolia,
+  optimism,
+  optimismSepolia,
+  polygon,
+  sepolia,
+} from "wagmi/chains";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
+import "./index.css";
+import "@epoch-protocol/epoch-intent-widget/styles.css";
+import "@rainbow-me/rainbowkit/styles.css";
+import "sonner/dist/styles.css";
+import { Toaster } from "sonner";
+import { AllowedPrivateData } from "@miden-sdk/miden-wallet-adapter-base";
+import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
+import { MidenProvider } from "@miden-sdk/react";
+import {
+  themeToCssVars,
+  LIGHT_THEME,
+} from "@epoch-protocol/epoch-intent-widget";
+import App from "./app/App";
+import { MIDEN_MAINNET } from "./config/miden-mainnet";
+import { MIDEN_MAINNET_WALLET_NETWORK } from "./miden/lib/mainnet-wallet-compat";
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
 // utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
@@ -32,17 +42,25 @@ import App from './app/App';
 }
 
 const config = getDefaultConfig({
-  appName: 'EpochIntentWidget Demo',
-  projectId: 'demo', // WalletConnect project ID — replace with a real one for WC support
-  chains: [base, optimism, polygon, arbitrum, baseSepolia, sepolia, optimismSepolia],
+  appName: "EpochIntentWidget Demo",
+  projectId: "demo", // WalletConnect project ID — replace with a real one for WC support
+  chains: [
+    base,
+    optimism,
+    polygon,
+    arbitrum,
+    baseSepolia,
+    sepolia,
+    optimismSepolia,
+  ],
   transports: {
-    [base.id]:       http('https://mainnet.base.org'),
-    [optimism.id]:   http('https://mainnet.optimism.io'),
-    [polygon.id]:    http('https://polygon.lava.build'),
-    [arbitrum.id]:   http('https://arb1.arbitrum.io/rpc'),
-    [baseSepolia.id]: http('https://sepolia.base.org'),
-    [sepolia.id]:    http('https://eth-sepolia-testnet.api.pocket.network'),
-    [optimismSepolia.id]: http('https://sepolia.optimism.io'),
+    [base.id]: http("https://mainnet.base.org"),
+    [optimism.id]: http("https://mainnet.optimism.io"),
+    [polygon.id]: http("https://polygon.lava.build"),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
+    [baseSepolia.id]: http("https://sepolia.base.org"),
+    [sepolia.id]: http("https://eth-sepolia-testnet.api.pocket.network"),
+    [optimismSepolia.id]: http("https://sepolia.optimism.io"),
   },
   ssr: false,
 });
@@ -50,18 +68,18 @@ const config = getDefaultConfig({
 const queryClient = new QueryClient();
 
 const midenConfig = {
-  rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim(),
+  rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim() || MIDEN_MAINNET.rpcUrl,
   noteTransportUrl: import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim(),
 };
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <MidenProvider config={midenConfig}>
             <MidenFiSignerProvider
-              network={WalletAdapterNetwork.Testnet}
+              network={MIDEN_MAINNET_WALLET_NETWORK}
               appName="Epoch Intent Widget Demo"
               allowedPrivateData={AllowedPrivateData.Assets}
             >
