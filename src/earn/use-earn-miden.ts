@@ -171,6 +171,7 @@ export function useEarnMiden({
     [
       fundingSource,
       earnMiden?.accountId,
+      earnMiden?.accountIsPublic,
       earnMiden?.createP2IDNote,
       selectedAsset,
     ],
@@ -204,6 +205,7 @@ export function useEarnMiden({
       !smartWithdraw ||
       smartDestChainId !== MIDEN_VIRTUAL_CHAIN_ID ||
       !earnMiden?.accountId ||
+      earnMiden.accountIsPublic === false ||
       !smartDestTokenAddress
     ) {
       return undefined;
@@ -222,6 +224,7 @@ export function useEarnMiden({
     smartDestChainId,
     smartDestTokenAddress,
     earnMiden?.accountId,
+      earnMiden?.accountIsPublic,
     graphTokens,
   ]);
 

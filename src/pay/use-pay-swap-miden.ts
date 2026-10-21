@@ -1,15 +1,19 @@
-import { useMemo } from 'react';
-import type { EarnMidenAdapter } from '../types';
-import { MIDEN_VIRTUAL_CHAIN_ID, midenFaucetKey } from '../earn/miden';
-import type { SourceSelection } from './use-source-selection';
-import type { DestinationSelection } from './use-destination-selection';
+import { useMemo } from "react";
+import type { EarnMidenAdapter } from "../types";
+import {
+  MIDEN_VIRTUAL_CHAIN_ID,
+  midenFaucetKey,
+  normalizeMidenId,
+} from "../earn/miden";
+import type { SourceSelection } from "./use-source-selection";
+import type { DestinationSelection } from "./use-destination-selection";
 
 /** Miden→EVM funding payload — the source is a Miden P2ID note. */
 export interface PaySwapMidenSource {
   accountId: string;
   faucetId: string;
   decimals: number;
-  createP2IDNote: EarnMidenAdapter['createP2IDNote'];
+  createP2IDNote: EarnMidenAdapter["createP2IDNote"];
 }
 
 /** EVM→Miden delivery payload — the output lands on a Miden account. */
@@ -61,8 +65,8 @@ export function usePaySwapMiden({
       return undefined;
     }
     return {
-      accountId,
-      faucetId: source.token.address,
+      accountId: normalizeMidenId(accountId),
+      faucetId: normalizeMidenId(source.token.address),
       decimals: source.token.decimals,
       createP2IDNote: miden!.createP2IDNote,
     };
@@ -71,8 +75,8 @@ export function usePaySwapMiden({
   const midenDest = useMemo<PaySwapMidenDest | undefined>(() => {
     if (!isMidenDest || !midenConnected || !accountId) return undefined;
     return {
-      recipientAccount: accountId,
-      faucetId: destination.tokenAddress,
+      recipientAccount: normalizeMidenId(accountId),
+      faucetId: normalizeMidenId(destination.tokenAddress),
       decimals: destination.requiredToken.decimals,
     };
   }, [

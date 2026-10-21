@@ -44,6 +44,7 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
       enabled: true,
       connected: midenWallet.connected,
       accountId: midenWallet.accountId?.hex ?? null,
+      accountIsPublic: midenWallet.accountId?.isPublic ?? null,
       assets,
       connect,
       createP2IDNote,
@@ -53,6 +54,7 @@ export function useEarnMidenAdapter(): EarnMidenAdapter {
       connect,
       createP2IDNote,
       midenWallet.accountId?.hex,
+      midenWallet.accountId?.isPublic,
       midenWallet.connected,
     ],
   );

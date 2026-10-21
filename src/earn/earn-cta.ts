@@ -25,6 +25,8 @@ export interface ResolveEarnCtaParams {
   };
   isConnected: boolean;
   midenConnected: boolean;
+  /** Miden account + faucet metadata required to build a Miden-funded quote. */
+  midenSourceReady: boolean;
   hasSelectedMarket: boolean;
   depositAmount: string;
   hasSelectedPosition: boolean;
@@ -62,6 +64,7 @@ export function resolveEarnCta({
   flow,
   isConnected,
   midenConnected,
+  midenSourceReady,
   hasSelectedMarket,
   depositAmount,
   hasSelectedPosition,
@@ -91,6 +94,10 @@ export function resolveEarnCta({
   if (!isConnected) return { action: 'connect', label: 'Connect wallet' };
   if (earnTab === 'deposit' && fundingSource === 'miden' && !midenConnected) {
     return { action: 'connectMiden', label: 'Connect Miden wallet' };
+  }
+
+  if (earnTab === 'deposit' && fundingSource === 'miden' && !midenSourceReady) {
+    return { action: 'disabled', label: 'Preparing Miden account…' };
   }
 
   if (earnTab === 'deposit' && !hasSelectedMarket) {

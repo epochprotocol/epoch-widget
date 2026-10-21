@@ -42,7 +42,7 @@ export interface EarnIntentWidgetProps {
   earnWithdrawDefaults?: EarnWithdrawIntentDefaults;
   /** Override the 1delta-solver base URL (`POST /earn/quote`). Defaults to `api.baseUrl`. */
   earnSolverUrl?: string;
-  /** Optional Miden wallet adapter for testnet earn deposits funded from Miden. */
+  /** Optional Miden wallet adapter for earn deposits funded from Miden. */
   earnMiden?: EarnMidenAdapter;
   /**
    * Chain IDs to fan /pools fetches over. Forwarded as one `chainId=` per

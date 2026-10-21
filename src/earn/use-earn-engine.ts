@@ -162,8 +162,8 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     smartDestChainId,
     smartDestTokenAddress,
   } = selection;
-  // Miden funding only exists on testnet, so it can't survive a flip to mainnet.
-  const fundingSource = isTestnet ? selection.fundingSource : "evm";
+  // Miden funding is available on either network when the host supplies an enabled adapter.
+  const fundingSource = selection.fundingSource;
 
   const setEarnSelectedMarket = useCallback(
     (market: EpochEarnMarket | null) => patchSelection({ market }),
@@ -212,7 +212,6 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
   const [gasless, setGasless] = useState(gaslessProp);
   const networkEnv: "mainnet" | "testnet" = isTestnet ? "testnet" : "mainnet";
   const midenEnabled =
-    networkEnv === "testnet" &&
     earnMiden != null &&
     earnMiden.enabled !== false;
   const resolvedApi = useMemo(
@@ -617,6 +616,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     },
     isConnected,
     midenConnected: !!earnMiden?.connected,
+    midenSourceReady: !!miden.quoteSource,
     hasSelectedMarket: !!earnSelectedMarket,
     depositAmount: earnAmount,
     hasSelectedPosition: !!selectedPosition,
@@ -668,6 +668,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       return;
     }
     if (ctaState.action !== "submit") return;
+    if (fundingSource === "miden" && !miden.quoteSource) return;
     if (
       effectiveSourceChainId == null ||
       !effectiveSourceToken ||

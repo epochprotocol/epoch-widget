@@ -2,13 +2,16 @@
  * Miden → EVM bridge demo (ported from miden-integration-example CrosschainTab).
  * Styled with Tailwind (demo shell tokens).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import type { CrossChainIntentParams } from "./types/miden";
 import type { IntentResult } from "./types/miden";
 import { explorerTxUrl, truncateHash, MIDEN_CHAIN_ID } from "./lib/explorers";
-import { DEFAULT_SEPOLIA_CHAIN_ID_STR } from "./constants/chains";
-import { getMidenFaucetDecimals } from "./constants/miden-tokens";
+import {
+  getMidenFaucetDecimals,
+  isMidenMainnetUsdcx,
+} from "./constants/miden-tokens";
+import { BASE_MAINNET_USDC, MIDEN_MAINNET } from "../config/miden-mainnet";
 import { useMidenWalletAdapter } from "./hooks/useMidenWalletAdapter";
 import { useEpochIntent } from "./hooks/useEpochIntent";
 import { useIntentFlowStatus } from "./hooks/useIntentFlowStatus";
@@ -18,32 +21,8 @@ import { MidenWalletsSection } from "./components/MidenWalletsSection";
 import { useMidenBridgeIntent } from "./hooks/useMidenBridgeIntent";
 import { MidenBridgeFields } from "./components/MidenBridgeFields";
 
-const SEPOLIA_TOKENS: ReadonlyArray<{
-  symbol: string;
-  address: string;
-  decimals: number;
-}> = [
-  {
-    symbol: "USDC",
-    address: "0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69",
-    decimals: 18,
-  },
-  {
-    symbol: "DAI",
-    address: "0xc30f1Ce05d1434d484E9A47283aA925fc8A8699a",
-    decimals: 18,
-  },
-  {
-    symbol: "USDT",
-    address: "0xc04d2869665Be874881133943523723Be5782720",
-    decimals: 18,
-  },
-  {
-    symbol: "WETH",
-    address: "0x7946dd86eE310D0aC16804A37787289Fa5b88A8A",
-    decimals: 18,
-  },
-];
+const BASE_TOKENS = [BASE_MAINNET_USDC] as const;
+const TERMINAL_OK = new Set(["success", "completed"]);
 
 function fallbackMidenNoteId(result: IntentResult | null): string | undefined {
   if (!result) return undefined;
@@ -63,10 +42,9 @@ export function MidenBridgePanel() {
   const epoch = useEpochIntent();
   const { address } = useAccount();
 
-  const [selectedAssetId, setSelectedAssetId] = useState("");
-  const [minTokenOut, setMinTokenOut] = useState("1000000000000000000");
-  const [outputToken, setOutputToken] = useState(SEPOLIA_TOKENS[0].address);
-  const [chainId, setChainId] = useState(DEFAULT_SEPOLIA_CHAIN_ID_STR);
+  const [minTokenOut, setMinTokenOut] = useState("1000000");
+  const outputToken = BASE_MAINNET_USDC.address;
+  const chainId = String(BASE_MAINNET_USDC.chainId);
   const [evmAddress, setEvmAddress] = useState("");
 
   useEffect(() => {
@@ -89,11 +67,17 @@ export function MidenBridgePanel() {
     Number.isInteger(destinationChainIdNum) && destinationChainIdNum > 0;
   const resolvedEvmRecipient = (evmAddress.trim() || address || "").trim();
   const hasValidEvmRecipient = /^0x[a-fA-F0-9]{40}$/.test(resolvedEvmRecipient);
-  const selectedAsset = midenWallet.assets.find(
+  const bridgeAssets = useMemo(
+    () =>
+      midenWallet.assets.filter((asset) => isMidenMainnetUsdcx(asset.assetId)),
+    [midenWallet.assets],
+  );
+  const selectedAssetId = bridgeAssets[0]?.assetId ?? "";
+  const selectedAsset = bridgeAssets.find(
     (a) => a.assetId.toLowerCase() === selectedAssetId.toLowerCase(),
   );
-  // Hardcoded map — wallet adapter's reported `decimals` is unreliable (often
-  // defaults to 8 and silently mis-scales 6-decimal tokens). `undefined` here
+  // Graph-backed decimals avoid the wallet adapter fallback (often
+  // 8), which would silently mis-scale six-decimal USDCX. `undefined` here
   // gates the form via `Number.isFinite` below.
   const midenFaucetDecimals = selectedAssetId
     ? getMidenFaucetDecimals(selectedAssetId)
@@ -110,7 +94,7 @@ export function MidenBridgePanel() {
       throw new Error("Destination chain ID must be a positive integer.");
     }
     if (!midenWallet.accountId?.hex) {
-      throw new Error("Connect Miden wallet first");
+      throw new Error("Connect a public Miden account first");
     }
     if (midenFaucetDecimals === undefined) {
       throw new Error(
@@ -155,8 +139,7 @@ export function MidenBridgePanel() {
     effectiveIntentNonce,
   );
 
-  const midenScanBase =
-    import.meta.env.VITE_MIDENSCAN_URL ?? "https://testnet.midenscan.com";
+  const midenScanBase = MIDEN_MAINNET.explorer;
   const midenNoteUrl = intent.localMidenNoteId
     ? `${midenScanBase}/note/${intent.localMidenNoteId}`
     : undefined;
@@ -170,7 +153,6 @@ export function MidenBridgePanel() {
   const evmStatuses = txStatuses.filter(
     (s) => Number(s.chainId) !== MIDEN_CHAIN_ID,
   );
-  const TERMINAL_OK = new Set(["success", "completed"]);
   const evmCompletedStatus = evmStatuses.find(
     (s) =>
       TERMINAL_OK.has(String(s.status).toLowerCase()) &&
@@ -191,9 +173,9 @@ export function MidenBridgePanel() {
       <header className="mb-1">
         <h2 className="m-0 text-lg font-[650] text-fg">Miden → EVM bridge</h2>
         <p className="mt-2 max-w-xl text-[0.8125rem] leading-relaxed text-fg-muted">
-          Connect an Ethereum wallet and a Miden wallet. Pick a Miden asset and
-          EVM output token, get a quote, then confirm to create the P2IDE note
-          and submit the cross-chain intent (same flow as{" "}
+          Connect Base and a public Miden mainnet wallet. Deposit native USDCX
+          and receive Base USDC, get a quote, then confirm to create the P2IDE
+          note and submit the cross-chain intent (same flow as{" "}
           <code className="rounded px-1 py-px text-xs bg-surface-muted">
             miden-integration-example
           </code>
@@ -207,6 +189,11 @@ export function MidenBridgePanel() {
         onConnectMiden={() => void midenWallet.connect()}
       />
 
+      {midenWallet.assetsError ? (
+        <p role="alert" className="text-[0.8125rem] text-error">
+          {midenWallet.assetsError}
+        </p>
+      ) : null}
       <section className="rounded-[0.875rem] border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <h3 className="m-0 text-base font-semibold text-fg">Intent details</h3>
         <p className="mt-2 text-[0.8125rem] leading-snug text-fg-muted">
@@ -216,22 +203,19 @@ export function MidenBridgePanel() {
 
         <div className="mt-4 flex flex-col gap-3.5">
           <MidenBridgeFields
-            assets={midenWallet.assets}
+            assets={bridgeAssets}
             isLoadingAssets={midenWallet.isLoadingAssets}
-            outputTokens={SEPOLIA_TOKENS}
+            outputTokens={BASE_TOKENS}
             selectedAssetId={selectedAssetId}
-            setSelectedAssetId={setSelectedAssetId}
             outputToken={outputToken}
-            setOutputToken={setOutputToken}
             minTokenOut={minTokenOut}
             setMinTokenOut={setMinTokenOut}
             chainId={chainId}
-            setChainId={setChainId}
             evmAddress={evmAddress}
             setEvmAddress={setEvmAddress}
             connectedAddress={address}
             selectedAssetBalance={selectedAsset?.amount}
-            onDirty={() => epoch.clearQuote()}
+            onDirty={epoch.clearQuote}
           />
 
           {epoch.pendingQuote && (
@@ -306,7 +290,9 @@ export function MidenBridgePanel() {
                     {intent.localMidenNoteId}
                   </a>
                 ) : (
-                  <span className="font-mono text-xs">{intent.localMidenNoteId}</span>
+                  <span className="font-mono text-xs">
+                    {intent.localMidenNoteId}
+                  </span>
                 )}
               </div>
             </div>
@@ -350,4 +336,3 @@ export function MidenBridgePanel() {
     </div>
   );
 }
-
