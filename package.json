@@ -90,5 +90,10 @@
     "react",
     "wagmi",
     "viem"
-  ]
+  ],
+  "pnpm": {
+    "patchedDependencies": {
+      "@epoch-protocol/epoch-intents-sdk@1.0.39": "patches/@epoch-protocol__epoch-intents-sdk.patch"
+    }
+  }
 }

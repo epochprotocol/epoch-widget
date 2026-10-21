@@ -1,0 +1,53 @@
+diff --git a/dist/constants.js b/dist/constants.js
+index e097c8340879d07992d7430128449e7e7376ea6b..7281fb79c30e251c924200949999f5e45c143911 100644
+--- a/dist/constants.js
++++ b/dist/constants.js
+@@ -1,4 +1,4 @@
+-import { sepolia, baseSepolia, optimismSepolia, polygon, arbitrum, base, optimism, } from "viem/chains";
++import { mainnet, sepolia, baseSepolia, optimismSepolia, polygon, arbitrum, base, optimism, } from "viem/chains";
+ export { ALLOCATOR_ADDRESS, ARBITER_ADDRESS, getAllocatorAddress, getArbiterAddress, } from "@epoch-protocol/epoch-commons-sdk";
+ // The Compact is deployed at the same address on all networks
+ export const COMPACT_ADDRESS = {
+@@ -14,6 +14,7 @@ export const COMPACT_ADDRESS = {
+     999999999: "0x00000000000000171ede64904551eeDF3C6C9788",
+ };
+ export const SUPPORTED_CHAINS = [
++    mainnet,
+     sepolia,
+     baseSepolia,
+     optimismSepolia,
+diff --git a/dist/gasless/constants.js b/dist/gasless/constants.js
+index 8c70395fc1440caffe22c7f4585edc99517dc106..338f9d1ef4051ad1fd745e53d17cf445bdf8b86b 100644
+--- a/dist/gasless/constants.js
++++ b/dist/gasless/constants.js
+@@ -1,5 +1,9 @@
+-/** MetaMask DelegationManager (delegation-framework env on testnets). */
++/** Canonical MetaMask Delegation Framework deployments on supported chains. */
+ export const DELEGATION_MANAGER_ADDRESS = {
++    1: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
++    10: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
++    137: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
++    8453: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+     11155111: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+     11155420: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+     84532: "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+@@ -8,6 +12,10 @@ export const DELEGATION_MANAGER_ADDRESS = {
+ /** EIP-7702 delegated-code prefix (implementation address after 0xef0100). */
+ /** MetaMask EIP7702StatelessDeleGator — canonical delegate for gasless. */
+ export const METAMASK_STATELESS_7702_IMPLEMENTATION = {
++    1: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
++    10: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
++    137: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
++    8453: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
+     11155111: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
+     11155420: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
+     84532: "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B",
+@@ -29,7 +37,7 @@ export function isApproved7702Implementation(chainId, delegateAddress) {
+     return delegate === metamask || delegate === legacy;
+ }
+ export const GASLESS_SUPPORTED_CHAIN_IDS = [
+-    84532, 11155111, 11155420, 80002,
++    1, 10, 137, 8453, 84532, 11155111, 11155420, 80002,
+ ];
+ /** USDT-style tokens that need approve(0) before a new allowance on some chains. */
+ export const APPROVE_RESET_TOKENS = {
