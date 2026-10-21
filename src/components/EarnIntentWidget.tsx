@@ -101,11 +101,7 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
         earnFlow.stepLabel ?? (smartWithdraw ? "Routing…" : "Withdrawing…")
       );
     if (earnFlow.isQuoting) return "Fetching quote…";
-    if (
-      ctaState.action === "switch" ||
-      ctaState.action === "retry" ||
-      ctaState.action === "disabled"
-    )
+    if (ctaState.action !== "submit")
       return ctaState.label;
     // Idle + ready. "Confirm" (not "Review") — the click executes: it re-quotes
     // both legs and opens the wallet, it does not open a separate review step.

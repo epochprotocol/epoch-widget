@@ -98,12 +98,14 @@ test("Miden earn submits once source metadata is ready", () => {
   );
 });
 
-function PrivateMidenDestinationProbe() {
+function PrivateMidenDestinationProbe({
+  accountId = "0x0e9089055fb6f54170bbf6159da028",
+}: { accountId?: string | null }) {
   const miden = useEarnMiden({
     earnMiden: {
       enabled: true,
       connected: true,
-      accountId: "0x0e9089055fb6f54170bbf6159da028",
+      accountId,
       accountIsPublic: false,
       assets: [],
       createP2IDNote: async () => ({ success: false }),
@@ -118,12 +120,20 @@ function PrivateMidenDestinationProbe() {
     smartDestTokenAddress: DEFAULT_MIDEN_FAUCET.faucetId,
   });
 
-  return createElement("output", null, String(miden.smartDestNotReady));
+  return createElement("output", null,
+    `${miden.smartDestNotReady}:${miden.smartDest?.recipientAccount ?? ""}`);
 }
 
-test("private Miden accounts remain blocked as withdrawal destinations", () => {
+test("private Miden recipients can receive public P2ID withdrawal notes", () => {
   assert.equal(
     renderToStaticMarkup(createElement(PrivateMidenDestinationProbe)),
-    "<output>true</output>",
+    "<output>false:0x0e9089055fb6f54170bbf6159da028</output>",
+  );
+});
+
+test("a missing Miden recipient still blocks withdrawal preparation", () => {
+  assert.equal(
+    renderToStaticMarkup(createElement(PrivateMidenDestinationProbe, { accountId: null })),
+    "<output>true:</output>",
   );
 });

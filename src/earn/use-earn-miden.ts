@@ -198,14 +198,14 @@ export function useEarnMiden({
 
   // The withdrawal still executes on the EVM position chain; only the swap-leg
   // output is bridged. The connected adapter account is the recipient — the same
-  // one used to fund Miden deposits.
+  // one used to fund Miden deposits. Public P2ID notes can target either public
+  // or private accounts; recipient storage mode does not limit note delivery.
   const smartDest = useMemo(() => {
     if (
       earnTab !== 'withdraw' ||
       !smartWithdraw ||
       smartDestChainId !== MIDEN_VIRTUAL_CHAIN_ID ||
       !earnMiden?.accountId ||
-      earnMiden.accountIsPublic === false ||
       !smartDestTokenAddress
     ) {
       return undefined;
@@ -224,7 +224,6 @@ export function useEarnMiden({
     smartDestChainId,
     smartDestTokenAddress,
     earnMiden?.accountId,
-      earnMiden?.accountIsPublic,
     graphTokens,
   ]);
 
