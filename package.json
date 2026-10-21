@@ -42,8 +42,8 @@
     "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "https://github.com/epochprotocol/epoch-commons-sdk.git#2728ac9443e4376e76dab76ef069bc24516d8c30",
-    "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#6f77e5176303445c7fc831a6ebf5b41037313229",
+    "@epoch-protocol/epoch-commons-sdk": "0.1.20",
+    "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#0906a506c98309f5adcf1eb42d666cda479884f8",
     "@epoch-protocol/epoch-intents-sdk": "1.0.39",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
@@ -90,10 +90,5 @@
     "react",
     "wagmi",
     "viem"
-  ],
-  "pnpm": {
-    "patchedDependencies": {
-      "@epoch-protocol/epoch-flows-sdk": "patches/@epoch-protocol__epoch-flows-sdk.patch"
-    }
-  }
+  ]
 }
