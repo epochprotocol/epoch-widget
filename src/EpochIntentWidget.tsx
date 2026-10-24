@@ -1,11 +1,11 @@
-import { useAccount } from 'wagmi';
-import { useOnOpen } from './hooks/use-on-open';
-import { Modal } from './components/Modal';
-import { WalletConnectorPanel } from './components/wallet/WalletConnectorPanel';
-import { EarnIntentWidget } from './components/EarnIntentWidget';
-import { PayIntentWidget } from './components/PayIntentWidget';
-import { SwapIntentWidget } from './components/SwapIntentWidget';
-import type { EpochIntentWidgetProps, WidgetFlow } from './types';
+import { useAccount } from "wagmi";
+import { useOnOpen } from "./hooks/use-on-open";
+import { Modal } from "./components/Modal";
+import { WalletConnectorPanel } from "./components/wallet/WalletConnectorPanel";
+import { EarnIntentWidget } from "./components/EarnIntentWidget";
+import { PayIntentWidget } from "./components/PayIntentWidget";
+import { SwapIntentWidget } from "./components/SwapIntentWidget";
+import type { EpochIntentWidgetProps, WidgetFlow } from "./types";
 
 export function EpochIntentWidget(props: EpochIntentWidgetProps) {
   const {
@@ -18,7 +18,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     renderInline = false,
     onOpen,
     api,
-    network = 'mainnet',
+    network = "mainnet",
     allowNetworkToggle = false,
     allowGasless = true,
     gasless = false,
@@ -47,6 +47,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     earnWithdrawDefaults,
     earnMiden,
     miden,
+    solana,
     earnChainIds,
     earnLenderFilter,
     earnPoolsPerChain,
@@ -64,9 +65,11 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     routingAndLiquidityOptions,
   } = props;
 
-  const rawMode = modeProp ?? flowProp ?? 'pay';
+  const rawMode = modeProp ?? flowProp ?? "pay";
   const flowMode: WidgetFlow =
-    rawMode === 'pay' || rawMode === 'swap' || rawMode === 'earn' ? rawMode : 'pay';
+    rawMode === "pay" || rawMode === "swap" || rawMode === "earn"
+      ? rawMode
+      : "pay";
   const { isConnected } = useAccount();
 
   useOnOpen(isOpen, onOpen);
@@ -117,6 +120,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     onQuote,
     routingAndLiquidityOptions,
     miden: midenAdapter,
+    solana,
   };
 
   if (!isConnected) {
@@ -134,7 +138,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     );
   }
 
-  if (flowMode === 'earn') {
+  if (flowMode === "earn") {
     return (
       <EarnIntentWidget
         isOpen={isOpen}
@@ -157,6 +161,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
         earnDepositDefaults={earnDepositDefaults}
         earnWithdrawDefaults={earnWithdrawDefaults}
         earnMiden={midenAdapter}
+        solana={solana}
         earnChainIds={earnChainIds}
         earnLenderFilter={earnLenderFilter}
         earnPoolsPerChain={earnPoolsPerChain}
@@ -175,7 +180,7 @@ export function EpochIntentWidget(props: EpochIntentWidgetProps) {
     );
   }
 
-  if (flowMode === 'swap') {
+  if (flowMode === "swap") {
     return <SwapIntentWidget {...paySwapShared} />;
   }
 

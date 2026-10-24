@@ -33,12 +33,16 @@ interface Props {
   walletBalance: bigint | null;
   sourceTokenDecimals: number;
   balanceLoading?: boolean;
-  /** When true, show EVM / Miden funding toggle (testnet + adapter provided). */
+  /** When true, show Miden as a testnet funding rail. */
   midenEnabled?: boolean;
-  fundingSource?: 'evm' | 'miden';
-  onFundingSourceChange?: (source: 'evm' | 'miden') => void;
+  /** When true, show Solana Devnet as a funding rail. */
+  solanaEnabled?: boolean;
+  fundingSource?: 'evm' | 'miden' | 'solana';
+  onFundingSourceChange?: (source: 'evm' | 'miden' | 'solana') => void;
   midenConnected?: boolean;
   onConnectMiden?: () => void;
+  solanaConnected?: boolean;
+  onConnectSolana?: () => void;
 }
 
 export function EarnFlowPanel({
@@ -59,13 +63,20 @@ export function EarnFlowPanel({
   sourceTokenDecimals,
   balanceLoading,
   midenEnabled = false,
+  solanaEnabled = false,
   fundingSource = 'evm',
   onFundingSourceChange,
   midenConnected = false,
   onConnectMiden,
+  solanaConnected = false,
+  onConnectSolana,
 }: Props) {
   const fundingWalletReady =
-    fundingSource === 'miden' ? midenConnected : walletConnected;
+    fundingSource === 'miden'
+      ? midenConnected
+      : fundingSource === 'solana'
+        ? solanaConnected
+        : walletConnected;
   const balanceHuman =
     walletBalance !== null && fundingWalletReady
       ? formatAmount(walletBalance, sourceTokenDecimals, 8)
@@ -82,12 +93,13 @@ export function EarnFlowPanel({
 
   return (
     <div className="flex flex-col">
-      {midenEnabled && onFundingSourceChange && (
+      {(midenEnabled || solanaEnabled) && onFundingSourceChange && (
         <div className="mb-3">
-          <SegmentedTabs<'evm' | 'miden'>
+          <SegmentedTabs<'evm' | 'miden' | 'solana'>
             tabs={[
               { value: 'evm', label: 'EVM wallet' },
-              { value: 'miden', label: 'Miden' },
+              ...(midenEnabled ? [{ value: 'miden' as const, label: 'Miden' }] : []),
+              ...(solanaEnabled ? [{ value: 'solana' as const, label: 'Solana' }] : []),
             ]}
             value={fundingSource}
             onChange={onFundingSourceChange}
@@ -108,6 +120,18 @@ export function EarnFlowPanel({
                 onClick={() => onConnectMiden?.()}
               >
                 Connect Miden
+              </button>
+            )
+          ) : fundingSource === 'solana' ? (
+            solanaConnected ? (
+              <span className="text-xs font-semibold text-fg-secondary">Solana connected</span>
+            ) : (
+              <button
+                type="button"
+                className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-primary"
+                onClick={() => onConnectSolana?.()}
+              >
+                Connect Solana
               </button>
             )
           ) : walletConnected && walletAddress ? (

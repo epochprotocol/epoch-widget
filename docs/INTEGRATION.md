@@ -21,6 +21,7 @@ How to embed `EpochIntentWidget` in your React app. You render one component and
 - [Theming](#theming)
 - [Wiring callbacks](#wiring-callbacks)
 - [Testnet](#testnet)
+- [Solana pay and swap](#solana-pay-and-swap)
 - [Packaging notes](#packaging-notes)
 - [Bundler notes](#bundler-notes)
 - [Checklists](#checklists)
@@ -31,13 +32,13 @@ How to embed `EpochIntentWidget` in your React app. You render one component and
 
 Your app must be a **wagmi v2** app (or become one). The widget ships these as peer dependencies — you install them:
 
-| Peer dependency             | Range     | Why                                  |
-|-----------------------------|-----------|--------------------------------------|
-| `react`, `react-dom`        | `^18`     | It's a React component               |
-| `wagmi`                     | `^2`      | Account, wallet client, connectors   |
-| `viem`                      | `^2`      | Signing, RPC reads, unit math        |
-| `@tanstack/react-query`     | `^5`      | Required by wagmi v2                  |
-| `lucide-react`              | `^1.14`   | Icons inside the widget              |
+| Peer dependency         | Range   | Why                                |
+| ----------------------- | ------- | ---------------------------------- |
+| `react`, `react-dom`    | `^18`   | It's a React component             |
+| `wagmi`                 | `^2`    | Account, wallet client, connectors |
+| `viem`                  | `^2`    | Signing, RPC reads, unit math      |
+| `@tanstack/react-query` | `^5`    | Required by wagmi v2               |
+| `lucide-react`          | `^1.14` | Icons inside the widget            |
 
 You also need an **Epoch allocator endpoint** for `api.baseUrl`, and — for live Earn data only — a **1delta positions proxy** for `api.positionsBaseUrl`.
 
@@ -64,32 +65,32 @@ Three things must be in place before you render the widget:
 
 ```tsx
 // main.tsx (or your root)
-import ReactDOM from 'react-dom/client';
-import { WagmiProvider, http, createConfig } from 'wagmi';
-import { base, optimism, arbitrum, polygon, mainnet } from 'wagmi/chains';
-import { injected } from 'wagmi/connectors';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ReactDOM from "react-dom/client";
+import { WagmiProvider, http, createConfig } from "wagmi";
+import { base, optimism, arbitrum, polygon, mainnet } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // 👇 Import the widget styles once.
-import '@epoch-protocol/epoch-intent-widget/styles.css';
+import "@epoch-protocol/epoch-intent-widget/styles.css";
 
-import App from './App';
+import App from "./App";
 
 const config = createConfig({
   chains: [mainnet, base, optimism, arbitrum, polygon],
   connectors: [injected()], // or RainbowKit / Web3Modal connectors
   transports: {
-    [mainnet.id]:  http(),
-    [base.id]:     http('https://mainnet.base.org'),
-    [optimism.id]: http('https://mainnet.optimism.io'),
-    [arbitrum.id]: http('https://arb1.arbitrum.io/rpc'),
-    [polygon.id]:  http('https://polygon.lava.build'),
+    [mainnet.id]: http(),
+    [base.id]: http("https://mainnet.base.org"),
+    [optimism.id]: http("https://mainnet.optimism.io"),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
+    [polygon.id]: http("https://polygon.lava.build"),
   },
 });
 
 const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <WagmiProvider config={config}>
     <QueryClientProvider client={queryClient}>
       <App />
@@ -103,7 +104,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 The widget renders its modal into a `document.body` portal. If you only style the widget via the `theme` prop, you're covered. If you build chrome **around** the widget against the same `--epoch-*` design tokens, project them onto `:root` so portalled modal children resolve the variables:
 
 ```tsx
-import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
+import {
+  themeToCssVars,
+  LIGHT_THEME,
+} from "@epoch-protocol/epoch-intent-widget";
 
 const vars = themeToCssVars(LIGHT_THEME) as Record<string, string>;
 for (const [key, value] of Object.entries(vars)) {
@@ -118,8 +122,8 @@ for (const [key, value] of Object.entries(vars)) {
 The whole integration: render the component, control `isOpen`/`onClose`, pass `api`.
 
 ```tsx
-import { useState } from 'react';
-import { EpochIntentWidget } from '@epoch-protocol/epoch-intent-widget';
+import { useState } from "react";
+import { EpochIntentWidget } from "@epoch-protocol/epoch-intent-widget";
 
 export default function PayButton() {
   const [open, setOpen] = useState(false);
@@ -131,7 +135,7 @@ export default function PayButton() {
       <EpochIntentWidget
         isOpen={open}
         onClose={() => setOpen(false)}
-        api={{ baseUrl: 'https://your-allocator.example.com' }}
+        api={{ baseUrl: "https://your-allocator.example.com" }}
         mode="pay"
         title="Send USDC"
         submitButtonText="Send"
@@ -139,7 +143,7 @@ export default function PayButton() {
         toAmount="0.15"
         toChainId={8453}
         toToken="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-        onSuccess={({ nonce }) => console.log('settled', nonce)}
+        onSuccess={({ nonce }) => console.log("settled", nonce)}
       />
     </>
   );
@@ -154,9 +158,17 @@ If you drive several configurations from one place, keep a single instance and s
 const [open, setOpen] = useState(false);
 const [props, setProps] = useState(payProps);
 
-const launch = (next) => { setProps(next); setOpen(true); };
+const launch = (next) => {
+  setProps(next);
+  setOpen(true);
+};
 
-<EpochIntentWidget {...props} isOpen={open} onClose={() => setOpen(false)} api={api} />
+<EpochIntentWidget
+  {...props}
+  isOpen={open}
+  onClose={() => setOpen(false)}
+  api={api}
+/>;
 ```
 
 ---
@@ -167,11 +179,11 @@ const launch = (next) => { setProps(next); setOpen(true); };
 
 ```ts
 interface ApiConfig {
-  baseUrl: string;                       // Epoch allocator — required; all quote/solve/status calls go here
-  rpcUrls?: Record<number, string>;      // per-chain RPC overrides for balance reads
-  positionsBaseUrl?: string;             // 1delta proxy — required only for live Earn data
-  testnetBaseUrl?: string;               // allocator when network="testnet" (default http://localhost:3000)
-  testnetPositionsBaseUrl?: string;      // positions when network="testnet" (default http://localhost:4024)
+  baseUrl: string; // Epoch allocator — required; all quote/solve/status calls go here
+  rpcUrls?: Record<number, string>; // per-chain RPC overrides for balance reads
+  positionsBaseUrl?: string; // 1delta proxy — required only for live Earn data
+  testnetBaseUrl?: string; // allocator when network="testnet" (default http://localhost:3000)
+  testnetPositionsBaseUrl?: string; // positions when network="testnet" (default http://localhost:4024)
 }
 ```
 
@@ -202,13 +214,14 @@ api={{ baseUrl: 'https://allocator.example.com', positionsBaseUrl: 'https://posi
 
 ```tsx
 <EpochIntentWidget
-  isOpen={open} onClose={close}
+  isOpen={open}
+  onClose={close}
   api={{ baseUrl }}
   mode="pay"
   toAddress="0x4235215114484bACDfF0071dB54Dc9faaD3489a9"
-  toAmount="0.15"                                        // decimal string (human units)
+  toAmount="0.15" // decimal string (human units)
   toChainId={8453}
-  toToken="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"   // destination token
+  toToken="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" // destination token
   // toTokenSymbol / toTokenDecimals — needed only for tokens outside the built-in registry
 />
 ```
@@ -217,22 +230,23 @@ api={{ baseUrl: 'https://allocator.example.com', positionsBaseUrl: 'https://posi
 
 ```tsx
 <EpochIntentWidget
-  isOpen={open} onClose={close}
+  isOpen={open}
+  onClose={close}
   api={{ baseUrl }}
   title="Buy raffle ticket"
   submitButtonText="Buy ticket"
   intent={{
-    requiredToken: { address: '0x8335…2913', symbol: 'USDC', decimals: 6 },
-    requiredAmount: 5_000_000n,                  // 5 USDC, atomic
-    destinationChainName: 'Base',
-    positionLabel: '1 Raffle Ticket',            // shown in the summary
+    requiredToken: { address: "0x8335…2913", symbol: "USDC", decimals: 6 },
+    requiredAmount: 5_000_000n, // 5 USDC, atomic
+    destinationChainName: "Base",
+    positionLabel: "1 Raffle Ticket", // shown in the summary
     config: {
-      protocol: 'raffles',
-      action: 'buyTicket',
-      fixedOutput: true,                         // deliver exactly this; user pays the quote
+      protocol: "raffles",
+      action: "buyTicket",
+      fixedOutput: true, // deliver exactly this; user pays the quote
       destinationChainId: 8453,
-      extraDataTypestring: 'address raffleAddress,uint256 numberOfTickets',
-      extraData: { raffleAddress: '0x…0001', numberOfTickets: '1' },
+      extraDataTypestring: "address raffleAddress,uint256 numberOfTickets",
+      extraData: { raffleAddress: "0x…0001", numberOfTickets: "1" },
     },
   }}
 />
@@ -246,19 +260,30 @@ By default the destination is **pinned**. Set `lockDestinationToken={false}` to 
 
 ```tsx
 <EpochIntentWidget
-  isOpen={open} onClose={close}
+  isOpen={open}
+  onClose={close}
   api={{ baseUrl }}
   mode="swap"
   title="Swap"
-  usdPriceFor={({ symbol }) =>                        // optional "≈ $…" line
-    symbol === 'USDC' ? 1 : symbol === 'WETH' ? 3500 : null
+  usdPriceFor={({ symbol }) =>
+    // optional "≈ $…" line
+    symbol === "USDC" ? 1 : symbol === "WETH" ? 3500 : null
   }
-  ctaLabels={{ submit: 'Confirm swap', signing: 'Approve in wallet', polling: 'Settling on-chain…' }}
+  ctaLabels={{
+    submit: "Confirm swap",
+    signing: "Approve in wallet",
+    polling: "Settling on-chain…",
+  }}
   intent={{
-    requiredToken: { address: '0x8335…2913', symbol: 'USDC', decimals: 6 },
+    requiredToken: { address: "0x8335…2913", symbol: "USDC", decimals: 6 },
     requiredAmount: 1_000_000n,
-    destinationChainName: 'Base',
-    config: { protocol: 'swap', action: 'swap', fixedOutput: true, destinationChainId: 8453 },
+    destinationChainName: "Base",
+    config: {
+      protocol: "swap",
+      action: "swap",
+      fixedOutput: true,
+      destinationChainId: 8453,
+    },
   }}
 />
 ```
@@ -272,30 +297,35 @@ By default the destination is **pinned**. Set `lockDestinationToken={false}` to 
 **A — Static (zero backend), good for getting started:**
 
 ```tsx
-import { EpochIntentWidget, HARDCODED_ONEDELTA_CONFIGS } from '@epoch-protocol/epoch-intent-widget';
+import {
+  EpochIntentWidget,
+  HARDCODED_ONEDELTA_CONFIGS,
+} from "@epoch-protocol/epoch-intent-widget";
 
 <EpochIntentWidget
-  isOpen={open} onClose={close}
+  isOpen={open}
+  onClose={close}
   api={{ baseUrl }}
   mode="earn"
   earnDefaultTab="deposit"
   earnMarketsSource={HARDCODED_ONEDELTA_CONFIGS}
   title="Earn"
-/>
+/>;
 ```
 
 **B — Live data:** set `api.positionsBaseUrl` and scope with the earn props:
 
 ```tsx
 <EpochIntentWidget
-  isOpen={open} onClose={close}
-  api={{ baseUrl, positionsBaseUrl: 'https://positions.example.com' }}
+  isOpen={open}
+  onClose={close}
+  api={{ baseUrl, positionsBaseUrl: "https://positions.example.com" }}
   mode="earn"
-  earnChainIds={[1, 8453, 42161]}        // chains to fan /pools over
-  earnLenderFilter="AAVE_V3,MORPHO"      // CSV of 1delta lender keys
-  earnPoolsSortBy="totalDepositsUsd"     // default
-  earnPoolsSortDir="DESC"                // default
-  earnPoolsPerChain={100}                // default
+  earnChainIds={[1, 8453, 42161]} // chains to fan /pools over
+  earnLenderFilter="AAVE_V3,MORPHO" // CSV of 1delta lender keys
+  earnPoolsSortBy="totalDepositsUsd" // default
+  earnPoolsSortDir="DESC" // default
+  earnPoolsPerChain={100} // default
 />
 ```
 
@@ -307,6 +337,48 @@ Earn-specific notes:
 - **Miden funding** (testnet, optional): pass an `earnMiden` adapter to add an EVM/Miden source toggle. Keep `@miden-sdk/*` in your app — the widget only consumes the adapter shape (`connect`, `createP2IDNote`, asset list).
 
 See [BEHAVIOR.md → Earn](./BEHAVIOR.md#earn) for every earn case and caveat.
+
+---
+
+## Solana pay and swap
+
+Solana is opt-in through the `solana` prop. It is available in Pay/Swap and as
+a testnet Earn deposit source. Keep your preferred wallet adapter
+and `@solana/web3.js` in the host application; the widget receives only public
+state and an escrow callback. This avoids imposing a wallet provider, RPC, or
+browser polyfill on every EVM-only integration.
+
+```ts
+import type { SolanaAdapter } from "@epoch-protocol/epoch-intent-widget";
+
+const solana: SolanaAdapter = {
+  connected: Boolean(publicKey),
+  accountId: publicKey?.toBase58() ?? null,
+  connect,
+  assets: [{ mint, symbol: "USDC", decimals: 6, balance }],
+  openEscrow: async ({
+    mint,
+    amount,
+    bindingHash,
+    reclaimAfter,
+    programId,
+  }) => {
+    // Build the program's open_escrow transaction, request a wallet signature,
+    // broadcast it, and wait for finalization before returning.
+    return { success: true, escrow, signature };
+  },
+};
+```
+
+Pass `solana={solana}` to `EpochIntentWidget`. It adds Solana mainnet (`1151111`)
+or devnet (`1151112`) to the Pay/Swap token picker using the active `network`
+prop, and Devnet to the testnet Earn funding picker. The
+allocator's Compact structs require these uint32 protocol IDs; do not use the
+larger CAIP-2 numeric value.
+
+`openEscrow` is needed only for Solana-funded routes. The widget calls it only
+after it has a final quote, and the callback receives the final mandate binding
+hash. Never normalize base58 account or mint strings: case changes the key.
 
 ---
 
@@ -342,11 +414,11 @@ None are required — the widget works with none wired. Wire the ones your app r
 ```tsx
 <EpochIntentWidget
   // …
-  onSuccess={({ sessionId, nonce, status }) => unlockFeature(nonce)}   // do your unlock/redirect HERE
-  onError={({ sessionId, error }) => logError(error)}                  // log; widget already shows the banner
-  onIntentSent={({ nonce }) => persistPendingIntent(nonce)}            // record the nonce before settlement
-  onStatus={({ status, progress, activeStep }) => track(status)}       // every transition
-  onQuote={({ payAmount, error }) => showPrice(payAmount, error)}      // fixedOutput intents only
+  onSuccess={({ sessionId, nonce, status }) => unlockFeature(nonce)} // do your unlock/redirect HERE
+  onError={({ sessionId, error }) => logError(error)} // log; widget already shows the banner
+  onIntentSent={({ nonce }) => persistPendingIntent(nonce)} // record the nonce before settlement
+  onStatus={({ status, progress, activeStep }) => track(status)} // every transition
+  onQuote={({ payAmount, error }) => showPrice(payAmount, error)} // fixedOutput intents only
 />
 ```
 
@@ -361,8 +433,8 @@ Rules of thumb (full detail in [BEHAVIOR.md](./BEHAVIOR.md#events--callbacks)):
 ## Testnet
 
 ```tsx
-network="testnet"          // default 'mainnet'
-allowNetworkToggle         // optionally let the user flip mainnet/testnet in-widget
+network = "testnet"; // default 'mainnet'
+allowNetworkToggle; // optionally let the user flip mainnet/testnet in-widget
 ```
 
 In testnet mode the widget uses the Sepolia chain/token registries (Base Sepolia `84532`, Ethereum Sepolia `11155111`, Optimism Sepolia `11155420`), reads `intent.config.destinationTestnetChainId`, and resolves `api.testnetBaseUrl` / `api.testnetPositionsBaseUrl` (both default to localhost). Test USDC: Base Sepolia `0x036CbD53842c5426634e7929541eC2318f3dCF7e`, Optimism Sepolia `0x2BB4FfD7E2c6D432b697554Efd77fA13bdbefd69`. Dummy-lending Earn markets are on Base Sepolia and Ethereum Sepolia; Optimism Sepolia is a deposit **source** only.

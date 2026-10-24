@@ -3,6 +3,7 @@ import type { EpochChain, EpochToken } from '../types';
 export type EarnCtaAction =
   | 'connect'
   | 'connectMiden'
+  | 'connectSolana'
   | 'switch'
   | 'submit'
   | 'disabled'
@@ -16,15 +17,19 @@ export interface EarnCtaState {
 
 export interface ResolveEarnCtaParams {
   earnTab: 'deposit' | 'withdraw';
-  fundingSource: 'evm' | 'miden';
+  fundingSource: 'evm' | 'miden' | 'solana';
   /** Flow status, narrowed to what the CTA cares about. */
   flow: {
     isQuoting: boolean;
     status: string;
     quoteError: string | null;
+    requiresFreshSolanaQuote: boolean;
   };
   isConnected: boolean;
   midenConnected: boolean;
+  solanaConnected: boolean;
+  solanaConfigured: boolean;
+  solanaCanOpenEscrow: boolean;
   hasSelectedMarket: boolean;
   depositAmount: string;
   hasSelectedPosition: boolean;
@@ -62,6 +67,9 @@ export function resolveEarnCta({
   flow,
   isConnected,
   midenConnected,
+  solanaConnected,
+  solanaConfigured,
+  solanaCanOpenEscrow,
   hasSelectedMarket,
   depositAmount,
   hasSelectedPosition,
@@ -91,6 +99,20 @@ export function resolveEarnCta({
   if (!isConnected) return { action: 'connect', label: 'Connect wallet' };
   if (earnTab === 'deposit' && fundingSource === 'miden' && !midenConnected) {
     return { action: 'connectMiden', label: 'Connect Miden wallet' };
+  }
+  if (earnTab === 'deposit' && fundingSource === 'solana') {
+    if (!solanaConfigured) {
+      return { action: 'disabled', label: 'Configure Solana wallet' };
+    }
+    if (!solanaConnected) {
+      return { action: 'connectSolana', label: 'Connect Solana wallet' };
+    }
+    if (!solanaCanOpenEscrow) {
+      return { action: 'disabled', label: 'Configure Solana escrow' };
+    }
+    if (flow.requiresFreshSolanaQuote) {
+      return { action: 'retry', label: 'Fetch fresh Solana quote' };
+    }
   }
 
   if (earnTab === 'deposit' && !hasSelectedMarket) {
@@ -158,6 +180,9 @@ export function resolveEarnCta({
     if (fundingSource === 'miden') {
       return { action: 'submit', label: `Bridge from Miden + ${baseLabel}` };
     }
+    if (fundingSource === 'solana') {
+      return { action: 'submit', label: `Bridge from Solana + ${baseLabel}` };
+    }
     if (isCrossChain) {
       return { action: 'submit', label: `Bridge + ${baseLabel}` };
     }
@@ -171,6 +196,7 @@ export function isEarnCtaEnabled(action: EarnCtaAction): boolean {
     action === 'submit' ||
     action === 'switch' ||
     action === 'retry' ||
-    action === 'connectMiden'
+    action === 'connectMiden' ||
+    action === 'connectSolana'
   );
 }

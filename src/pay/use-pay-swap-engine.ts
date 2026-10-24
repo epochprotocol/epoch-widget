@@ -1,40 +1,46 @@
-import { useMemo, useState } from 'react';
-import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
-import { useEffectiveGasless } from '../hooks/use-effective-gasless';
-import { useGaslessWallet } from '../hooks/use-gasless-wallet-check';
-import { usePropOverride } from '../hooks/use-prop-override';
-import type { UseGaslessWalletResult } from '../hooks/use-gasless-wallet-check';
-import { resolveApiForNetwork } from '../resolve-api-config';
-import { useSessionId } from '../session';
-import { useIntentFlow } from '../use-intent-flow';
-import { useTokenBalance } from '../use-token-balance';
-import type { IntentProps } from '../types';
-import { buildPayIntentFromFlatProps } from './build-pay-intent';
-import type { PaySwapIntentWidgetProps } from './pay-swap-props';
-import { PAY_SWAP_VARIANTS } from './pay-swap-variants';
-import type { PaySwapVariantSpec } from './pay-swap-variants';
-import { MIDEN_VIRTUAL_CHAIN_ID } from '../earn/miden';
-import { useDestinationSelection } from './use-destination-selection';
-import type { DestinationSelection } from './use-destination-selection';
-import { usePaySwapCallbacks } from './use-pay-swap-callbacks';
-import { usePaySwapMiden } from './use-pay-swap-miden';
+import { useMemo, useState } from "react";
+import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
+import { useEffectiveGasless } from "../hooks/use-effective-gasless";
+import { useGaslessWallet } from "../hooks/use-gasless-wallet-check";
+import { usePropOverride } from "../hooks/use-prop-override";
+import type { UseGaslessWalletResult } from "../hooks/use-gasless-wallet-check";
+import { resolveApiForNetwork } from "../resolve-api-config";
+import { useSessionId } from "../session";
+import { useIntentFlow } from "../use-intent-flow";
+import { useTokenBalance } from "../use-token-balance";
+import type { IntentProps } from "../types";
+import { buildPayIntentFromFlatProps } from "./build-pay-intent";
+import type { PaySwapIntentWidgetProps } from "./pay-swap-props";
+import { PAY_SWAP_VARIANTS } from "./pay-swap-variants";
+import type { PaySwapVariantSpec } from "./pay-swap-variants";
+import { MIDEN_VIRTUAL_CHAIN_ID } from "../earn/miden";
+import { SOLANA_DEVNET_CHAIN_ID, SOLANA_MAINNET_CHAIN_ID } from "../solana";
+import { useDestinationSelection } from "./use-destination-selection";
+import type { DestinationSelection } from "./use-destination-selection";
+import { usePaySwapCallbacks } from "./use-pay-swap-callbacks";
+import { usePaySwapMiden } from "./use-pay-swap-miden";
 import type {
   PaySwapMidenSource,
   PaySwapMidenDest,
-} from './use-pay-swap-miden';
-import { useQuoteAutoFetch } from './use-quote-auto-fetch';
-import { useSourceSelection } from './use-source-selection';
-import type { SourceSelection } from './use-source-selection';
+} from "./use-pay-swap-miden";
+import { useQuoteAutoFetch } from "./use-quote-auto-fetch";
+import { useSourceSelection } from "./use-source-selection";
+import type { SourceSelection } from "./use-source-selection";
+import { usePaySwapSolana } from "./use-pay-swap-solana";
+import type {
+  PaySwapSolanaDest,
+  PaySwapSolanaSource,
+} from "./use-pay-swap-solana";
 
 /** Stands in until the integrator supplies a resolvable intent. */
 const PLACEHOLDER_INTENT: IntentProps = {
   requiredToken: {
-    address: '0x0000000000000000000000000000000000000000',
-    symbol: '',
+    address: "0x0000000000000000000000000000000000000000",
+    symbol: "",
     decimals: 18,
   },
   requiredAmount: 0n,
-  config: { protocol: 'transfer', action: 'pay', fixedOutput: false },
+  config: { protocol: "transfer", action: "pay", fixedOutput: false },
 };
 
 export interface PaySwapEngine {
@@ -45,12 +51,12 @@ export interface PaySwapEngine {
   gaslessWallet: UseGaslessWalletResult;
 
   /** Source tokens for the picker — Miden filtered out when the destination is Miden. */
-  sourceTokens: SourceSelection['allTokens'];
+  sourceTokens: SourceSelection["allTokens"];
   /** Destination tokens for the picker — Miden filtered out when the source is Miden. */
-  destinationTokens: DestinationSelection['allTokens'];
+  destinationTokens: DestinationSelection["allTokens"];
 
   /** The resolved Miden adapter, for the `connectMiden` CTA. */
-  miden: PaySwapIntentWidgetProps['miden'];
+  miden: PaySwapIntentWidgetProps["miden"];
   isMidenSource: boolean;
   isMidenDest: boolean;
   midenConnected: boolean;
@@ -58,6 +64,14 @@ export interface PaySwapEngine {
   midenSource: PaySwapMidenSource | undefined;
   /** EVM→Miden delivery payload threaded into submit/quote when the destination is Miden. */
   midenDest: PaySwapMidenDest | undefined;
+
+  /** The host-provided Solana adapter and derived source/destination payloads. */
+  solana: PaySwapIntentWidgetProps["solana"];
+  isSolanaSource: boolean;
+  isSolanaDest: boolean;
+  solanaConnected: boolean;
+  solanaSource: PaySwapSolanaSource | undefined;
+  solanaDest: PaySwapSolanaDest | undefined;
 
   /** The integrator's intent resolved — false means nothing to submit. */
   hasIntent: boolean;
@@ -80,7 +94,7 @@ export interface PaySwapEngine {
   address: string | undefined;
   isConnected: boolean;
   walletIcon: string | undefined;
-  switchChain: ReturnType<typeof useSwitchChain>['switchChain'];
+  switchChain: ReturnType<typeof useSwitchChain>["switchChain"];
 
   balance: bigint | null;
   isBalanceLoading: boolean;
@@ -91,7 +105,7 @@ export interface PaySwapEngine {
 
   modalTitle: string;
   modalSubmitText: string;
-  usdPriceResolver: PaySwapIntentWidgetProps['usdPriceFor'];
+  usdPriceResolver: PaySwapIntentWidgetProps["usdPriceFor"];
 }
 
 /**
@@ -100,14 +114,16 @@ export interface PaySwapEngine {
  * Takes the widget's props whole so the component isn't a forty-line
  * destructure before it can render anything.
  */
-export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine {
+export function usePaySwapEngine(
+  props: PaySwapIntentWidgetProps,
+): PaySwapEngine {
   const {
     variant,
     isOpen,
     onClose,
     intent: intentProp,
     api,
-    network = 'mainnet',
+    network = "mainnet",
     allowNetworkToggle = false,
     allowGasless = true,
     gasless: gaslessProp = false,
@@ -136,6 +152,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     onQuote,
     routingAndLiquidityOptions,
     miden,
+    solana,
   } = props;
 
   const spec = PAY_SWAP_VARIANTS[variant];
@@ -167,15 +184,19 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   const payIntent: IntentProps | null =
     intentProp ?? (flatPayBuild?.ok ? flatPayBuild.intent : null);
   const resolvedIntent = payIntent ?? PLACEHOLDER_INTENT;
-  const { requiredToken, requiredAmount, config: intentConfig, receiver } =
-    resolvedIntent;
+  const {
+    requiredToken,
+    requiredAmount,
+    config: intentConfig,
+    receiver,
+  } = resolvedIntent;
 
   const sessionId = useSessionId(isOpen);
   const [gasless, setGasless] = useState(gaslessProp);
 
   const [isTestnet, applyNetwork] = usePropOverride(
     network,
-    (n) => n === 'testnet',
+    (n) => n === "testnet",
   );
 
   const { data: walletClient } = useWalletClient();
@@ -185,7 +206,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
 
   const effectiveAllowGasless = useEffectiveGasless(allowGasless, walletClient);
 
-  const networkEnv: 'mainnet' | 'testnet' = isTestnet ? 'testnet' : 'mainnet';
+  const networkEnv: "mainnet" | "testnet" = isTestnet ? "testnet" : "mainnet";
   const resolvedApi = useMemo(
     () => resolveApiForNetwork(api, networkEnv),
     [api, networkEnv],
@@ -198,6 +219,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     sourceTokenFilter,
     defaultSourceChainId,
     defaultSourceTokenAddress,
+    solana,
   });
 
   const destination = useDestinationSelection({
@@ -205,6 +227,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     requiredToken,
     isTestnet,
     locked: lockDestinationToken,
+    solana,
   });
 
   const {
@@ -215,24 +238,38 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     midenDest,
     midenBalance,
   } = usePaySwapMiden({ miden, source, destination });
+  const {
+    isSolanaSource,
+    isSolanaDest,
+    solanaConnected,
+    solanaSource,
+    solanaDest,
+    solanaBalance,
+  } = usePaySwapSolana({ solana, source, destination });
 
   // Miden lives on both pickers, but the same virtual chain can't be both ends of
   // a swap — drop it from the opposite list once one side is Miden.
   const sourceTokens = useMemo(
     () =>
-      isMidenDest
-        ? source.allTokens.filter((t) => t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID)
-        : source.allTokens,
-    [isMidenDest, source.allTokens],
+      source.allTokens.filter(
+        (t) =>
+          (!isMidenDest || t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID) &&
+          (!isSolanaDest ||
+            (t.chain.id !== SOLANA_MAINNET_CHAIN_ID &&
+              t.chain.id !== SOLANA_DEVNET_CHAIN_ID)),
+      ),
+    [isMidenDest, isSolanaDest, source.allTokens],
   );
   const destinationTokens = useMemo(
     () =>
-      isMidenSource
-        ? destination.allTokens.filter(
-            (t) => t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID,
-          )
-        : destination.allTokens,
-    [isMidenSource, destination.allTokens],
+      destination.allTokens.filter(
+        (t) =>
+          (!isMidenSource || t.chain.id !== MIDEN_VIRTUAL_CHAIN_ID) &&
+          (!isSolanaSource ||
+            (t.chain.id !== SOLANA_MAINNET_CHAIN_ID &&
+              t.chain.id !== SOLANA_DEVNET_CHAIN_ID)),
+      ),
+    [isMidenSource, isSolanaSource, destination.allTokens],
   );
 
   const gaslessWallet = useGaslessWallet({
@@ -253,17 +290,24 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   // Skip the EVM RPC entirely for a Miden source — chain 999999999 has no
   // provider; the Miden balance comes from the adapter instead.
   const { balance: evmBalance, isLoading: isBalanceLoading } = useTokenBalance(
-    isMidenSource ? null : source.chainId,
+    isMidenSource || isSolanaSource ? null : source.chainId,
     source.tokenAddress,
     address,
     rpcUrls,
   );
-  const balance = isMidenSource ? midenBalance : evmBalance;
+  const balance = isMidenSource
+    ? midenBalance
+    : isSolanaSource
+      ? solanaBalance
+      : evmBalance;
 
   // A Miden source funds off the virtual chain, so the wallet's EVM chain never
   // needs to match it — exclude it from the wrong-network nudge (mirrors earn).
   const isWrongNetwork =
-    !isMidenSource && source.chainId !== null && chainId !== source.chainId;
+    !isMidenSource &&
+    !isSolanaSource &&
+    source.chainId !== null &&
+    chainId !== source.chainId;
   const insufficientBalance = balance !== null && balance === 0n;
 
   const intentFlow = useIntentFlow({
@@ -279,7 +323,13 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     receiver,
     routingAndLiquidityOptions,
     // Gasless relay is EVM-collateral only; force it off on any Miden leg.
-    gasless: effectiveAllowGasless && gasless && !isMidenSource && !isMidenDest,
+    gasless:
+      effectiveAllowGasless &&
+      gasless &&
+      !isMidenSource &&
+      !isMidenDest &&
+      !isSolanaSource &&
+      !isSolanaDest,
     onIntentSent,
     onIntentComplete,
     onRequestClose: onClose,
@@ -301,7 +351,12 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   });
 
   useQuoteAutoFetch({
-    enabled: !!intentConfig.fixedOutput,
+    enabled:
+      !!intentConfig.fixedOutput ||
+      isMidenSource ||
+      isMidenDest ||
+      isSolanaSource ||
+      isSolanaDest,
     sourceChainId: source.chainId,
     sourceToken: source.token,
     destChainId: destination.chainId,
@@ -311,12 +366,14 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     isWrongNetwork,
     midenSource,
     midenDest,
+    solanaSource,
+    solanaDest,
     fetchQuote: intentFlow.fetchQuote,
   });
 
   const hasIntent = !!payIntent;
   const isBusy =
-    intentFlow.status === 'submitting' || intentFlow.status === 'polling';
+    intentFlow.status === "submitting" || intentFlow.status === "polling";
 
   const { verb } = spec;
   const { positionLabel } = resolvedIntent;
@@ -336,6 +393,13 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     midenConnected,
     midenSource,
     midenDest,
+
+    solana,
+    isSolanaSource,
+    isSolanaDest,
+    solanaConnected,
+    solanaSource,
+    solanaDest,
 
     hasIntent,
     flatPayError: flatPayBuild && !flatPayBuild.ok ? flatPayBuild.error : null,
@@ -374,12 +438,17 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
       // Miden legs need the adapter connected + a resolved payload, and a swap
       // can't have Miden on both ends.
       !(isMidenSource && isMidenDest) &&
+      !(isSolanaSource && isSolanaDest) &&
       (!isMidenSource || (midenConnected && !!midenSource)) &&
-      (!isMidenDest || (midenConnected && !!midenDest)),
+      (!isMidenDest || (midenConnected && !!midenDest)) &&
+      (!isSolanaSource || (solanaConnected && !!solanaSource)) &&
+      (!isSolanaDest || (solanaConnected && !!solanaDest)),
 
-    modalTitle: titleProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb),
+    modalTitle:
+      titleProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb),
     modalSubmitText:
-      submitButtonTextProp ?? (positionLabel ? `${verb} ${positionLabel}` : verb),
+      submitButtonTextProp ??
+      (positionLabel ? `${verb} ${positionLabel}` : verb),
     usdPriceResolver: usdPriceFor,
   };
 }

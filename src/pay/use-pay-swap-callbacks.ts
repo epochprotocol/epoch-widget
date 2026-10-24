@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { useLatestRef } from '../hooks/use-latest-ref';
-import type { EpochIntentWidgetProps, EpochToken } from '../types';
+import { useEffect, useRef } from "react";
+import { useLatestRef } from "../hooks/use-latest-ref";
+import type { EpochIntentWidgetProps, EpochToken } from "../types";
 
 export interface UsePaySwapCallbacksOptions {
   sessionId: string;
@@ -16,9 +16,9 @@ export interface UsePaySwapCallbacksOptions {
     quotedPayRaw: string | null;
     quoteError: string | null;
   };
-  onSourceTokenChange?: EpochIntentWidgetProps['onSourceTokenChange'];
-  onStatus?: EpochIntentWidgetProps['onStatus'];
-  onQuote?: EpochIntentWidgetProps['onQuote'];
+  onSourceTokenChange?: EpochIntentWidgetProps["onSourceTokenChange"];
+  onStatus?: EpochIntentWidgetProps["onStatus"];
+  onQuote?: EpochIntentWidgetProps["onQuote"];
 }
 
 function toBigIntOrNull(raw: string | null): bigint | null {
@@ -55,7 +55,7 @@ export function usePaySwapCallbacks({
     if (!sourceChainId || !sourceTokenAddress) return;
     onSourceTokenChangeRef.current({
       chainId: sourceChainId,
-      tokenAddress: sourceTokenAddress as `0x${string}`,
+      tokenAddress: sourceTokenAddress,
     });
   }, [sourceChainId, sourceTokenAddress, onSourceTokenChangeRef]);
 
@@ -85,7 +85,7 @@ export function usePaySwapCallbacks({
     if (!sourceChainId || !sourceToken) return;
     onQuoteRef.current({
       sourceChainId,
-      sourceTokenAddress: sourceTokenAddress as `0x${string}`,
+      sourceTokenAddress,
       paySymbol: sourceToken.symbol,
       payAmount: flow.quotedPayAmount ?? null,
       payAmountRaw: toBigIntOrNull(flow.quotedPayRaw),

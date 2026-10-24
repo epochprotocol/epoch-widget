@@ -8,6 +8,7 @@ import type { EpochEarnMarket, EpochEarnPosition } from "../types";
 import { useUserPositions } from "./api";
 import { useEarnMarketPicker } from "./use-earn-market-picker";
 import { useEarnMiden } from "./use-earn-miden";
+import { useEarnSolana } from "./use-earn-solana";
 import { useEarnQuoteTarget } from "./use-earn-quote-target";
 import { resolveEarnCta, isEarnCtaEnabled } from "./earn-cta";
 import { EARN_TESTNET_SOURCE_EVM_CHAIN_IDS } from "./earn-chains";
@@ -40,7 +41,7 @@ interface EarnSelection {
   position: EpochEarnPosition | null;
   withdrawAmount: string;
   chainId: number | null;
-  fundingSource: "evm" | "miden";
+  fundingSource: "evm" | "miden" | "solana";
   /** Positions-API chain filter. Testnet pins Base Sepolia; mainnet = all. */
   positionsChainId: string;
   /**
@@ -94,6 +95,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     earnWithdrawDefaults,
     earnSolverUrl,
     earnMiden,
+    solana: solanaAdapter,
     earnChainIds,
     earnLenderFilter,
     earnPoolsPerChain,
@@ -202,12 +204,13 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     [patchSelection],
   );
   const setFundingSource = useCallback(
-    (v: "evm" | "miden") => patchSelection({ fundingSource: v }),
+    (v: "evm" | "miden" | "solana") => patchSelection({ fundingSource: v }),
     [patchSelection],
   );
   const [selectedMidenFaucetId, setSelectedMidenFaucetId] = useState<string>(
     DEFAULT_MIDEN_FAUCET.faucetId,
   );
+  const [selectedSolanaMint, setSelectedSolanaMint] = useState<string>("");
   const [view, setView] = useState<EarnView>("main");
   const [gasless, setGasless] = useState(gaslessProp);
   const networkEnv: "mainnet" | "testnet" = isTestnet ? "testnet" : "mainnet";
@@ -215,6 +218,17 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     networkEnv === "testnet" &&
     earnMiden != null &&
     earnMiden.enabled !== false;
+  const solanaEnabled =
+    networkEnv === "testnet" &&
+    solanaAdapter != null &&
+    solanaAdapter.enabled !== false;
+  const solana = useEarnSolana({
+    solana: solanaAdapter,
+    isTestnet,
+    solanaEnabled,
+    fundingSource,
+    selectedSolanaMint,
+  });
   const resolvedApi = useMemo(
     () => resolveApiForNetwork(api, networkEnv),
     [api, networkEnv],
@@ -393,18 +407,30 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     smartDestTokenAddress,
   });
 
+  const solanaTokens = useMemo<TokenWithChain[]>(
+    () =>
+      solana.sourceToken
+        ? [{ ...solana.sourceToken, chain: solana.chain }]
+        : [],
+    [solana.chain, solana.sourceToken],
+  );
+
   const pillToken =
     fundingSource === "miden" && miden.sourceToken
       ? miden.sourceToken
-      : (selectedToken ?? allTokens[0] ?? null);
+      : fundingSource === "solana" && solana.sourceToken
+        ? solana.sourceToken
+        : (selectedToken ?? allTokens[0] ?? null);
   const pillChain =
     fundingSource === "miden"
       ? miden.chain
+      : fundingSource === "solana"
+        ? solana.chain
       : (selectedChain ?? availableChains[0] ?? null);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (fundingSource === "miden") return;
+    if (fundingSource === "miden" || fundingSource === "solana") return;
     if (selectedChainId !== null) return;
     const first = allTokens[0];
     if (!first) return;
@@ -441,6 +467,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     selectedChainId,
     selectedToken,
     midenSourceToken: miden.sourceToken,
+    solanaSourceToken: solana.sourceToken,
     smartWithdraw,
     smartDestChainId,
     smartDestTokenAddress,
@@ -500,6 +527,11 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       (!earnMiden?.connected || !miden.quoteSource)
     )
       return;
+    if (
+      fundingSource === "solana" &&
+      (!solanaAdapter?.connected || !solana.quoteSource)
+    )
+      return;
     // Destination not yet moved off the position's own chain/token → no route
     // to quote. Skip until the user picks a real destination.
     if (isSmartWithdrawDegenerate) return;
@@ -514,6 +546,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       sourceToken: effectiveSourceToken,
       network: networkEnv,
       midenSource: miden.quoteSource,
+      solanaSource: solana.quoteSource,
       smartWithdraw: earnTab === "withdraw" ? smartWithdraw : undefined,
       smartDestChainId: earnTab === "withdraw" ? smartDestChainId : undefined,
       smartDestTokenAddress:
@@ -540,6 +573,8 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     isSmartWithdrawDegenerate,
     miden.smartDest,
     miden.smartDestNotReady,
+    solana.quoteSource,
+    solanaAdapter?.connected,
   ]);
 
   useEffect(() => {
@@ -567,6 +602,17 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
           asset &&
           miden.balance !== null &&
           exceedsBalance(earnAmount, asset.decimals, miden.balance)
+        ) {
+          return flag(asset.symbol);
+        }
+        return ok;
+      }
+      if (fundingSource === "solana") {
+        const asset = solana.selectedAsset;
+        if (
+          asset &&
+          solana.balance !== null &&
+          exceedsBalance(earnAmount, asset.decimals, solana.balance)
         ) {
           return flag(asset.symbol);
         }
@@ -603,6 +649,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     !!activeMarket &&
     earnTab === "deposit" &&
     (fundingSource === "miden" ||
+      fundingSource === "solana" ||
       (selectedChainId !== null &&
         activeMarket.chainId != null &&
         selectedChainId !== activeMarket.chainId));
@@ -614,6 +661,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       isQuoting: earnFlow.isQuoting,
       status: earnFlow.status,
       quoteError: earnFlow.quoteError,
+      requiresFreshSolanaQuote: earnFlow.requiresFreshSolanaQuote,
     },
     isConnected,
     midenConnected: !!earnMiden?.connected,
@@ -631,6 +679,9 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     buildOk: activeBuildOk,
     isSmartWithdrawDegenerate,
     midenSmartDestNotReady: miden.smartDestNotReady,
+    solanaConnected: !!solanaAdapter?.connected,
+    solanaConfigured: solanaEnabled,
+    solanaCanOpenEscrow: !!solanaAdapter?.openEscrow,
     isCrossChain,
     submitButtonText,
   });
@@ -648,10 +699,17 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       // useEarnMidenAdapter surfaces a toast; swallow to avoid unhandled rejection.
     });
   }, [earnMiden]);
+  const handleConnectSolana = useCallback(() => {
+    void Promise.resolve(solanaAdapter?.connect?.()).catch(() => undefined);
+  }, [solanaAdapter]);
 
   const handleCtaClick = () => {
     if (ctaState.action === "connectMiden") {
       handleConnectMiden();
+      return;
+    }
+    if (ctaState.action === "connectSolana") {
+      handleConnectSolana();
       return;
     }
     if (ctaState.action === "switch") {
@@ -684,6 +742,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       network: networkEnv,
       quote: earnFlow.quote,
       midenSource: miden.quoteSource,
+      solanaSource: solana.quoteSource,
       smartWithdraw: earnTab === "withdraw" ? smartWithdraw : undefined,
       smartDestChainId: earnTab === "withdraw" ? smartDestChainId : undefined,
       smartDestTokenAddress:
@@ -709,6 +768,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     gasless,
     gaslessWallet,
     handleConnectMiden,
+    handleConnectSolana,
     handleCtaClick,
     handleSmartWithdrawChange,
     isBalanceLoading,
@@ -717,6 +777,10 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     isTestnet,
     miden,
     midenEnabled,
+    solana,
+    solanaAdapter,
+    solanaEnabled,
+    solanaTokens,
     modalTitle,
     picker,
     pillChain,
@@ -738,6 +802,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     setPositionsLenderKey,
     setSelectedChainId,
     setSelectedMidenFaucetId,
+    setSelectedSolanaMint,
     setSmartDestChainId,
     setSmartDestTokenAddress,
     setSmartWithdraw,

@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
-import { useLatestRef } from '../hooks/use-latest-ref';
-import type { EpochToken } from '../types';
+import { useEffect } from "react";
+import { useLatestRef } from "../hooks/use-latest-ref";
+import type { EpochToken } from "../types";
 import type {
   PaySwapMidenSource,
   PaySwapMidenDest,
-} from './use-pay-swap-miden';
+} from "./use-pay-swap-miden";
+import type {
+  PaySwapSolanaDest,
+  PaySwapSolanaSource,
+} from "./use-pay-swap-solana";
 
 export interface UseQuoteAutoFetchOptions {
   /** Only fixed-output flows need a quote to learn what the user pays. */
@@ -20,11 +24,15 @@ export interface UseQuoteAutoFetchOptions {
   /** Miden legs must be quoted with the same payload they'll submit with. */
   midenSource?: PaySwapMidenSource;
   midenDest?: PaySwapMidenDest;
+  solanaSource?: PaySwapSolanaSource;
+  solanaDest?: PaySwapSolanaDest;
   fetchQuote: (input: {
     sourceChainId: number;
     sourceToken: EpochToken;
     midenSource?: PaySwapMidenSource;
     midenDest?: PaySwapMidenDest;
+    solanaSource?: PaySwapSolanaSource;
+    solanaDest?: PaySwapSolanaDest;
   }) => void;
 }
 
@@ -47,19 +55,29 @@ export function useQuoteAutoFetch({
   isWrongNetwork,
   midenSource,
   midenDest,
+  solanaSource,
+  solanaDest,
   fetchQuote,
 }: UseQuoteAutoFetchOptions): void {
   const fetchQuoteRef = useLatestRef(fetchQuote);
-  const sourceTokenAddress = sourceToken?.address ?? '';
+  const sourceTokenAddress = sourceToken?.address ?? "";
   // Re-quote when the Miden payload resolves (e.g. the wallet connects); the
   // engine already excludes a Miden source from `isWrongNetwork`.
-  const midenKey = `${midenSource?.accountId ?? ''}|${midenDest?.recipientAccount ?? ''}`;
+  const midenKey = `${midenSource?.accountId ?? ""}|${midenDest?.recipientAccount ?? ""}`;
+  const solanaKey = `${solanaSource?.accountId ?? ""}|${solanaDest?.recipientAccount ?? ""}`;
 
   useEffect(() => {
     if (!enabled) return;
     if (!sourceChainId || !sourceToken) return;
     if (!hasWalletClient || !address || isWrongNetwork) return;
-    fetchQuoteRef.current({ sourceChainId, sourceToken, midenSource, midenDest });
+    fetchQuoteRef.current({
+      sourceChainId,
+      sourceToken,
+      midenSource,
+      midenDest,
+      solanaSource,
+      solanaDest,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     enabled,
@@ -71,6 +89,7 @@ export function useQuoteAutoFetch({
     destChainId,
     destTokenAddress,
     midenKey,
+    solanaKey,
     fetchQuoteRef,
   ]);
 }

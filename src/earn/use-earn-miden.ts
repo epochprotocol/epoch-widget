@@ -32,7 +32,7 @@ export interface UseEarnMidenOptions {
   isTestnet: boolean;
   /** Miden is only offered when the adapter is present and enabled. */
   midenEnabled: boolean;
-  fundingSource: 'evm' | 'miden';
+  fundingSource: 'evm' | 'miden' | 'solana';
   selectedMidenFaucetId: string;
   earnTab: 'deposit' | 'withdraw';
   smartWithdraw: boolean;

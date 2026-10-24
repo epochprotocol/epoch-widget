@@ -1,5 +1,5 @@
-export { EpochIntentWidget } from './EpochIntentWidget';
-export { CHAIN_DOT, chainDotColor } from './chain-colors';
+export { EpochIntentWidget } from "./EpochIntentWidget";
+export { CHAIN_DOT, chainDotColor } from "./chain-colors";
 export {
   EPOCH_SUPPORTED_CHAINS,
   EPOCH_TESTNET_CHAINS,
@@ -10,7 +10,7 @@ export {
   getEpochTokensBySymbol,
   getEpochChainById,
   getChainName,
-} from './epoch-config';
+} from "./epoch-config";
 export type {
   EpochIntentWidgetProps,
   IntentConfig,
@@ -32,6 +32,8 @@ export type {
   EarnMidenAsset,
   EarnMidenCreateP2IDNote,
   EarnMidenP2IDNoteResult,
+  SolanaAdapter,
+  SolanaAsset,
   OneDeltaConfig,
   OneDeltaMarketRow,
   OneDeltaUnderlyingAsset,
@@ -42,23 +44,55 @@ export type {
   OnStatusCtx,
   WidgetLifecycleStatus,
   RoutingAndLiquidityOptions,
-} from './types';
-export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
-export { cn } from './lib/cn';
-export { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, midenFaucetKey, isDefaultMidenFaucet, getMidenGraphTokens } from './earn/miden';
-export type { MidenGraphToken } from './earn/miden';
-export { useEarnMarkets, useUserPositions, useEarnConfigs, useLendingPools, DEFAULT_EARN_CONFIGS } from './earn/api';
-export { HARDCODED_ONEDELTA_CONFIGS, chainLabelFor } from './earn/onedelta-markets';
-export { toEpochEarnMarket, flattenConfigsToMarkets } from './earn/onedelta-adapter';
-export { buildPayIntentFromFlatProps } from './pay/build-pay-intent';
-export { buildEarnDepositIntent } from './earn/build-deposit-intent';
-export { buildEarnWithdrawIntent } from './earn/build-withdraw-intent';
-export { formatAmount, truncateAddress } from './utils';
+} from "./types";
+export {
+  DEFAULT_THEME,
+  LIGHT_THEME,
+  DARK_THEME,
+  resolveTheme,
+  themeToCssVars,
+} from "./theme";
+export { cn } from "./lib/cn";
+export {
+  MIDEN_VIRTUAL_CHAIN_ID,
+  DEFAULT_MIDEN_FAUCET,
+  midenFaucetKey,
+  isDefaultMidenFaucet,
+  getMidenGraphTokens,
+} from "./earn/miden";
+export type { MidenGraphToken } from "./earn/miden";
+export {
+  SOLANA_DEVNET_CHAIN_ID,
+  SOLANA_MAINNET_CHAIN_ID,
+  getSolanaChain,
+  getSolanaGraphTokens,
+  getSolanaChainTokens,
+} from "./solana";
+export type { SolanaGraphToken } from "./solana";
+export {
+  useEarnMarkets,
+  useUserPositions,
+  useEarnConfigs,
+  useLendingPools,
+  DEFAULT_EARN_CONFIGS,
+} from "./earn/api";
+export {
+  HARDCODED_ONEDELTA_CONFIGS,
+  chainLabelFor,
+} from "./earn/onedelta-markets";
+export {
+  toEpochEarnMarket,
+  flattenConfigsToMarkets,
+} from "./earn/onedelta-adapter";
+export { buildPayIntentFromFlatProps } from "./pay/build-pay-intent";
+export { buildEarnDepositIntent } from "./earn/build-deposit-intent";
+export { buildEarnWithdrawIntent } from "./earn/build-withdraw-intent";
+export { formatAmount, truncateAddress } from "./utils";
 export {
   resolveApiForNetwork,
   DEFAULT_TESTNET_API_BASE_URL,
   DEFAULT_TESTNET_POSITIONS_BASE_URL,
-} from './resolve-api-config';
+} from "./resolve-api-config";
 // UI primitives — exported so consumers can compose against the same design
 // system without re-importing from internal paths.
 export {
@@ -72,14 +106,14 @@ export {
   SearchInput,
   FilterDropdown,
   TokenAmountCard,
-} from './components/ui';
+} from "./components/ui";
 export type {
   PillVariant,
   PillSize,
   SegmentedTab,
   FilterOption,
-} from './components/ui';
-export type { PaySwapTokenWithChain } from './types';
+} from "./components/ui";
+export type { PaySwapTokenWithChain } from "./types";
 
 // ---------------------------------------------------------------------------
 // Headless SDK pass-through. Consumers who want the business logic without
@@ -93,7 +127,7 @@ export {
   fetchLendingPools,
   fetchUserPositions,
   fetchTokenBalanceOnChain,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from "@epoch-protocol/epoch-flows-sdk";
 export type {
   EarnIntentFlowStatus,
   EarnQuote,
@@ -101,4 +135,4 @@ export type {
   EarnSubmitInput,
   PayIntentFlowStatus,
   PaySubmitInput,
-} from '@epoch-protocol/epoch-flows-sdk';
+} from "@epoch-protocol/epoch-flows-sdk";

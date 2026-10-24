@@ -33,7 +33,14 @@ const CTA_TONE_CLASSES: Record<PaySwapCtaTone, string> = {
  * and the SDK wiring; this file decides what the user sees.
  */
 export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
-  const { classNames: cn, theme, renderInline, isOpen, onClose, ctaLabels } = props;
+  const {
+    classNames: cn,
+    theme,
+    renderInline,
+    isOpen,
+    onClose,
+    ctaLabels,
+  } = props;
   const [view, setView] = useState<WidgetView>("main");
   const engine = usePaySwapEngine(props);
   const { spec, source, destination, intentFlow, resolvedIntent } = engine;
@@ -68,11 +75,20 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     isMidenSource: engine.isMidenSource,
     isMidenDest: engine.isMidenDest,
     midenConnected: engine.midenConnected,
+    isSolanaSource: engine.isSolanaSource,
+    isSolanaDest: engine.isSolanaDest,
+    solanaConnected: engine.solanaConnected,
+    solanaConfigured: !!engine.solana && engine.solana.enabled !== false,
+    solanaCanOpenEscrow: !!engine.solana?.openEscrow,
   });
 
   const handleCtaClick = () => {
     if (ctaState.action === "connectMiden") {
       void engine.miden?.connect?.();
+      return;
+    }
+    if (ctaState.action === "connectSolana") {
+      void engine.solana?.connect?.();
       return;
     }
     if (ctaState.action === "switch" && source.chain) {
@@ -86,6 +102,8 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
       sourceToken: source.token,
       midenSource: engine.midenSource,
       midenDest: engine.midenDest,
+      solanaSource: engine.solanaSource,
+      solanaDest: engine.solanaDest,
     });
   };
 
@@ -150,8 +168,12 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
       tokenLogoURI={destination.tokenMeta?.logoURI}
       chainName={
         lockDestinationToken
-          ? (resolvedIntent.destinationChainName ?? destination.chain?.name ?? "")
-          : (destination.chain?.name ?? resolvedIntent.destinationChainName ?? "")
+          ? (resolvedIntent.destinationChainName ??
+            destination.chain?.name ??
+            "")
+          : (destination.chain?.name ??
+            resolvedIntent.destinationChainName ??
+            "")
       }
       chainLogoURI={destination.chain?.logoURI}
       onClick={

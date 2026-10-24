@@ -286,6 +286,72 @@ sourceTokenFilter={(t) => t.symbol !== 'DAI'}       // hide candidates by predic
 
 ---
 
+## Solana pay, swap, and testnet Earn
+
+Pass a host-owned `solana` adapter to offer Solana in the pay/swap pickers and
+the testnet Earn deposit funding rail. The
+widget stays wallet-library-neutral: your app controls Phantom/Wallet Standard,
+its RPC endpoint, and signing. Solana identifiers are base58 and are copied
+verbatim — never lowercase a wallet address or SPL mint.
+
+```tsx
+import {
+  EpochIntentWidget,
+  SOLANA_DEVNET_CHAIN_ID,
+  type SolanaAdapter,
+} from "@epoch-protocol/epoch-intent-widget";
+
+const solana: SolanaAdapter = {
+  connected: phantom.connected,
+  accountId: phantom.publicKey?.toBase58() ?? null,
+  connect: phantom.connect,
+  assets: [
+    {
+      // Devnet USDC — exact base58, case-sensitive.
+      mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      symbol: "USDC",
+      decimals: 6,
+      balance: usdcBalance,
+    },
+  ],
+  // Required only when the user selects Solana as the source. Build, sign,
+  // send and finalize the escrow transaction supplied by Epoch's SDK.
+  openEscrow: openEscrowWithPhantom,
+};
+
+<EpochIntentWidget
+  isOpen={open}
+  onClose={close}
+  api={{ baseUrl }}
+  network="testnet"
+  mode="swap"
+  solana={solana}
+  intent={{
+    requiredToken: {
+      address: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      symbol: "USDC",
+      decimals: 6,
+    },
+    requiredAmount: 1_000_000n,
+    config: {
+      protocol: "swap",
+      action: "swap",
+      fixedOutput: true,
+      destinationTestnetChainId: SOLANA_DEVNET_CHAIN_ID,
+    },
+  }}
+/>;
+```
+
+EVM→Solana only needs a connected Solana account to receive the payout. For a
+Solana source — including an Earn deposit — `openEscrow` is required and is invoked **after** a quote has
+finalized, with the mandate binding hash and reclaim time. Do not open an
+escrow before then: the quote can change the mandate, leaving an early deposit
+at a PDA the allocator cannot claim. The adapter should return only after the
+deposit is finalized. See the local
+[`solana-integration-example`](../solana-integration-example) for a complete
+Phantom implementation.
+
 ## Mode: Earn
 
 `mode="earn"` renders a deposit/withdraw surface over lending markets. Markets come from 1delta. You have two data sources:
@@ -515,6 +581,7 @@ In testnet mode the widget uses the Sepolia chain/token registries (Base Sepolia
 | `earnPoolsSortBy`                                                                        | enum                                  | `totalDepositsUsd`      | Pool sort field.                                                         |
 | `earnPoolsSortDir`                                                                       | `'ASC' \| 'DESC'`                     | `DESC`                  | Pool sort direction.                                                     |
 | `earnSolverUrl`                                                                          | `string`                              | —                       | Earn solver override.                                                    |
+| `solana`                                                                                 | `SolanaAdapter`                       | —                       | Optional host-owned Solana wallet and escrow adapter for pay/swap and testnet Earn deposits. |
 | `network`                                                                                | `'mainnet' \| 'testnet'`              | `'mainnet'`             | Active network env.                                                      |
 | `allowNetworkToggle`                                                                     | `boolean`                             | `false`                 | Show in-widget network toggle.                                           |
 | `renderInline`                                                                           | `boolean`                             | `false`                 | Render inline instead of a modal overlay.                                |

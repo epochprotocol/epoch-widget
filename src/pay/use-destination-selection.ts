@@ -1,18 +1,25 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from "react";
 import {
   getEpochChainById,
   getEpochChains,
   getEpochTokensByChainEnv,
-} from '../epoch-config';
-import type { EpochChain, EpochToken, IntentConfig, IntentProps } from '../types';
+} from "../epoch-config";
+import type {
+  EpochChain,
+  EpochToken,
+  IntentConfig,
+  IntentProps,
+  SolanaAdapter,
+} from "../types";
 import {
   MIDEN_CHAIN,
   MIDEN_VIRTUAL_CHAIN_ID,
   getMidenChainTokens,
-} from '../earn/miden';
+} from "../earn/miden";
+import { getSolanaChain, getSolanaChainTokens } from "../solana";
 
 /** The intent's token shape — narrower than a registry `EpochToken`. */
-type RequiredToken = IntentProps['requiredToken'];
+type RequiredToken = IntentProps["requiredToken"];
 
 /** Fallback destinations when the intent pins none. */
 const DEFAULT_DEST_CHAIN_ID = { mainnet: 8453, testnet: 84532 } as const;
@@ -33,6 +40,7 @@ export interface UseDestinationSelectionOptions {
    * overrides are ignored entirely.
    */
   locked: boolean;
+  solana?: SolanaAdapter;
 }
 
 export interface DestinationSelection {
@@ -66,6 +74,7 @@ export function useDestinationSelection({
   requiredToken,
   isTestnet,
   locked,
+  solana,
 }: UseDestinationSelectionOptions): DestinationSelection {
   // Stores which network the override was set on, so flipping networks evicts
   // it rather than pointing the intent at an address from the other env.
@@ -89,9 +98,13 @@ export function useDestinationSelection({
         chain,
       })),
     );
-    // Offer Miden as a swap destination alongside the EVM chains.
-    return [...evm, ...getMidenChainTokens(isTestnet)];
-  }, [isTestnet]);
+    // Offer virtual chains only when their host adapter is configured.
+    const solanaTokens =
+      solana?.enabled === false || !solana
+        ? []
+        : getSolanaChainTokens(isTestnet);
+    return [...evm, ...getMidenChainTokens(isTestnet), ...solanaTokens];
+  }, [isTestnet, solana]);
 
   const chainId = locked ? pinnedChainId : (active?.chainId ?? pinnedChainId);
   const tokenAddress = locked
@@ -113,7 +126,11 @@ export function useDestinationSelection({
   const resolvedRequiredToken = useMemo(
     () =>
       meta
-        ? { address: meta.address, symbol: meta.symbol, decimals: meta.decimals }
+        ? {
+            address: meta.address,
+            symbol: meta.symbol,
+            decimals: meta.decimals,
+          }
         : requiredToken,
     [meta, requiredToken],
   );
@@ -159,7 +176,9 @@ export function useDestinationSelection({
     chain:
       chainId === MIDEN_VIRTUAL_CHAIN_ID
         ? MIDEN_CHAIN
-        : getEpochChainById(chainId),
+        : chainId === getSolanaChain(isTestnet).id
+          ? getSolanaChain(isTestnet)
+          : getEpochChainById(chainId),
     tokenAddress,
     meta,
     tokenMeta,

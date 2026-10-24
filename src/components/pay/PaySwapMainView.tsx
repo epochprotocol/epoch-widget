@@ -1,12 +1,9 @@
-import type { ReactNode } from 'react';
-import type { PaySwapEngine } from '../../pay/use-pay-swap-engine';
-import type { EpochClassNames } from '../../types';
-import { Banner } from '../Banner';
-import { GaslessSection } from '../GaslessSection';
-import {
-  IntentProgress,
-  PAY_SWAP_PROGRESS_STATUSES,
-} from '../IntentProgress';
+import type { ReactNode } from "react";
+import type { PaySwapEngine } from "../../pay/use-pay-swap-engine";
+import type { EpochClassNames } from "../../types";
+import { Banner } from "../Banner";
+import { GaslessSection } from "../GaslessSection";
+import { IntentProgress, PAY_SWAP_PROGRESS_STATUSES } from "../IntentProgress";
 
 interface PaySwapMainViewProps {
   engine: PaySwapEngine;
@@ -56,7 +53,9 @@ export function PaySwapMainView({
         allowed={
           engine.effectiveAllowGasless &&
           !engine.isMidenSource &&
-          !engine.isMidenDest
+          !engine.isMidenDest &&
+          !engine.isSolanaSource &&
+          !engine.isSolanaDest
         }
         wallet={engine.gaslessWallet}
         gasless={engine.gasless}
@@ -66,7 +65,7 @@ export function PaySwapMainView({
       {hasIntent &&
         spec.renderSummary({
           payAmount,
-          paySymbol: source.token?.symbol ?? '',
+          paySymbol: source.token?.symbol ?? "",
           payTokenPill,
           receiveAmount,
           receiveSymbol: resolvedIntent.requiredToken.symbol,
