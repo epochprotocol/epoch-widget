@@ -171,6 +171,7 @@ export function useEarnMiden({
     [
       fundingSource,
       earnMiden?.accountId,
+      earnMiden?.accountIsPublic,
       earnMiden?.createP2IDNote,
       selectedAsset,
     ],
@@ -222,6 +223,7 @@ export function useEarnMiden({
     smartDestChainId,
     smartDestTokenAddress,
     earnMiden?.accountId,
+      earnMiden?.accountIsPublic,
     graphTokens,
   ]);
 

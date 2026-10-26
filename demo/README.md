@@ -27,20 +27,19 @@ pnpm run typecheck
 
 Copy `.env.example` to `.env`, then set the local service URLs as needed.
 
-| Variable | Purpose |
-|----------|---------|
-| `VITE_EPOCH_API_BASE_URL` | Epoch allocator / API base URL (default `http://0.0.0.0:3000`) |
-| `VITE_ALLOCATOR_URL` | Fallback if `VITE_EPOCH_API_BASE_URL` is unset |
-| `VITE_MIDEN_RPC_URL` | Miden testnet RPC URL (`https://rpc.testnet.miden.io`) |
-| `VITE_MIDEN_NOTE_TRANSPORT_URL` | Miden testnet note transport URL (`https://transport.miden.io`) |
-| `VITE_MIDENSCAN_URL` | Optional Miden explorer base (Advanced tab) |
+| Variable                        | Purpose                                                            |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `VITE_EPOCH_API_BASE_URL`       | Epoch allocator / API base URL (default same-origin `/allocator`)  |
+| `VITE_MIDEN_RPC_URL`            | Optional Miden mainnet RPC override (default Cedar from Flows SDK) |
+| `VITE_MIDEN_NOTE_TRANSPORT_URL` | Optional wallet note transport override                            |
+| Miden explorer                  | Midenscan mainnet from Flows SDK                                   |
 
 ## Where to copy from
 
-| Path | Use |
-|------|-----|
-| [`src/pay/scenarios.ts`](src/pay/scenarios.ts) | Example `intent` payloads for Pay |
-| [`src/earn/`](src/earn/) | Market list, search filter, APR preview, `buildEarnDepositProps` |
-| [`src/app/App.tsx`](src/app/App.tsx) | Wiring `EpochIntentWidget` + `api.baseUrl` + callbacks |
+| Path                                           | Use                                                              |
+| ---------------------------------------------- | ---------------------------------------------------------------- |
+| [`src/pay/scenarios.ts`](src/pay/scenarios.ts) | Example `intent` payloads for Pay                                |
+| [`src/earn/`](src/earn/)                       | Market list, search filter, APR preview, `buildEarnDepositProps` |
+| [`src/app/App.tsx`](src/app/App.tsx)           | Wiring `EpochIntentWidget` + `api.baseUrl` + callbacks           |
 
 Earn markets are **static demo data** in [`src/earn/earnMarkets.ts`](src/earn/earnMarkets.ts). Replace with your allocator when you have a real endpoint.

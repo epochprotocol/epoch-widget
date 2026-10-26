@@ -36,15 +36,16 @@
     "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
-    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\"",
+    "demo": "npm-run-all -p dev:css demo:dev",
     "doctor": "npx react-doctor@latest",
     "test:swap": "node --import tsx --test test/pay-swap-cta.test.ts",
-    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
+    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx",
+    "demo:dev": "pnpm --dir demo dev"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "0.1.20",
-    "@epoch-protocol/epoch-flows-sdk": "^0.1.7",
-    "@epoch-protocol/epoch-intents-sdk": "1.0.39",
+    "@epoch-protocol/epoch-commons-sdk": "2.0.0",
+    "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675",
+    "@epoch-protocol/epoch-intents-sdk": "2.0.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },

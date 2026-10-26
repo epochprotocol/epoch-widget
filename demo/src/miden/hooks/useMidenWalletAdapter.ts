@@ -4,14 +4,18 @@ import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import {
   AllowedPrivateData,
   PrivateDataPermission,
-  WalletAdapterNetwork,
   WalletReadyState,
 } from "@miden-sdk/miden-wallet-adapter-base";
 import { useAssetMetadata, toBech32AccountId } from "@miden-sdk/react";
 import { AccountId, Address } from "@miden-sdk/miden-sdk";
+import {
+  MIDEN_MAINNET_WALLET_NETWORK,
+  normalizeMidenAccount,
+} from "../lib/mainnet-wallet-compat";
 
 export interface NormalizedMidenAccountId {
   hex: string;
+  isPublic: boolean;
 }
 
 export interface MidenWalletAsset {
@@ -39,7 +43,10 @@ export interface UseMidenWalletAdapterResult {
 
 /** Strip `miden:` prefix and `_BasicWallet`-style interface suffixes before parsing. */
 const stripMidenIdDecorators = (raw: string): string => {
-  const trimmed = raw.replace(/\s+/g, "").trim().replace(/^miden:/i, "");
+  const trimmed = raw
+    .replace(/\s+/g, "")
+    .trim()
+    .replace(/^miden:/i, "");
   const underscore = trimmed.indexOf("_");
   if (underscore > 0 && (trimmed.startsWith("m") || trimmed.startsWith("M"))) {
     return trimmed.slice(0, underscore);
@@ -51,7 +58,9 @@ const stripMidenIdDecorators = (raw: string): string => {
  * Parse a Miden account id to canonical hex. Requires WASM — returns null when
  * the SDK is not ready or the format is unrecognized.
  */
-const resolveAccountId = (rawAddress: string | null): NormalizedMidenAccountId | null => {
+const resolveAccountId = (
+  rawAddress: string | null,
+): NormalizedMidenAccountId | null => {
   if (!rawAddress) return null;
   const input = stripMidenIdDecorators(rawAddress);
   if (!input) return null;
@@ -81,7 +90,7 @@ const resolveAccountId = (rawAddress: string | null): NormalizedMidenAccountId |
 
   if (!id) return null;
   try {
-    return { hex: id.toString() };
+    return normalizeMidenAccount(id);
   } catch {
     return null;
   }
@@ -102,10 +111,12 @@ export function useMidenWalletAdapter(
     wallets,
   } = useMidenFiWallet();
 
-  const [accountId, setAccountId] = useState<NormalizedMidenAccountId | null>(null);
+  const [accountId, setAccountId] = useState<NormalizedMidenAccountId | null>(
+    null,
+  );
 
-  // AccountId parsing touches WASM and often fails on first render. Keep the raw
-  // wallet address usable immediately, then upgrade to canonical hex once ready.
+  // AccountId parsing touches WASM and often fails on first render. Keep quote
+  // eligibility disabled until the address parses.
   useEffect(() => {
     if (!address?.trim()) {
       setAccountId(null);
@@ -119,11 +130,7 @@ export function useMidenWalletAdapter(
       return;
     }
 
-    if (connected) {
-      setAccountId({ hex: trimmed });
-    } else {
-      setAccountId(null);
-    }
+    setAccountId(null);
 
     let cancelled = false;
     void import("@miden-sdk/miden-sdk/lazy")
@@ -134,7 +141,7 @@ export function useMidenWalletAdapter(
         if (retry) setAccountId(retry);
       })
       .catch(() => {
-        // Keep fallback raw id when WASM never becomes available.
+        // Keep quote eligibility disabled when WASM never becomes available.
       });
 
     return () => {
@@ -157,19 +164,22 @@ export function useMidenWalletAdapter(
   });
 
   const assetsError =
-    enabled && connected && !requestAssets
+    (enabled && connected && !requestAssets
       ? "Connected wallet does not support requestAssets()"
       : assetsRequestError instanceof Error
         ? assetsRequestError.message
         : assetsRequestError
           ? "Failed to load assets"
-          : null;
+          : null);
 
   const refreshAssets = useCallback(async () => {
     await refetch();
   }, [refetch]);
 
-  const faucetIds = useMemo(() => rawAssets.map((a) => a.faucetId), [rawAssets]);
+  const faucetIds = useMemo(
+    () => rawAssets.map((a) => a.faucetId),
+    [rawAssets],
+  );
   const { assetMetadata } = useAssetMetadata(faucetIds);
 
   const assets = useMemo<MidenWalletAsset[]>(
@@ -198,11 +208,13 @@ export function useMidenWalletAdapter(
       return;
     }
 
-    const target = wallet ?? wallets.find(
-      ({ readyState }) =>
-        readyState === WalletReadyState.Installed ||
-        readyState === WalletReadyState.Loadable,
-    );
+    const target =
+      wallet ??
+      wallets.find(
+        ({ readyState }) =>
+          readyState === WalletReadyState.Installed ||
+          readyState === WalletReadyState.Loadable,
+      );
     if (!target) {
       throw new Error("No Miden wallet adapter is available");
     }
@@ -213,7 +225,7 @@ export function useMidenWalletAdapter(
       select(target.adapter.name);
       await target.adapter.connect(
         PrivateDataPermission.UponRequest,
-        WalletAdapterNetwork.Testnet,
+        MIDEN_MAINNET_WALLET_NETWORK,
         AllowedPrivateData.Assets,
       );
       return;
@@ -223,7 +235,9 @@ export function useMidenWalletAdapter(
       wallet.readyState !== WalletReadyState.Installed &&
       wallet.readyState !== WalletReadyState.Loadable
     ) {
-      throw new Error("Miden wallet is initializing. Wait a moment and try again.");
+      throw new Error(
+        "Miden wallet is initializing. Wait a moment and try again.",
+      );
     }
 
     await adapterConnect();

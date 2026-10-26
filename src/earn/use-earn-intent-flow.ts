@@ -935,7 +935,7 @@ export function useEarnIntentFlow({
           solvePayload.collateralType = CollateralType.Miden;
           solvePayload.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
           solvePayload.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
-          solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
+          solvePayload.createMidenP2IDENote = input.midenSource.createP2IDNote;
         }
 
         if (gaslessRef.current && !submitParams.isMidenDeposit) {

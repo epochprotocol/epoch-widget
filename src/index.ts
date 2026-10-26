@@ -45,7 +45,7 @@ export type {
 } from './types';
 export { DEFAULT_THEME, LIGHT_THEME, DARK_THEME, resolveTheme, themeToCssVars } from './theme';
 export { cn } from './lib/cn';
-export { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, midenFaucetKey, isDefaultMidenFaucet, getMidenGraphTokens } from './earn/miden';
+export { MIDEN_VIRTUAL_CHAIN_ID, DEFAULT_MIDEN_FAUCET, midenFaucetKey, normalizeMidenId, isDefaultMidenFaucet, getMidenGraphTokens } from './earn/miden';
 export type { MidenGraphToken } from './earn/miden';
 export { useEarnMarkets, useUserPositions, useEarnConfigs, useLendingPools, DEFAULT_EARN_CONFIGS } from './earn/api';
 export { HARDCODED_ONEDELTA_CONFIGS, chainLabelFor } from './earn/onedelta-markets';
