@@ -131,13 +131,16 @@ export function WithdrawFundsButton({
   isBusy,
   onClick,
   label = 'Withdraw Funds',
+  error,
 }: {
   disabled?: boolean;
   isBusy?: boolean;
   onClick: () => void;
   label?: string;
+  error?: string | null;
 }) {
   return (
+    <div className="flex flex-col gap-2">
     <button
       type="button"
       onClick={onClick}
@@ -153,5 +156,11 @@ export function WithdrawFundsButton({
       {label}
       {!isBusy && <span aria-hidden>→</span>}
     </button>
+    {error && (
+      <div role="alert" className="rounded-sm border border-error/40 bg-error-soft px-2.5 py-1.5 text-[12px] text-error">
+        {error}
+      </div>
+    )}
+    </div>
   );
 }

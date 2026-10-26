@@ -205,7 +205,6 @@ export function useEarnMiden({
       !smartWithdraw ||
       smartDestChainId !== MIDEN_VIRTUAL_CHAIN_ID ||
       !earnMiden?.accountId ||
-      earnMiden.accountIsPublic === false ||
       !smartDestTokenAddress
     ) {
       return undefined;

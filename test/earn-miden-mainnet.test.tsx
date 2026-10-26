@@ -118,12 +118,35 @@ function PrivateMidenDestinationProbe() {
     smartDestTokenAddress: DEFAULT_MIDEN_FAUCET.faucetId,
   });
 
-  return createElement("output", null, String(miden.smartDestNotReady));
+  return createElement("output", null, `${miden.smartDestNotReady}:${miden.smartDest?.recipientAccount}`);
 }
 
-test("private Miden accounts remain blocked as withdrawal destinations", () => {
+test("private Miden accounts can receive public P2ID withdrawal notes", () => {
   assert.equal(
     renderToStaticMarkup(createElement(PrivateMidenDestinationProbe)),
-    "<output>true</output>",
+    "<output>false:0x0e9089055fb6f54170bbf6159da028</output>",
   );
+});
+
+
+test("ready private Miden destinations can submit without reconnecting", () => {
+  assert.deepEqual(resolveEarnCta({
+    ...midenCtaParams,
+    earnTab: "withdraw",
+    hasSelectedPosition: true,
+    withdrawAmount: "0.1",
+    midenConnected: true,
+    midenSmartDestNotReady: false,
+  }), { action: "submit", label: "Withdraw" });
+});
+
+test("a disconnected Miden withdrawal destination still offers connection", () => {
+  assert.deepEqual(resolveEarnCta({
+    ...midenCtaParams,
+    earnTab: "withdraw",
+    hasSelectedPosition: true,
+    withdrawAmount: "0.1",
+    midenConnected: false,
+    midenSmartDestNotReady: true,
+  }), { action: "connectMiden", label: "Connect Miden wallet" });
 });

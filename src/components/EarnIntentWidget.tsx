@@ -102,6 +102,7 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
       );
     if (earnFlow.isQuoting) return "Fetching quote…";
     if (
+      ctaState.action === "connectMiden" ||
       ctaState.action === "switch" ||
       ctaState.action === "retry" ||
       ctaState.action === "disabled"
@@ -118,6 +119,7 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
       disabled={!ctaEnabled}
       isBusy={isBusy || earnFlow.isQuoting}
       onClick={handleCtaClick}
+      error={inlineError}
     />
   );
 
