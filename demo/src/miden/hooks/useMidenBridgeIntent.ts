@@ -9,7 +9,7 @@ interface UseMidenBridgeIntentOptions {
     pendingQuote: unknown;
     fetchQuote: (params: CrossChainIntentParams) => Promise<unknown>;
     confirmIntent: (
-      createNote: SolveIntentParams["createMidenP2IDNote"],
+      createNote: SolveIntentParams["createMidenP2IDENote"],
     ) => Promise<unknown>;
   };
   midenAccountIdHex: string | undefined;
@@ -84,7 +84,7 @@ export function useMidenBridgeIntent({
   // Mints the P2IDE note *with* its reclaim height and mandate-binding
   // attachment — a plain wallet send carries neither, and the allocator rejects
   // such a note as "not bound to the intent mandate".
-  const createMidenP2IDNote = useMidenP2IDNoteFactory({
+  const createMidenP2IDENote = useMidenP2IDNoteFactory({
     midenAccountId: midenAccountIdHex ?? null,
     onStatus: setConfirmStatus,
     onNoteCreated: setLocalMidenNoteId,
@@ -95,7 +95,7 @@ export function useMidenBridgeIntent({
     void toast.promise(
       (async () => {
         setConfirmStatus("Submitting intent…");
-        const result = await epoch.confirmIntent(createMidenP2IDNote);
+        const result = await epoch.confirmIntent(createMidenP2IDENote);
         if (
           result &&
           typeof result === "object" &&

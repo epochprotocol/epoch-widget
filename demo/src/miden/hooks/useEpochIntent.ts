@@ -85,7 +85,7 @@ export function useEpochIntent() {
 
   /** Step 2: execute the stored quote by creating the P2ID note and submitting the intent. */
   const confirmIntent = useCallback(
-    async (createMidenP2IDNote: SolveIntentParams["createMidenP2IDNote"]) => {
+    async (createMidenP2IDENote: SolveIntentParams["createMidenP2IDENote"]) => {
       if (!sdk) throw new Error("Epoch SDK not ready");
       if (!pendingQuote) throw new Error("Fetch a quote first");
       setIsLoading(true);
@@ -96,7 +96,7 @@ export function useEpochIntent() {
           ...pendingQuote.params,
           collateralType: CollateralType.Miden,
           midenSourceAccount: pendingQuote.params.midenAccountId,
-          createMidenP2IDNote,
+          createMidenP2IDENote,
           preFetchedQuote: pendingQuote,
         });
         if (result?.error) {
@@ -124,7 +124,7 @@ export function useEpochIntent() {
   const submitDirectIntent = useCallback(
     async (
       params: CrossChainIntentParams,
-      createMidenP2IDNote: SolveIntentParams["createMidenP2IDNote"],
+      createMidenP2IDENote: SolveIntentParams["createMidenP2IDENote"],
     ) => {
       if (!sdk) throw new Error("Epoch SDK not ready");
       setIsLoading(true);
@@ -135,7 +135,7 @@ export function useEpochIntent() {
           ...params,
           collateralType: CollateralType.Miden,
           midenSourceAccount: params.midenAccountId,
-          createMidenP2IDNote,
+          createMidenP2IDENote,
         });
         setIntentResult(result);
         return result;

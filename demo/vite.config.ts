@@ -6,6 +6,9 @@ import wasm from "vite-plugin-wasm";
 export default defineConfig({
   base: "/widget/",
   plugins: [react(), tailwindcss(), wasm()],
+  server: {
+    port: 5175,
+  },
   worker: {
     plugins: () => [wasm()],
     format: "es",

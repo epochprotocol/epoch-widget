@@ -1,9 +1,21 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import { mainnetGraph } from "@epoch-protocol/epoch-commons-sdk";
 import "./index.css";
 import "@epoch-protocol/epoch-intent-widget/styles.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import "sonner/dist/styles.css";
+import {
+  DEFAULT_MIDEN_MAINNET_RPC_URL,
+  ensurePragmaMidenMainnetOracle,
+  type MainnetOracleGraph,
+} from "./miden/lib/mainnet-sdk-compat";
+
+ensurePragmaMidenMainnetOracle(
+  mainnetGraph as unknown as MainnetOracleGraph,
+  import.meta.env.VITE_MIDEN_RPC_URL?.trim() ||
+    DEFAULT_MIDEN_MAINNET_RPC_URL,
+);
 
 const bootScreenStyle: React.CSSProperties = {
   minHeight: "100vh",

@@ -11,6 +11,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { Toaster } from "sonner";
+import { getAnkrBaseRpcUrl } from "./config/rpc";
 import { AllowedPrivateData } from "@miden-sdk/miden-wallet-adapter-base";
 import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
 import { MidenProvider } from "@miden-sdk/react";
@@ -53,7 +54,7 @@ const config = createConfig({
     optimismSepolia,
   ],
   transports: {
-    [base.id]: http("https://mainnet.base.org"),
+    [base.id]: http(getAnkrBaseRpcUrl(import.meta.env.VITE_ANKR_API_KEY)),
     [optimism.id]: http("https://mainnet.optimism.io"),
     [polygon.id]: http("https://polygon.lava.build"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),

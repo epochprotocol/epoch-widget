@@ -9,10 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "https://github.com/epochprotocol/epoch-commons-sdk.git#caa9e302c7d8d1e663f3f725fee3c57eab3269a0",
+    "@epoch-protocol/epoch-commons-sdk": "2.0.0",
     "@epoch-protocol/epoch-flows-sdk": "https://github.com/epochprotocol/epoch-flows-sdk.git#812a2c814dee1bc7b1b3c2ed20748372b79a2675",
-    "@epoch-protocol/epoch-intents-sdk": "^1.0.38",
-    "@epoch-protocol/epoch-intent-widget": "file:../",
+    "@epoch-protocol/epoch-intents-sdk": "2.0.0",
+    "@epoch-protocol/epoch-intent-widget": "workspace:*",
     "@miden-sdk/miden-sdk": "0.17.5",
     "@miden-sdk/miden-wallet-adapter-base": "0.17.5",
     "@miden-sdk/miden-wallet-adapter-react": "0.17.5",
