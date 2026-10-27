@@ -42,9 +42,9 @@
     "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "0.1.20",
+    "@epoch-protocol/epoch-commons-sdk": "^2.1.0",
     "@epoch-protocol/epoch-flows-sdk": "^0.1.7",
-    "@epoch-protocol/epoch-intents-sdk": "1.0.39",
+    "@epoch-protocol/epoch-intents-sdk": "^2.1.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
