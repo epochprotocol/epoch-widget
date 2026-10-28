@@ -8,6 +8,7 @@ import {
   MIDEN_TO_EVM_EXTRA_TYPESTRING,
   MIDEN_VIRTUAL_CHAIN_ID,
 } from "@epoch-protocol/epoch-intents-sdk";
+import { EPOCH_MIDEN_MAINNET_TOKENS } from "@epoch-protocol/epoch-flows-sdk";
 import type { EpochChain, EpochToken } from "../types";
 
 // Re-exported (not re-declared) so the widget's public surface keeps these names
@@ -81,6 +82,14 @@ export function getMidenGraphTokens(isTestnet: boolean): MidenGraphToken[] {
       faucetId,
       decimals: def?.decimalsByChain?.Miden ?? def?.decimals ?? 6,
     });
+  }
+  // Commons releases can lag newly supported faucets. Include the canonical
+  // Flows registry without duplicating graph entries in another encoding.
+  if (!isTestnet) {
+    for (const token of EPOCH_MIDEN_MAINNET_TOKENS) {
+      if (out.some((entry) => midenFaucetKey(entry.faucetId) === midenFaucetKey(token.address))) continue;
+      out.push({ symbol: token.symbol, faucetId: token.address, decimals: token.decimals });
+    }
   }
   return out;
 }

@@ -96,10 +96,6 @@ export function useGaslessWallet({
       });
 
       const status = await getWalletGaslessStatus({
-        config: {
-          apiBaseUrl,
-          walletClient: walletClient as never,
-        },
         publicClient: publicClient as never,
         walletClient: walletClient as never,
         chainId: chainIdForCheck,

@@ -119,7 +119,7 @@ export default function App() {
             {...widgetProps}
             {...(isEarnMode ? { earnSolverUrl } : {})}
             // One adapter for every flow; the widget wires earn and pay/swap off
-            // it. The adapter is mainnet-only and uses the graph-backed USDCX faucet.
+            // it. The adapter is mainnet-only and uses the mainnet faucet registry.
             miden={network === "mainnet" ? earnMiden : undefined}
             isOpen={widgetOpen}
             onClose={() => setWidgetOpen(false)}

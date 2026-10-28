@@ -49,7 +49,15 @@ share `/widget/rpc/*` endpoints for Ethereum, Base, Optimism, Polygon, Arbitrum,
 and the configured Sepolia networks. The Vite dev/preview server adds Infura
 authentication; the browser receives only relative paths. Static hosting needs
 an equivalent server proxy. Miden keeps its native RPC, and Robinhood requires
-a separate provider because this Infura configuration does not support it.
+its own public RPCs (mainnet `4663`, testnet `46630`) because this Infura
+configuration does not support it. Set `VITE_ROBINHOOD_RPC_URL` or
+`VITE_ROBINHOOD_TESTNET_RPC_URL` to override them. Both networks are available
+in wallet switching and the local signer, and in the widget's chain/token pickers.
+Mainnet offers USDG, USDe and WETH; testnet offers the graph's test tokens.
+
+Miden mainnet includes USDG (6 decimals), faucet
+`mm1ar7rgznnerajt52p9ul6rltd8g039qsa`, in the Pay/Swap and Earn token pickers.
+The Advanced bridge remains the Base USDC/USDCX example.
 
 | Path                                           | Use                                                              |
 | ---------------------------------------------- | ---------------------------------------------------------------- |

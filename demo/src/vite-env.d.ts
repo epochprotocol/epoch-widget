@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_INFURA_RPC_PROXY_ENABLED?: boolean;
   readonly VITE_BASE_RPC_URL?: string;
+  readonly VITE_ROBINHOOD_RPC_URL?: string;
+  readonly VITE_ROBINHOOD_TESTNET_RPC_URL?: string;
   readonly VITE_ANKR_API_KEY?: string;
   readonly VITE_EPOCH_API_BASE_URL?: string;
   readonly VITE_EARN_SOLVER_URL?: string;

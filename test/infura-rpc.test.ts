@@ -8,7 +8,9 @@ test("Infura routing also replaces chain metadata used by SDK-created clients", 
   assert.equal(urls[137], "/widget/rpc/polygon");
   const chains = getDemoChains(urls);
   for (const chain of chains) {
-    assert.match(chain.rpcUrls.default.http[0], /^\/widget\/rpc\//);
+    if (![4663, 46630].includes(chain.id)) {
+      assert.match(chain.rpcUrls.default.http[0], /^\/widget\/rpc\//);
+    }
     assert.equal(chain.rpcUrls.default.http[0], urls[chain.id]);
   }
   const polygon = chains.find((chain) => chain.id === 137)!;

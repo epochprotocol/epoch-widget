@@ -150,3 +150,20 @@ test("a disconnected Miden withdrawal destination still offers connection", () =
     midenSmartDestNotReady: true,
   }), { action: "connectMiden", label: "Connect Miden wallet" });
 });
+
+test("Robinhood testnet is offered as an Earn funding source", () => {
+  function Probe() {
+    const engine = useEarnEngine({
+      isOpen: true,
+      onClose: () => undefined,
+      api: { baseUrl: "https://allocator.example.test" },
+      network: "testnet",
+    });
+    return createElement("output", null, String(engine.allTokens.some((t) => t.chainId === 46630)));
+  }
+  const markup = renderToStaticMarkup(createElement(
+    WagmiProvider, { config: wagmiConfig },
+    createElement(QueryClientProvider, { client: new QueryClient() }, createElement(Probe)),
+  ));
+  assert.equal(markup, "<output>true</output>");
+});

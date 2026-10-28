@@ -12,6 +12,8 @@ const EVM_EXPLORERS: Record<number, string> = {
   10: "https://optimistic.etherscan.io",
   137: "https://polygonscan.com",
   8453: "https://basescan.org",
+  4663: "https://robinhoodchain.blockscout.com",
+  46630: "https://explorer.testnet.chain.robinhood.com",
   42161: "https://arbiscan.io",
   11155111: "https://sepolia.etherscan.io",
   11155420: "https://sepolia-optimism.etherscan.io",

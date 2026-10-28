@@ -22,6 +22,11 @@ const baseUsdc = required(
   "Base USDC metadata",
 );
 
+const midenUsdg = required(
+  EPOCH_MIDEN_MAINNET_TOKENS.find((token) => token.symbol === "USDG"),
+  "Miden mainnet USDG metadata",
+);
+
 const midenUsdcx = required(
   EPOCH_MIDEN_MAINNET_TOKENS.find((token) => token.symbol === "USDCX"),
   "Miden mainnet USDCX metadata",
@@ -40,6 +45,11 @@ export const MIDEN_MAINNET = Object.freeze({
   rpcUrl: required(EPOCH_MIDEN_MAINNET_CHAIN.rpcUrl, "Miden Cedar RPC"),
   noteTransportUrl: "https://transport.cedar.miden.io",
   explorer: required(EPOCH_MIDEN_MAINNET_CHAIN.explorer, "Midenscan URL"),
+  usdg: Object.freeze({
+    symbol: midenUsdg.symbol,
+    faucetId: midenUsdg.address,
+    decimals: midenUsdg.decimals,
+  }),
   usdcx: Object.freeze({
     symbol: midenUsdcx.symbol,
     faucetId: midenUsdcx.address,
