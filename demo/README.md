@@ -29,12 +29,27 @@ Copy `.env.example` to `.env`, then set the local service URLs as needed.
 
 | Variable                        | Purpose                                                            |
 | ------------------------------- | ------------------------------------------------------------------ |
-| `VITE_EPOCH_API_BASE_URL`       | Epoch allocator / API base URL (default same-origin `/allocator`)  |
+| `VITE_EPOCH_API_BASE_URL`       | Local allocator: `http://localhost:3000`; forwards to SIO on port 8080 |
+| `VITE_EARN_SOLVER_URL`          | Local 1delta adapter: `http://localhost:3011` |
+| `VITE_POSITIONS_API_BASE_URL`   | Local 1delta positions API: `http://localhost:4023` |
+| `VITE_TESTNET_API_BASE_URL`     | Local testnet allocator: `http://localhost:3000` |
+| `VITE_TESTNET_POSITIONS_API_BASE_URL` | Local dummy-lending positions API: `http://localhost:4024` |
 | `VITE_MIDEN_RPC_URL`            | Optional Miden mainnet RPC override (default Cedar from Flows SDK) |
-| `VITE_MIDEN_NOTE_TRANSPORT_URL` | Optional wallet note transport override                            |
+| `VITE_MIDEN_NOTE_TRANSPORT_URL` | Mainnet note transport (default `https://transport.cedar.miden.io`) |
+| `VITE_ANKR_API_KEY`            | Optional Ankr Base RPC key; without it, Base uses public `https://mainnet.base.org` |
+| `INFURA_API_KEY`              | Server-only base64 `key:secret` credential in ignored `.env.local`; enables Infura for all configured EVM chains |
 | Miden explorer                  | Midenscan mainnet from Flows SDK                                   |
 
+Open `http://localhost:5175/widget/` for the local demo. The service URLs above target local processes; the blockchain RPC and note transport URLs still target Cedar/Base so mainnet asset and position data remain available. Start the local backend services before requesting an Earn quote. Testing a mainnet deposit still requires an explicit wallet transaction.
+
 ## Where to copy from
+
+With `INFURA_API_KEY` set, Wagmi, wallet chain metadata, and widget balance reads
+share `/widget/rpc/*` endpoints for Ethereum, Base, Optimism, Polygon, Arbitrum,
+and the configured Sepolia networks. The Vite dev/preview server adds Infura
+authentication; the browser receives only relative paths. Static hosting needs
+an equivalent server proxy. Miden keeps its native RPC, and Robinhood requires
+a separate provider because this Infura configuration does not support it.
 
 | Path                                           | Use                                                              |
 | ---------------------------------------------- | ---------------------------------------------------------------- |

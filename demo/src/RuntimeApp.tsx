@@ -1,17 +1,8 @@
 import { WagmiProvider, createConfig, http } from "wagmi";
-import {
-  arbitrum,
-  base,
-  baseSepolia,
-  optimism,
-  optimismSepolia,
-  polygon,
-  sepolia,
-} from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { Toaster } from "sonner";
-import { getAnkrBaseRpcUrl } from "./config/rpc";
+import { getDemoChains, getDemoRpcUrls } from "./config/rpc";
 import { AllowedPrivateData } from "@miden-sdk/miden-wallet-adapter-base";
 import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
 import { MidenProvider } from "@miden-sdk/react";
@@ -42,26 +33,13 @@ const { connectors } = getDefaultWallets({
   projectId: "demo", // WalletConnect project ID — replace with a real one for WC support
 });
 
+const rpcUrls = getDemoRpcUrls(import.meta.env);
 const config = createConfig({
   connectors: [...connectors, localSigner()],
-  chains: [
-    base,
-    optimism,
-    polygon,
-    arbitrum,
-    baseSepolia,
-    sepolia,
-    optimismSepolia,
-  ],
-  transports: {
-    [base.id]: http(getAnkrBaseRpcUrl(import.meta.env.VITE_ANKR_API_KEY)),
-    [optimism.id]: http("https://mainnet.optimism.io"),
-    [polygon.id]: http("https://polygon.lava.build"),
-    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
-    [baseSepolia.id]: http("https://sepolia.base.org"),
-    [sepolia.id]: http("https://eth-sepolia-testnet.api.pocket.network"),
-    [optimismSepolia.id]: http("https://sepolia.optimism.io"),
-  },
+  chains: getDemoChains(rpcUrls),
+  transports: Object.fromEntries(
+    Object.entries(rpcUrls).map(([chainId, url]) => [Number(chainId), http(url)]),
+  ),
   ssr: false,
 });
 
@@ -69,7 +47,8 @@ const queryClient = new QueryClient();
 
 const midenConfig = {
   rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim() || MIDEN_MAINNET.rpcUrl,
-  noteTransportUrl: import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim(),
+  noteTransportUrl:
+    import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim() || MIDEN_MAINNET.noteTransportUrl,
 };
 
 export default function RuntimeApp() {

@@ -362,6 +362,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       effectiveAllowGasless &&
       (earnTab === "withdraw" || fundingSource === "evm"),
     apiBaseUrl: resolvedApi.baseUrl,
+    rpcUrls: resolvedApi.rpcUrls,
     gasless,
     setGasless,
     walletClient,

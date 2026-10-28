@@ -38,6 +38,7 @@ export const MIDEN_MAINNET = Object.freeze({
   chainId: EPOCH_MIDEN_MAINNET_CHAIN.id,
   network: EPOCH_MIDEN_MAINNET_CHAIN.network,
   rpcUrl: required(EPOCH_MIDEN_MAINNET_CHAIN.rpcUrl, "Miden Cedar RPC"),
+  noteTransportUrl: "https://transport.cedar.miden.io",
   explorer: required(EPOCH_MIDEN_MAINNET_CHAIN.explorer, "Midenscan URL"),
   usdcx: Object.freeze({
     symbol: midenUsdcx.symbol,

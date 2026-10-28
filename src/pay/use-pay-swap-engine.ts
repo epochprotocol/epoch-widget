@@ -238,6 +238,7 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
   const gaslessWallet = useGaslessWallet({
     allowGasless: effectiveAllowGasless,
     apiBaseUrl,
+    rpcUrls,
     gasless,
     setGasless,
     walletClient,

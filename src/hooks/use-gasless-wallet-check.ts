@@ -12,6 +12,7 @@ import { getEpochChainById } from "../epoch-config";
 interface UseGaslessWalletParams {
   allowGasless: boolean;
   apiBaseUrl: string;
+  rpcUrls?: Record<number, string>;
   gasless: boolean;
   setGasless: (next: boolean) => void;
   walletClient?: WalletClient;
@@ -42,6 +43,7 @@ export type UseGaslessWalletResult = {
 export function useGaslessWallet({
   allowGasless,
   apiBaseUrl,
+  rpcUrls,
   gasless,
   setGasless,
   walletClient,
@@ -81,12 +83,15 @@ export function useGaslessWallet({
     try {
       const epochChain = getEpochChainById(chainIdForCheck);
       const rpcUrl =
+        rpcUrls?.[chainIdForCheck] ??
+        (walletClient.chain?.id === chainIdForCheck
+          ? walletClient.chain.rpcUrls?.default?.http?.[0]
+          : undefined) ??
         epochChain?.rpcUrl ??
-        walletClient.chain?.rpcUrls?.default?.http?.[0] ??
         "";
 
       const publicClient = createPublicClient({
-        chain: walletClient.chain ?? undefined,
+        chain: walletClient.chain?.id === chainIdForCheck ? walletClient.chain : undefined,
         transport: http(rpcUrl),
       });
 
@@ -126,7 +131,7 @@ export function useGaslessWallet({
     } finally {
       setChecking(false);
     }
-  }, [allowGasless, walletClient, address, chainIdForCheck]);
+  }, [allowGasless, apiBaseUrl, walletClient, address, chainIdForCheck, rpcUrls]);
 
   useEffect(() => {
     void probe();

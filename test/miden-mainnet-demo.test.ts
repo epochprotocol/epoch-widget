@@ -23,6 +23,7 @@ test("Miden bridge exposes only Base USDC to native Miden USDCX at six decimals"
   assert.equal(MIDEN_MAINNET.chainId, 999_999_999);
   assert.equal(MIDEN_MAINNET.network, "miden-mainnet");
   assert.equal(MIDEN_MAINNET.rpcUrl, "https://rpc.cedar.miden.io");
+  assert.equal(MIDEN_MAINNET.noteTransportUrl, "https://transport.cedar.miden.io");
   assert.equal(MIDEN_MAINNET.explorer, "https://midenscan.com");
   assert.equal(MIDEN_MAINNET.usdcx.symbol, "USDCX");
   assert.equal(MIDEN_MAINNET.usdcx.decimals, 6);
@@ -43,13 +44,14 @@ test("widget demo is built beneath the hosted /widget/ path", () => {
   assert.equal(viteConfig.base, "/widget/");
 });
 
-test("production positions API base is an absolute HTTPS URL", () => {
+test("positions API permits localhost HTTP and requires HTTPS for remote hosts", () => {
   const env = readFileSync(new URL("../demo/.env", import.meta.url), "utf8");
   const value = env.match(/^VITE_POSITIONS_API_BASE_URL=(.+)$/m)?.[1];
   assert.ok(value, "VITE_POSITIONS_API_BASE_URL must be configured");
 
   const url = new URL(value);
-  assert.equal(url.protocol, "https:");
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  assert.ok(url.protocol === "https:" || (local && url.protocol === "http:"));
 });
 
 test("Bread compatibility boundary sends the raw mainnet wire value", () => {

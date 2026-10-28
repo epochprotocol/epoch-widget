@@ -14,6 +14,9 @@ import { SwapSurface } from "../surfaces/SwapSurface";
 import { EarnSurface } from "../surfaces/EarnSurface";
 import { AdvancedSurface } from "../surfaces/AdvancedSurface";
 import { useEarnMidenAdapter } from "../earn/useEarnMidenAdapter";
+import { getDemoRpcUrls } from "../config/rpc";
+
+const rpcUrls = getDemoRpcUrls(import.meta.env);
 
 /**
  * Read `?advanced=1` once on mount. When set, the Advanced (Miden → EVM)
@@ -125,6 +128,7 @@ export default function App() {
               isEarnMode
                 ? {
                     baseUrl: apiBaseUrl,
+                    rpcUrls,
                     positionsBaseUrl,
                     testnetBaseUrl:
                       (import.meta.env.VITE_TESTNET_API_BASE_URL as
@@ -137,6 +141,7 @@ export default function App() {
                   }
                 : {
                     baseUrl: apiBaseUrl,
+                    rpcUrls,
                     testnetBaseUrl:
                       (import.meta.env.VITE_TESTNET_API_BASE_URL as
                         | string
