@@ -1,7 +1,7 @@
-# Graph Report - epoch-widget  (2026-10-27)
+# Graph Report - epoch-widget  (2026-10-28)
 
 ## Corpus Check
-- 223 files · ~111,285 words
+- 223 files · ~111,296 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `29f8427e`
+- Built from commit: `38ab855e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

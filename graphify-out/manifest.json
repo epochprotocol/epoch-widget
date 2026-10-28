@@ -6,14 +6,14 @@
     "semantic_hash": "1b9494a970ca1c0389a77558ee6d58a4"
   },
   "demo/package.json": {
-    "mtime": 1793121392.596538,
-    "seen": 1793121448.18735,
-    "ast_hash": "6a29dfd5dc4580819d55e6033d332c67",
+    "mtime": 1793177849.201898,
+    "seen": 1793177899.995743,
+    "ast_hash": "6f288eacbcc47bc1d4fbf2758b33474e",
     "semantic_hash": ""
   },
   "demo/src/app/App.tsx": {
-    "mtime": 1793120019.3501623,
-    "seen": 1793120132.845984,
+    "mtime": 1793177817.3505676,
+    "seen": 1793177899.995744,
     "ast_hash": "a645021804d8ba97111cece020e4c313",
     "semantic_hash": ""
   },
@@ -228,8 +228,8 @@
     "semantic_hash": "956ec305e1dc60253dddff97f1f5ef3f"
   },
   "demo/src/vite-env.d.ts": {
-    "mtime": 1793120019.392673,
-    "seen": 1793120132.8460019,
+    "mtime": 1793177817.3513963,
+    "seen": 1793177899.995775,
     "ast_hash": "109fedb004c7fb47ce283a7f8a72277f",
     "semantic_hash": ""
   },
@@ -240,15 +240,15 @@
     "semantic_hash": "6406af797ab375826722459aae603946"
   },
   "demo/vite.config.ts": {
-    "mtime": 1793121469.737005,
-    "seen": 1793121477.808065,
+    "mtime": 1793177817.351633,
+    "seen": 1793177899.9957771,
     "ast_hash": "9c849aa133a629a6cc470fc418eebff6",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1793117914.8975337,
-    "seen": 1793120132.846004,
-    "ast_hash": "5d92623df712d4c0ee40958464cff01c",
+    "mtime": 1793177849.2022135,
+    "seen": 1793177899.995778,
+    "ast_hash": "746dafb5d0b12d948ca28b4d4b859ea5",
     "semantic_hash": ""
   },
   "src/EpochIntentWidget.tsx": {
@@ -678,14 +678,14 @@
     "semantic_hash": "6863a1d2d311e38f96b4174ebe74ac55"
   },
   "src/earn/use-earn-engine.ts": {
-    "mtime": 1793120048.3530085,
-    "seen": 1793120132.846032,
+    "mtime": 1793177817.3874953,
+    "seen": 1793177899.995809,
     "ast_hash": "eece318ae0764901f5f0e53b94cb97cf",
     "semantic_hash": ""
   },
   "src/earn/use-earn-intent-flow.ts": {
-    "mtime": 1793034915.3323076,
-    "seen": 1793034937.4661498,
+    "mtime": 1793177817.3881416,
+    "seen": 1793177899.995809,
     "ast_hash": "05899bf6bedc06dee8496cc6af680d8e",
     "semantic_hash": ""
   },
@@ -720,9 +720,9 @@
     "semantic_hash": "c7652ec131e05236928c8bf2fe8ebcaf"
   },
   "src/hooks/use-gasless-wallet-check.ts": {
-    "mtime": 1793121459.4272788,
-    "seen": 1793121477.808095,
-    "ast_hash": "c15ead6e99cd2f93de3e82252f25cfa0",
+    "mtime": 1793177849.3000152,
+    "seen": 1793177899.995811,
+    "ast_hash": "32c5b57722849babf9494a9e13778c00",
     "semantic_hash": ""
   },
   "src/hooks/use-latest-ref.ts": {
@@ -822,8 +822,8 @@
     "semantic_hash": "06eb086f6cfd3b898718131b058fa90f"
   },
   "src/pay/use-pay-swap-engine.ts": {
-    "mtime": 1793120048.2985475,
-    "seen": 1793120132.8460412,
+    "mtime": 1793177817.388854,
+    "seen": 1793177899.99583,
     "ast_hash": "42d069d71d2fadf681f2f183cb86bccc",
     "semantic_hash": ""
   },
@@ -942,8 +942,8 @@
     "semantic_hash": ""
   },
   "demo/src/RuntimeApp.tsx": {
-    "mtime": 1793120019.30351,
-    "seen": 1793120132.845983,
+    "mtime": 1793177817.3501604,
+    "seen": 1793177899.995743,
     "ast_hash": "ccbb6abf1f5409b8f5872c9dbfec5e23",
     "semantic_hash": ""
   },
@@ -966,14 +966,14 @@
     "semantic_hash": ""
   },
   "demo/src/config/miden-mainnet.ts": {
-    "mtime": 1792994486.3705187,
-    "seen": 1792994488.31251,
+    "mtime": 1793177817.3509123,
+    "seen": 1793177899.99575,
     "ast_hash": "02648988eac01586b8aae97c32cc6d51",
     "semantic_hash": ""
   },
   "demo/src/config/rpc.ts": {
-    "mtime": 1793120090.1575894,
-    "seen": 1793120132.84599,
+    "mtime": 1793177817.3511775,
+    "seen": 1793177899.99575,
     "ast_hash": "a989e306fdff9635ba1b30002fb49b93",
     "semantic_hash": ""
   },
@@ -1002,8 +1002,8 @@
     "semantic_hash": ""
   },
   "test/base-rpc.test.ts": {
-    "mtime": 1793039636.5553586,
-    "seen": 1793039649.9596632,
+    "mtime": 1793177817.3894556,
+    "seen": 1793177899.995849,
     "ast_hash": "3090e976dee593399d4e4409a9c56694",
     "semantic_hash": ""
   },
@@ -1014,9 +1014,9 @@
     "semantic_hash": ""
   },
   "test/miden-mainnet-demo.test.ts": {
-    "mtime": 1793026720.0986257,
-    "seen": 1793026842.304447,
-    "ast_hash": "08400c9aea28b36efee1e1c1c5934b58",
+    "mtime": 1793177945.666343,
+    "seen": 1793177947.522475,
+    "ast_hash": "4c6b2d4fd4da5cde3aa1ea180b2efa3a",
     "semantic_hash": ""
   },
   "test/miden-mainnet-sdk-compat.test.ts": {
@@ -1326,8 +1326,8 @@
     "semantic_hash": ""
   },
   "demo/README.md": {
-    "mtime": 1793120048.4387429,
-    "seen": 1793120132.846068,
+    "mtime": 1793177817.3498075,
+    "seen": 1793177899.9958742,
     "ast_hash": "b27684fcf4df0347bec639c5308d2856",
     "semantic_hash": ""
   },
@@ -1350,14 +1350,14 @@
     "semantic_hash": ""
   },
   "test/earn-withdraw-origin.test.tsx": {
-    "mtime": 1793034915.5134444,
-    "seen": 1793034937.466165,
+    "mtime": 1793177817.3903854,
+    "seen": 1793177899.99585,
     "ast_hash": "8e03d8d33be3e26384f2aeac1493a2a3",
     "semantic_hash": ""
   },
   "test/infura-rpc.test.ts": {
-    "mtime": 1793120224.3264494,
-    "seen": 1793120230.763521,
+    "mtime": 1793177817.3909392,
+    "seen": 1793177899.99585,
     "ast_hash": "6cd910e4085981cf72db4115c288d689",
     "semantic_hash": ""
   }

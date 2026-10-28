@@ -40,8 +40,9 @@ test("browser API configuration uses the Vite value and otherwise stays same-ori
   assert.equal(resolveEpochApiBaseUrl({}), "/allocator");
 });
 
-test("widget demo is built beneath the hosted /widget/ path", () => {
-  assert.equal(viteConfig.base, "/widget/");
+test("widget demo is built beneath the hosted /widget/ path", async () => {
+  const config = await viteConfig({ command: "build", mode: "production" });
+  assert.equal(config.base, "/widget/");
 });
 
 test("positions API permits localhost HTTP and requires HTTPS for remote hosts", () => {

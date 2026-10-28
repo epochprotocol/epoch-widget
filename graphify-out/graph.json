@@ -4174,7 +4174,7 @@
       "file_type": "code",
       "norm_label": "ispublic()",
       "source_file": "test/miden-mainnet-demo.test.ts",
-      "source_location": "L87"
+      "source_location": "L88"
     },
     {
       "id": "test_miden_mainnet_demo_test_tostring",
@@ -4186,7 +4186,7 @@
       "file_type": "code",
       "norm_label": "tostring()",
       "source_file": "test/miden-mainnet-demo.test.ts",
-      "source_location": "L86"
+      "source_location": "L87"
     },
     {
       "id": "src_earn_api_filterconfigsbynetwork",
@@ -4558,7 +4558,7 @@
       "file_type": "code",
       "norm_label": "usegaslesswalletcheck()",
       "source_file": "src/hooks/use-gasless-wallet-check.ts",
-      "source_location": "L237"
+      "source_location": "L240"
     },
     {
       "id": "test_earn_miden_mainnet_test_mainnetmidenprobe",
@@ -9027,7 +9027,7 @@
       "file_type": "concept",
       "norm_label": "@epoch-protocol/epoch-intents-sdk",
       "source_file": "demo/package.json",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "demo_package_json_ref_react",
@@ -9148,7 +9148,7 @@
       "file_type": "concept",
       "norm_label": "@epoch-protocol/epoch-intent-widget",
       "source_file": "demo/package.json",
-      "source_location": "L15"
+      "source_location": "L14"
     },
     {
       "id": "ref_postcss",
@@ -14230,7 +14230,7 @@
       "file_type": "code",
       "norm_label": "@epoch-protocol/epoch-intent-widget",
       "source_file": "demo/package.json",
-      "source_location": "L15"
+      "source_location": "L14"
     },
     {
       "id": "demo_package_dependencies_epoch_protocol_epoch_intents_sdk",
@@ -14241,7 +14241,7 @@
       "file_type": "code",
       "norm_label": "@epoch-protocol/epoch-intents-sdk",
       "source_file": "demo/package.json",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "demo_package_dependencies_miden_sdk_miden_sdk",
@@ -16480,7 +16480,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/hooks/use-gasless-wallet-check.ts",
-      "source_location": "L240",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -17839,7 +17839,7 @@
     },
     {
       "source": "demo_package",
-      "target": "demo_package_json_ref_epoch_protocol_epoch_intents_sdk",
+      "target": "ref_epoch_protocol_epoch_intent_widget",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -17851,7 +17851,7 @@
     },
     {
       "source": "demo_package",
-      "target": "ref_epoch_protocol_epoch_intent_widget",
+      "target": "demo_package_json_ref_epoch_protocol_epoch_intents_sdk",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -30796,7 +30796,7 @@
     },
     {
       "source": "demo_package_dependencies",
-      "target": "demo_package_dependencies_epoch_protocol_epoch_intents_sdk",
+      "target": "demo_package_dependencies_epoch_protocol_epoch_intent_widget",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -30807,7 +30807,7 @@
     },
     {
       "source": "demo_package_dependencies",
-      "target": "demo_package_dependencies_epoch_protocol_epoch_intent_widget",
+      "target": "demo_package_dependencies_epoch_protocol_epoch_intents_sdk",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -38403,7 +38403,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/hooks/use-gasless-wallet-check.ts",
-      "source_location": "L237",
+      "source_location": "L240",
       "weight": 1.0
     },
     {
@@ -39437,7 +39437,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/miden-mainnet-demo.test.ts",
-      "source_location": "L86",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -39448,7 +39448,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/miden-mainnet-demo.test.ts",
-      "source_location": "L87",
+      "source_location": "L88",
       "weight": 1.0
     },
     {
@@ -39963,5 +39963,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "29f8427ef7b3ac8cce648e025345dc6d4b0c514b"
+  "built_at_commit": "38ab855ecddaa478801f0a2265946d88451d3f94"
 }
