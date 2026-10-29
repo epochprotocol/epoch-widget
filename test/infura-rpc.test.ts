@@ -36,7 +36,7 @@ test("Infura routing also replaces chain metadata used by SDK-created clients", 
 
 test("public RPC defaults remain usable without a server-side Infura credential", () => {
   const urls = getDemoRpcUrls({});
-  assert.equal(urls[137], "https://polygon.lava.build");
+  assert.equal(urls[137], "https://polygon-bor-rpc.publicnode.com");
   assert.equal(urls[8453], "https://mainnet.base.org");
 });
 

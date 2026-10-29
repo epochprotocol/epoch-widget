@@ -90,7 +90,7 @@ const config = createConfig({
     [base.id]: http("https://mainnet.base.org"),
     [optimism.id]: http("https://mainnet.optimism.io"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
-    [polygon.id]: http("https://polygon.lava.build"),
+    [polygon.id]: http("https://polygon-bor-rpc.publicnode.com"),
   },
 });
 

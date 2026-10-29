@@ -39,7 +39,7 @@ export function getDemoRpcUrls(env: {
       1: mainnet.rpcUrls.default.http[0],
       8453: getBaseRpcUrl(env.VITE_ANKR_API_KEY, env.VITE_BASE_RPC_URL),
       10: "https://mainnet.optimism.io",
-      137: "https://polygon.lava.build",
+      137: "https://polygon-bor-rpc.publicnode.com",
       42161: "https://arb1.arbitrum.io/rpc",
       84532: "https://sepolia.base.org",
       11155111: "https://eth-sepolia-testnet.api.pocket.network",
