@@ -43,9 +43,9 @@
     "demo:dev": "pnpm --dir demo dev"
   },
   "dependencies": {
-    "@epoch-protocol/epoch-commons-sdk": "2.1.0",
-    "@epoch-protocol/epoch-flows-sdk": "file:../epoch-flows-sdk",
-    "@epoch-protocol/epoch-intents-sdk": "2.1.0",
+    "@epoch-protocol/epoch-commons-sdk": "^2.1.0",
+    "@epoch-protocol/epoch-flows-sdk": "^0.1.7",
+    "@epoch-protocol/epoch-intents-sdk": "^2.1.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
