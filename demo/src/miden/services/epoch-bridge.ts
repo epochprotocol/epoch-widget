@@ -192,7 +192,7 @@ export async function buildCrossChainIntent(
   params: CrossChainIntentParams & {
     collateralType?: CollateralType;
     midenSourceAccount?: string;
-    createMidenP2IDNote?: SolveIntentParams["createMidenP2IDNote"];
+    createMidenP2IDENote?: SolveIntentParams["createMidenP2IDENote"];
     /** Pre-fetched quote from getCrossChainQuote — skips getTaskData step. */
     preFetchedQuote?: CrossChainQuote;
   },
@@ -224,7 +224,7 @@ export async function buildCrossChainIntent(
       collateralType: (params.collateralType ?? "miden") as CollateralType,
       midenFaucetId: midenFaucetIdHex,
       midenSourceAccount: midenSourceHex,
-      createMidenP2IDNote: params.createMidenP2IDNote,
+      createMidenP2IDENote: params.createMidenP2IDENote,
     });
 
     console.log("[EpochBridge] SDK.solveIntent() response:", solveResult);

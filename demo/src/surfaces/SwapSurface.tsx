@@ -13,6 +13,7 @@ interface Props {
 
 interface IntentEdits {
   requiredAmount: string;
+  amountMode: 'fixedOutput' | 'fixedInput';
   destinationChainId: string;
   destinationChainName: string;
   requiredTokenAddress: string;
@@ -25,6 +26,7 @@ function editsFromScenario(props: ScenarioProps): IntentEdits {
   if (!intent) {
     return {
       requiredAmount: '',
+      amountMode: 'fixedOutput',
       destinationChainId: '',
       destinationChainName: '',
       requiredTokenAddress: '',
@@ -34,6 +36,7 @@ function editsFromScenario(props: ScenarioProps): IntentEdits {
   }
   return {
     requiredAmount: intent.requiredAmount.toString(),
+    amountMode: intent.config.fixedOutput === false ? 'fixedInput' : 'fixedOutput',
     destinationChainId: String(intent.config.destinationChainId ?? ''),
     destinationChainName: intent.destinationChainName ?? '',
     requiredTokenAddress: intent.requiredToken.address,
@@ -73,6 +76,7 @@ function applyEdits(props: ScenarioProps, edits: IntentEdits): ScenarioProps {
       },
       config: {
         ...props.intent.config,
+        fixedOutput: edits.amountMode === 'fixedOutput',
         destinationChainId: edits.destinationChainId.trim()
           ? Number(edits.destinationChainId)
           : props.intent.config.destinationChainId,
@@ -120,12 +124,23 @@ export function SwapSurface({ onOpenWidget, network }: Props) {
         </Row>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-fg-secondary">
+            Amount mode
+            <select
+              value={edits.amountMode}
+              onChange={(event) => setField('amountMode', event.target.value as IntentEdits['amountMode'])}
+              className="h-10 rounded-md border border-line bg-canvas px-3 text-sm text-fg"
+            >
+              <option value="fixedOutput">Fixed output</option>
+              <option value="fixedInput">Fixed input</option>
+            </select>
+          </label>
           <EditableField
-            label="Required amount (raw)"
+            label={edits.amountMode === 'fixedInput' ? 'Input amount (raw)' : 'Required output (raw)'}
             value={edits.requiredAmount}
-            placeholder="1000000"
+            placeholder={edits.amountMode === 'fixedInput' ? '1000000000000000' : '1000000'}
             inputMode="numeric"
-            hint="Atomic units, not decimal"
+            hint={edits.amountMode === 'fixedInput' ? 'Source token atomic units' : 'Destination token atomic units'}
             onChange={(v) => setField('requiredAmount', v)}
           />
           <EditableField

@@ -33,7 +33,7 @@ interface Props {
   walletBalance: bigint | null;
   sourceTokenDecimals: number;
   balanceLoading?: boolean;
-  /** When true, show EVM / Miden funding toggle (testnet + adapter provided). */
+  /** When true, show EVM / Miden funding toggle when an adapter is provided. */
   midenEnabled?: boolean;
   fundingSource?: 'evm' | 'miden';
   onFundingSourceChange?: (source: 'evm' | 'miden') => void;

@@ -1,18 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useWalletClient } from 'wagmi';
-import type { IntentTransactionStatus } from '@epoch-protocol/epoch-intents-sdk/dist/types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useWalletClient } from "wagmi";
+import type { IntentTransactionStatus } from "@epoch-protocol/epoch-intents-sdk/dist/types";
+import { resolveEpochApiBaseUrl } from "../../config/miden-mainnet";
 
 const POLL_INTERVAL = 5000;
-const LOG = '[useIntentTransactionStatus]';
+const LOG = "[useIntentTransactionStatus]";
 
-const TERMINAL_STATUSES = new Set(['success', 'completed', 'failed', 'reverted']);
+const TERMINAL_STATUSES = new Set([
+  "success",
+  "completed",
+  "failed",
+  "reverted",
+]);
 
 function isTerminal(statuses: IntentTransactionStatus[]): boolean {
   if (statuses.length === 0) return false;
-  return statuses.every((s) => TERMINAL_STATUSES.has(String(s.status).toLowerCase()));
+  return statuses.every((s) =>
+    TERMINAL_STATUSES.has(String(s.status).toLowerCase()),
+  );
 }
 
-export function useIntentTransactionStatus(userAddress?: string, intentNonce?: string) {
+export function useIntentTransactionStatus(
+  userAddress?: string,
+  intentNonce?: string,
+) {
   const [statuses, setStatuses] = useState<IntentTransactionStatus[]>([]);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,18 +40,18 @@ export function useIntentTransactionStatus(userAddress?: string, intentNonce?: s
       return;
     }
     let cancelled = false;
-    const apiBaseUrl =
-      import.meta.env.VITE_EPOCH_API_BASE_URL ||
-      import.meta.env.VITE_ALLOCATOR_URL ||
-      'http://localhost:3000';
+    const apiBaseUrl = resolveEpochApiBaseUrl(import.meta.env);
     console.log(`${LOG} loading SDK, apiBaseUrl=${apiBaseUrl}`);
-    import('@epoch-protocol/epoch-intents-sdk')
+    import("@epoch-protocol/epoch-intents-sdk")
       .then(({ EpochIntentSDK }) => {
         if (cancelled) {
           console.log(`${LOG} SDK load cancelled`);
           return;
         }
-        const instance = new EpochIntentSDK({ apiBaseUrl, walletClient: walletClient as any });
+        const instance = new EpochIntentSDK({
+          apiBaseUrl,
+          walletClient: walletClient as any,
+        });
         console.log(`${LOG} SDK ready`);
         setSdk(instance);
       })
@@ -74,9 +85,14 @@ export function useIntentTransactionStatus(userAddress?: string, intentNonce?: s
     }
     pollCountRef.current += 1;
     const attempt = pollCountRef.current;
-    console.log(`${LOG} poll #${attempt} → getIntentStatus(${userAddress}, ${intentNonce})`);
+    console.log(
+      `${LOG} poll #${attempt} → getIntentStatus(${userAddress}, ${intentNonce})`,
+    );
     try {
-      const result: IntentTransactionStatus[] = await sdk.getIntentStatus(userAddress, intentNonce);
+      const result: IntentTransactionStatus[] = await sdk.getIntentStatus(
+        userAddress,
+        intentNonce,
+      );
       const arr = Array.isArray(result) ? result : [];
       console.log(`${LOG} poll #${attempt} result:`, arr);
       setStatuses(arr);
@@ -86,7 +102,8 @@ export function useIntentTransactionStatus(userAddress?: string, intentNonce?: s
         stopPolling();
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch intent status';
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch intent status";
       console.error(`${LOG} poll #${attempt} error:`, err);
       setError(msg);
     }

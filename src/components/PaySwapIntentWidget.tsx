@@ -47,7 +47,10 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
   // user pays; otherwise the required amount is the pay amount.
   const payAmountStr = (() => {
     if (!source.token) return "—";
-    if (!resolvedIntent.config.fixedOutput) return receiveAmountStr;
+    if (!resolvedIntent.config.fixedOutput) {
+      if (!source.token) return "—";
+      return formatAmount(resolvedIntent.requiredAmount, source.token.decimals);
+    }
     if (intentFlow.isQuoting) return "";
     return intentFlow.quotedPayAmount ?? "—";
   })();
@@ -89,6 +92,30 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
     });
   };
 
+  const canFetchQuote =
+    !!resolvedIntent.config.fixedOutput &&
+    engine.hasIntent &&
+    engine.isConnected &&
+    !!engine.address &&
+    !!source.chainId &&
+    !!source.token &&
+    !engine.isWrongNetwork &&
+    !engine.isBusy &&
+    !intentFlow.isQuoting &&
+    !(engine.isMidenSource && engine.isMidenDest) &&
+    (!engine.isMidenSource || (engine.midenConnected && !!engine.midenSource)) &&
+    (!engine.isMidenDest || (engine.midenConnected && !!engine.midenDest));
+
+  const handleFetchQuote = () => {
+    if (!source.chainId || !source.token) return;
+    void intentFlow.fetchQuote({
+      sourceChainId: source.chainId,
+      sourceToken: source.token,
+      midenSource: engine.midenSource,
+      midenDest: engine.midenDest,
+    });
+  };
+
   const { priceUsd } = useTokenUsdPrice({
     chainId: source.chainId,
     tokenAddress: source.tokenAddress,
@@ -112,6 +139,24 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
           className="rounded-sm border border-error bg-error-soft px-3 py-2 text-[12.5px] leading-snug text-error"
         >
           {inlineError}
+        </div>
+      )}
+      {resolvedIntent.config.fixedOutput && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!canFetchQuote}
+            onClick={handleFetchQuote}
+          >
+            {intentFlow.isQuoting
+              ? "Fetching quote…"
+              : intentFlow.quoteError
+                ? "Retry quote"
+                : intentFlow.quotedPayAmount
+                  ? "Refresh quote"
+                  : "Fetch quote"}
+          </button>
         </div>
       )}
       <ActionButton
@@ -216,7 +261,7 @@ export function PaySwapIntentWidget(props: PaySwapIntentWidgetProps) {
         <PaySwapMainView
           engine={engine}
           payAmount={payAmountStr}
-          receiveAmount={receiveAmountStr}
+          receiveAmount={resolvedIntent.config.fixedOutput ? receiveAmountStr : "—"}
           payTokenPill={sourcePill}
           receiveTokenPill={destinationPill}
           balanceStr={

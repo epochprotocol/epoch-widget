@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
+import { NATIVE_ETH_ADDRESS } from "@epoch-protocol/epoch-flows-sdk";
 import { useTokenBalance } from "../use-token-balance";
 import { exceedsBalance, positionWithdrawableRaw } from "./balance";
 import { useSessionId } from "../session";
@@ -162,8 +163,8 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     smartDestChainId,
     smartDestTokenAddress,
   } = selection;
-  // Miden funding only exists on testnet, so it can't survive a flip to mainnet.
-  const fundingSource = isTestnet ? selection.fundingSource : "evm";
+  // Miden funding is available on either network when the host supplies an enabled adapter.
+  const fundingSource = selection.fundingSource;
 
   const setEarnSelectedMarket = useCallback(
     (market: EpochEarnMarket | null) => patchSelection({ market }),
@@ -212,7 +213,6 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
   const [gasless, setGasless] = useState(gaslessProp);
   const networkEnv: "mainnet" | "testnet" = isTestnet ? "testnet" : "mainnet";
   const midenEnabled =
-    networkEnv === "testnet" &&
     earnMiden != null &&
     earnMiden.enabled !== false;
   const resolvedApi = useMemo(
@@ -230,6 +230,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
 
   const allTokens = useMemo<TokenWithChain[]>(() => {
     const allowed = new Set(DUMMY_LENDING_SUPPORTED_ADDRESSES);
+    allowed.add(NATIVE_ETH_ADDRESS);
     const deprecated = DEPRECATED_DUMMY_LENDING_USDC_ADDRESS.toLowerCase();
     return availableChains.flatMap((chain) =>
       getEpochTokensByChainEnv(chain.id, isTestnet).flatMap((tok) => {
@@ -363,6 +364,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       effectiveAllowGasless &&
       (earnTab === "withdraw" || fundingSource === "evm"),
     apiBaseUrl: resolvedApi.baseUrl,
+    rpcUrls: resolvedApi.rpcUrls,
     gasless,
     setGasless,
     walletClient,
@@ -617,6 +619,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
     },
     isConnected,
     midenConnected: !!earnMiden?.connected,
+    midenSourceReady: !!miden.quoteSource,
     hasSelectedMarket: !!earnSelectedMarket,
     depositAmount: earnAmount,
     hasSelectedPosition: !!selectedPosition,
@@ -668,6 +671,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
       return;
     }
     if (ctaState.action !== "submit") return;
+    if (fundingSource === "miden" && !miden.quoteSource) return;
     if (
       effectiveSourceChainId == null ||
       !effectiveSourceToken ||

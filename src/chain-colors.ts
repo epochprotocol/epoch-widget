@@ -4,6 +4,8 @@ export const CHAIN_DOT: Record<number, string> = {
   10: '#ff0420', // Optimism
   137: '#8247e5', // Polygon
   8453: '#0052ff', // Base
+  4663: '#00c805', // Robinhood
+  46630: '#00c805', // Robinhood Testnet
   42161: '#28a0f0', // Arbitrum
   84532: '#0052ff', // Base Sepolia
   11155111: '#627eea', // Ethereum Sepolia

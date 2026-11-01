@@ -90,7 +90,7 @@ const config = createConfig({
     [base.id]: http("https://mainnet.base.org"),
     [optimism.id]: http("https://mainnet.optimism.io"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
-    [polygon.id]: http("https://polygon.lava.build"),
+    [polygon.id]: http("https://polygon-bor-rpc.publicnode.com"),
   },
 });
 
@@ -340,7 +340,7 @@ Useful Earn props: `earnDefaultTab` (`'deposit'`|`'withdraw'`), `earnHideTabs`, 
 | `toAmount` (flat pay)   | `string` | Human / decimal        | `"0.15"`              |
 | `intent.requiredAmount` | `bigint` | Atomic (smallest unit) | `5_000_000n` (5 USDC) |
 
-**Built-in registry.** The widget bundles common stablecoins + WETH across Ethereum, Base, Optimism, Polygon, Arbitrum (and Sepolia testnets). For flat-pay with a registry token you can omit `toTokenSymbol`/`toTokenDecimals`. For anything else, pass them.
+**Built-in registry.** The widget bundles common stablecoins, WETH, and native ETH across Ethereum, Base, Optimism, Arbitrum, and supported ETH testnets. Polygon keeps its native asset separate. WETH remains an ERC-20 and can be selected alongside ETH. Native ETH uses the zero-address token sentinel and 18 decimals; balances use the wallet's native balance, and deposits send ETH as transaction value without ERC-20 approval. Keep ETH available for network fees. Pay, Swap, Earn deposits, and Smart Withdraw support ETH when the selected route is available. For flat-pay with a registry token you can omit `toTokenSymbol`/`toTokenDecimals`. For anything else, pass them.
 
 You can read the registries yourself:
 

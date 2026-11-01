@@ -1,0 +1,11 @@
+packages:
+  - "."
+  - "demo"
+allowBuilds:
+  '@parcel/watcher': true
+  bufferutil: true
+  esbuild: true
+  keccak: true
+  utf-8-validate: true
+minimumReleaseAgeExclude:
+  - viem@2.57.13

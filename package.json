@@ -36,10 +36,11 @@
     "test:gasless": "node --import tsx --test test/GaslessToggle.test.tsx",
     "prepublishOnly": "npm run build",
     "predemo": "npm run build:css",
-    "demo": "npm-run-all -p dev:css \"cd demo && npm run dev\"",
+    "demo": "npm-run-all -p dev:css demo:dev",
     "doctor": "npx react-doctor@latest",
     "test:swap": "node --import tsx --test test/pay-swap-cta.test.ts",
-    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx"
+    "test": "node --import tsx --test test/*.test.ts test/*.test.tsx",
+    "demo:dev": "pnpm --dir demo dev"
   },
   "dependencies": {
     "@epoch-protocol/epoch-commons-sdk": "^2.1.0",
@@ -53,7 +54,7 @@
     "lucide-react": "^1.14.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "viem": "^2.0.0",
+    "viem": "^2.57.13",
     "wagmi": "^2.0.0"
   },
   "devDependencies": {
@@ -69,7 +70,7 @@
     "tsup": "^8.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.5.0",
-    "viem": "^2.42.0",
+    "viem": "^2.57.13",
     "wagmi": "^2.9.0"
   },
   "license": "MIT",

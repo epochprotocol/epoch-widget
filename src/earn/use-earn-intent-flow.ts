@@ -13,6 +13,7 @@ import {
   ZERO_BYTES32,
   isUserWalletRejection,
 } from '@epoch-protocol/epoch-intents-sdk';
+import { isNativeEthAddress } from '@epoch-protocol/epoch-flows-sdk';
 import type { RoutingAndLiquidityOptions } from '../types';
 import type {
   EarnMidenCreateP2IDNote,
@@ -221,8 +222,9 @@ function smartWithdrawDestAsset(input: EarnQuoteInput): string {
 
 /**
  * Compact quote/submit uses `walletClient.chain.id` as the intent origin chain.
- * Miden-funded earn deposits must override this to the virtual Miden chain id even
- * when the connected EVM wallet is on Sepolia (same pattern as demo Miden bridge).
+ * Quotes must use the position's chain for withdrawals, and the virtual Miden
+ * chain for Miden-funded deposits, regardless of the connected wallet network.
+ * Withdrawal submission separately requires the wallet on the position's chain.
  */
 function createEarnIntentSdk(
   apiBaseUrl: string,
@@ -292,7 +294,7 @@ export function useEarnIntentFlow({
     taskTypeString: string;
     intentData: any;
     quoteResult: any;
-    /** Origin chain forwarded to Compact/SIO (Miden virtual id for P2ID deposits). */
+    /** Quote origin: position chain for withdrawals, virtual chain for Miden deposits. */
     originChainId?: number;
   } | null>(null);
 
@@ -450,6 +452,10 @@ export function useEarnIntentFlow({
         extraData,
         isSameChain,
         isMidenDeposit,
+        isNativeSource:
+          !isWithdraw &&
+          !isMidenDeposit &&
+          isNativeEthAddress(tokenInAddress),
         midenSource: input.midenSource,
       };
     },
@@ -494,7 +500,13 @@ export function useEarnIntentFlow({
         setQuoteError(null);
         pendingQuoteRef.current = null;
         try {
-          const sdk = createEarnIntentSdk(apiBaseUrl, walletClient);
+          // The underlying belongs to the position's chain. Using the connected
+          // wallet chain here can quote Ethereum USDC against an Arbitrum RPC.
+          const sdk = createEarnIntentSdk(
+            apiBaseUrl,
+            walletClient,
+            market.chainId ?? input.sourceChainId,
+          );
           const { taskTypeString, intentData } = await sdk.getTaskData(
             buildSwapLegTaskInput(input, {
               underlyingAddress,
@@ -553,7 +565,10 @@ export function useEarnIntentFlow({
       pendingQuoteRef.current = null;
 
       try {
-        const originChainId = params.isMidenDeposit ? input.sourceChainId : undefined;
+        const originChainId =
+          input.tab === 'withdraw'
+            ? ((input.market ?? input.position?.market)?.chainId ?? input.sourceChainId)
+            : params.isMidenDeposit ? input.sourceChainId : undefined;
         const sdk = createEarnIntentSdk(apiBaseUrl, walletClient, originChainId);
 
         const { taskTypeString, intentData } = await sdk.getTaskData({
@@ -576,7 +591,7 @@ export function useEarnIntentFlow({
           sponsorAddress: address as `0x${string}`,
           taskTypeString,
           intentData,
-          isNative: false,
+          isNative: params.isNativeSource,
           ...(routingAndLiquidityOptions
             ? { routingAndLiquidityOptions }
             : {}),
@@ -718,6 +733,7 @@ export function useEarnIntentFlow({
         setStatus('error');
         return;
       }
+
       const market = input.market ?? input.position?.market;
       if (!market) {
         setError('Market missing');
@@ -852,6 +868,20 @@ export function useEarnIntentFlow({
         return;
       }
 
+      // Previewing another chain is safe; executing must use the real wallet
+      // network. Do not let the quote's chain override hide a stale wallet client.
+      const withdrawChainId =
+        (input.market ?? input.position?.market)?.chainId ?? input.sourceChainId;
+      if (input.tab === 'withdraw' && walletClient.chain?.id !== withdrawChainId) {
+        const error = new Error(
+          `Switch your wallet to chain ${withdrawChainId} before withdrawing`,
+        );
+        setError(error.message);
+        setStatus('error');
+        onErrorRef.current?.({ sessionId, error });
+        return;
+      }
+
       // Smart Withdraw takes the dedicated batch path (withdraw → swap).
       if (isSmartWithdrawInput(input)) {
         swLog('submit: routing → submitSmartWithdraw (smart path)');
@@ -921,7 +951,7 @@ export function useEarnIntentFlow({
         onSignRef.current?.({ sessionId });
 
         const solvePayload: Record<string, unknown> = {
-          isNative: false,
+          isNative: submitParams.isNativeSource,
           sponsorAddress: address as `0x${string}`,
           taskTypeString,
           intentData,
@@ -935,7 +965,7 @@ export function useEarnIntentFlow({
           solvePayload.collateralType = CollateralType.Miden;
           solvePayload.midenFaucetId = normalizeMidenId(input.midenSource.faucetId);
           solvePayload.midenSourceAccount = normalizeMidenId(input.midenSource.accountId);
-          solvePayload.createMidenP2IDNote = input.midenSource.createP2IDNote;
+          solvePayload.createMidenP2IDENote = input.midenSource.createP2IDNote;
         }
 
         if (gaslessRef.current && !submitParams.isMidenDeposit) {

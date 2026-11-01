@@ -1,81 +1,80 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { WagmiProvider, createConfig, http } from 'wagmi';
-import { arbitrum, base, baseSepolia, optimism, optimismSepolia, polygon, sepolia } from 'wagmi/chains';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, getDefaultWallets } from '@rainbow-me/rainbowkit';
-import './index.css';
-import '@epoch-protocol/epoch-intent-widget/styles.css';
-import '@rainbow-me/rainbowkit/styles.css';
-import 'sonner/dist/styles.css';
-import { Toaster } from 'sonner';
+import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom/client";
+import { mainnetGraph } from "@epoch-protocol/epoch-commons-sdk";
+import "./index.css";
+import "@epoch-protocol/epoch-intent-widget/styles.css";
+import "@rainbow-me/rainbowkit/styles.css";
+import "sonner/dist/styles.css";
 import {
-  AllowedPrivateData,
-  WalletAdapterNetwork,
-} from '@miden-sdk/miden-wallet-adapter-base';
-import { MidenFiSignerProvider } from '@miden-sdk/miden-wallet-adapter-react';
-import { MidenProvider } from '@miden-sdk/react';
-import { themeToCssVars, LIGHT_THEME } from '@epoch-protocol/epoch-intent-widget';
-import App from './app/App';
-import { localSigner } from './wallet/local-signer';
+  DEFAULT_MIDEN_MAINNET_RPC_URL,
+  ensurePragmaMidenMainnetOracle,
+  type MainnetOracleGraph,
+} from "./miden/lib/mainnet-sdk-compat";
 
-// Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
-// utilities aliased in `index.css` (`bg-canvas`, `text-fg`, `border-line`, …)
-// resolve everywhere — including portalled modals rendered into
-// `document.body`. We write to `document.documentElement.style` instead of a
-// wrapper `<div style={...}>` because portal children sit outside the React
-// tree and can't inherit from a JSX ancestor.
-{
-  const vars = themeToCssVars(LIGHT_THEME) as Record<string, string>;
-  for (const [key, value] of Object.entries(vars)) {
-    document.documentElement.style.setProperty(key, value);
-  }
-}
+ensurePragmaMidenMainnetOracle(
+  mainnetGraph as unknown as MainnetOracleGraph,
+  import.meta.env.VITE_MIDEN_RPC_URL?.trim() ||
+    DEFAULT_MIDEN_MAINNET_RPC_URL,
+);
 
-const { connectors } = getDefaultWallets({
-  appName: 'EpochIntentWidget Demo',
-  projectId: 'demo', // WalletConnect project ID — replace with a real one for WC support
-});
-
-const config = createConfig({
-  connectors: [...connectors, localSigner()],
-  chains: [base, optimism, polygon, arbitrum, baseSepolia, sepolia, optimismSepolia],
-  transports: {
-    [base.id]:       http('https://mainnet.base.org'),
-    [optimism.id]:   http('https://mainnet.optimism.io'),
-    [polygon.id]:    http('https://polygon.lava.build'),
-    [arbitrum.id]:   http('https://arb1.arbitrum.io/rpc'),
-    [baseSepolia.id]: http('https://sepolia.base.org'),
-    [sepolia.id]:    http('https://eth-sepolia-testnet.api.pocket.network'),
-    [optimismSepolia.id]: http('https://sepolia.optimism.io'),
-  },
-  ssr: false,
-});
-
-const queryClient = new QueryClient();
-
-const midenConfig = {
-  rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim(),
-  noteTransportUrl: import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim(),
+const bootScreenStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  display: "grid",
+  placeItems: "center",
+  padding: "24px",
+  color: "#25292e",
+  background: "#f8f9fb",
+  fontFamily:
+    'SFRounded, ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+function Bootstrap() {
+  const [RuntimeApp, setRuntimeApp] =
+    useState<React.ComponentType | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    import("./RuntimeApp")
+      .then((module) => {
+        if (active) setRuntimeApp(() => module.default);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (RuntimeApp) return <RuntimeApp />;
+
+  if (loadError) {
+    return (
+      <main style={bootScreenStyle}>
+        <section style={{ maxWidth: 520, textAlign: "center" }}>
+          <h1 style={{ marginBottom: 12 }}>Miden runtime did not load</h1>
+          <p style={{ marginBottom: 20 }}>{loadError}</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main style={bootScreenStyle} role="status" aria-live="polite">
+      Loading Miden integration…
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <MidenProvider config={midenConfig}>
-            <MidenFiSignerProvider
-              network={WalletAdapterNetwork.Testnet}
-              appName="Epoch Intent Widget Demo"
-              allowedPrivateData={AllowedPrivateData.Assets}
-            >
-              <App />
-            </MidenFiSignerProvider>
-          </MidenProvider>
-          <Toaster position="bottom-right" closeButton duration={5000} />
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <Bootstrap />
   </React.StrictMode>,
 );
