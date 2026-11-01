@@ -55,6 +55,13 @@ export interface MidenGraphToken {
   decimals: number;
 }
 
+// Keep older epoch-commons-sdk versions accurate until their bundled graph has
+// the chain-specific Miden decimals. The WETH faucet on Cedar mainnet has 8
+// decimals; EVM WETH continues to use the token's default 18 decimals.
+const MIDEN_MAINNET_DECIMALS_FALLBACKS: Record<string, number> = {
+  WETH: 8,
+};
+
 /**
  * Miden tokens declared in the Epoch graph — every token that carries a
  * `contractAddress.Miden` faucet id (USDC/DAI/USDT/WETH/WBTC on testnet). This is
@@ -80,7 +87,11 @@ export function getMidenGraphTokens(isTestnet: boolean): MidenGraphToken[] {
     out.push({
       symbol,
       faucetId,
-      decimals: def?.decimalsByChain?.Miden ?? def?.decimals ?? 6,
+      decimals:
+        def?.decimalsByChain?.Miden ??
+        (!isTestnet ? MIDEN_MAINNET_DECIMALS_FALLBACKS[symbol] : undefined) ??
+        def?.decimals ??
+        6,
     });
   }
   // Commons releases can lag newly supported faucets. Include the canonical

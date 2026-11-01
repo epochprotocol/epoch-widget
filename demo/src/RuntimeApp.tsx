@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
@@ -11,8 +12,13 @@ import {
   LIGHT_THEME,
 } from "@epoch-protocol/epoch-intent-widget";
 import App from "./app/App";
+import type { DemoNetwork } from "./app/AppShell";
 import { MIDEN_MAINNET } from "./config/miden-mainnet";
-import { MIDEN_MAINNET_WALLET_NETWORK } from "./miden/lib/mainnet-wallet-compat";
+import { MIDEN_TESTNET } from "./config/miden-testnet";
+import {
+  MIDEN_MAINNET_WALLET_NETWORK,
+  MIDEN_TESTNET_WALLET_NETWORK,
+} from "./miden/lib/mainnet-wallet-compat";
 import { localSigner } from "./wallet/local-signer";
 
 // Project the library's `--epoch-*` design tokens onto `:root` so Tailwind
@@ -45,24 +51,37 @@ const config = createConfig({
 
 const queryClient = new QueryClient();
 
-const midenConfig = {
-  rpcUrl: import.meta.env.VITE_MIDEN_RPC_URL?.trim() || MIDEN_MAINNET.rpcUrl,
-  noteTransportUrl:
-    import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim() || MIDEN_MAINNET.noteTransportUrl,
-};
-
 export default function RuntimeApp() {
+  const [network, setNetwork] = useState<DemoNetwork>("mainnet");
+  const midenConfig =
+    network === "testnet"
+      ? {
+          rpcUrl: MIDEN_TESTNET.rpcUrl,
+          noteTransportUrl: MIDEN_TESTNET.noteTransportUrl,
+        }
+      : {
+          rpcUrl:
+            import.meta.env.VITE_MIDEN_RPC_URL?.trim() || MIDEN_MAINNET.rpcUrl,
+          noteTransportUrl:
+            import.meta.env.VITE_MIDEN_NOTE_TRANSPORT_URL?.trim() ||
+            MIDEN_MAINNET.noteTransportUrl,
+        };
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <MidenProvider config={midenConfig}>
+          <MidenProvider key={network} config={midenConfig}>
             <MidenFiSignerProvider
-              network={MIDEN_MAINNET_WALLET_NETWORK}
+              network={
+                network === "testnet"
+                  ? MIDEN_TESTNET_WALLET_NETWORK
+                  : MIDEN_MAINNET_WALLET_NETWORK
+              }
               appName="Epoch Intent Widget Demo"
               allowedPrivateData={AllowedPrivateData.Assets}
             >
-              <App />
+              <App network={network} onNetworkChange={setNetwork} />
             </MidenFiSignerProvider>
           </MidenProvider>
           <Toaster position="bottom-right" closeButton duration={5000} />

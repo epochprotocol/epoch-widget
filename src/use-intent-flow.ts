@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLatestRef } from './hooks/use-latest-ref';
 import { type Address, type WalletClient } from 'viem';
 import {
@@ -27,6 +27,8 @@ interface UseIntentFlowParams {
   requiredToken: { address: string; symbol: string; decimals: number };
   requiredAmount: bigint;
   intentConfig: IntentConfig;
+  /** Override the Compact origin chain when funds originate from Miden. */
+  originChainId?: number;
   isTestnet: boolean;
   sessionId: string;
   mode: WidgetFlow;
@@ -71,6 +73,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     requiredToken,
     requiredAmount,
     intentConfig,
+    originChainId,
     isTestnet,
     sessionId,
     mode,
@@ -112,6 +115,24 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   const gaslessRef = useLatestRef(gasless);
   const mountedRef = useRef(true);
 
+  // Compact's origin chain is read from walletClient.chain.id by the intents
+  // SDK. A Miden-funded intent still uses the connected EVM wallet to sign, but
+  // its Compact origin must be the Miden virtual chain rather than the EVM
+  // network that hosts the sponsor wallet.
+  const flowWalletClient = useMemo(() => {
+    if (
+      !walletClient ||
+      originChainId == null ||
+      walletClient.chain?.id === originChainId
+    ) {
+      return walletClient;
+    }
+    return {
+      ...walletClient,
+      chain: { ...(walletClient.chain ?? {}), id: originChainId },
+    } as WalletClient;
+  }, [walletClient, originChainId]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -120,7 +141,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
   }, []);
 
   useEffect(() => {
-    if (!walletClient || !address) {
+    if (!flowWalletClient || !address) {
       sessionRef.current?.dispose();
       sessionRef.current = null;
       return;
@@ -129,7 +150,7 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     const session = new PaySession({
       apiBaseUrl,
       address,
-      walletClient,
+      walletClient: flowWalletClient,
       sessionId,
       mode,
       requiredToken,
@@ -180,11 +201,12 @@ export function useIntentFlow(params: UseIntentFlowParams): UseIntentFlowReturn 
     };
   }, [
     apiBaseUrl,
-    walletClient,
+    flowWalletClient,
     address,
     sessionId,
     mode,
     isTestnet,
+    originChainId,
     receiver,
     routingAndLiquidityOptions,
     // Hot deps for the session config — recreating on intent shape changes is

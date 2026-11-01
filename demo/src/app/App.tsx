@@ -35,7 +35,12 @@ const SWAP_TAB = { value: "swap" as const, label: "Swap" };
 const EARN_TAB = { value: "earn" as const, label: "Earn" };
 const ADVANCED_TAB = { value: "advanced" as const, label: "Advanced" };
 
-export default function App() {
+interface AppProps {
+  network: DemoNetwork;
+  onNetworkChange: (network: DemoNetwork) => void;
+}
+
+export default function App({ network, onNetworkChange }: AppProps) {
   const apiBaseUrl = getApiBaseUrl();
   const earnSolverUrl =
     (import.meta.env.VITE_EARN_SOLVER_URL as string | undefined) ??
@@ -45,9 +50,7 @@ export default function App() {
     "http://localhost:4023";
 
   const showAdvanced = useAdvancedFlag();
-  const earnMiden = useEarnMidenAdapter();
-
-  const [network, setNetwork] = useState<DemoNetwork>("mainnet");
+  const earnMiden = useEarnMidenAdapter(network);
   const tabs = useMemo(() => {
     const base = [PAY_TAB, SWAP_TAB, EARN_TAB];
     return showAdvanced ? [...base, ADVANCED_TAB] : base;
@@ -80,7 +83,7 @@ export default function App() {
   }, [network]);
 
   return (
-    <AppShell network={network} onNetworkChange={setNetwork}>
+    <AppShell network={network} onNetworkChange={onNetworkChange}>
       <div className="mx-auto max-w-3xl px-6 pt-6">
         <SegmentedTabs<DemoSurface>
           tabs={tabs}
@@ -118,9 +121,9 @@ export default function App() {
           <EpochIntentWidget
             {...widgetProps}
             {...(isEarnMode ? { earnSolverUrl } : {})}
-            // One adapter for every flow; the widget wires earn and pay/swap off
-            // it. The adapter is mainnet-only and uses the mainnet faucet registry.
-            miden={network === "mainnet" ? earnMiden : undefined}
+            // The Miden provider and wallet adapter are configured for the
+            // selected network, so testnet graph faucets can be used too.
+            miden={earnMiden}
             isOpen={widgetOpen}
             onClose={() => setWidgetOpen(false)}
             network={network}

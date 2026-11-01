@@ -8,6 +8,7 @@ import type { WalletAdapterNetwork } from "@miden-sdk/miden-wallet-adapter-base"
  * the wrong network.
  */
 export const MIDEN_MAINNET_WALLET_NETWORK = "mainnet" as WalletAdapterNetwork;
+export const MIDEN_TESTNET_WALLET_NETWORK = "testnet" as WalletAdapterNetwork;
 
 interface MidenAccountId {
   isPublic(): boolean;

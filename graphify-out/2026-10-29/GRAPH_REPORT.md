@@ -1,16 +1,16 @@
-# Graph Report - epoch-widget  (2026-10-28)
+# Graph Report - epoch-widget  (2026-10-29)
 
 ## Corpus Check
-- 223 files · ~111,296 words
+- 226 files · ~112,869 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1239 nodes · 2188 edges · 96 communities (71 shown, 21 thin omitted)
+- 1276 nodes · 2311 edges · 106 communities (80 shown, 26 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `38ab855e`
+- Built from commit: `f89e2b81`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,35 +21,36 @@
 - compilerOptions
 - api.ts
 - MarketPickerPage.tsx
-- WithdrawFromCard.tsx
-- EarnMainView.tsx
-- ui/index.ts
+- cn
+- miden-mainnet.ts
+- cn.ts
 - dependencies
 - SwapIntentSummary.tsx
 - devDependencies
-- SwapSurface.tsx
-- RuntimeApp.tsx
+- DemoNetwork
+- useMidenWalletAdapter.ts
 - use-earn-intent-flow.ts
 - package.json
 - devDependencies
-- useMidenWalletAdapter.ts
+- useMidenBridgeIntent.ts
 - scripts
 - @epoch-protocol/epoch-intent-widget
 - Recipes — copy-paste integrations
 - WithdrawPanel.tsx
 - EarnSurface.tsx
-- scenarios.ts
+- SwapSurface.tsx
 - PaySurface.tsx
 - dependencies
-- cn
-- TokenSelector.tsx
+- MidenExecutionStatus.tsx
+- MarketSelectButton.tsx
 - peerDependencies
 - use-source-selection.ts
 - Icons.tsx
 - demo/package.json
-- MidenBridgeFields.tsx
+- useEpochIntent.ts
 - App.tsx
-- AppShell.tsx
+- EarnFlowPanel.tsx
+- RuntimeApp.tsx
 - What You Must Do When Invoked
 - MidenBridgePanel.tsx
 - What You Must Do When Invoked
@@ -57,14 +58,16 @@
 - vite-env.d.ts
 - repository
 - What You Must Do When Invoked
-- tsup
-- EpochClassNames
+- WithdrawDetailPanel.tsx
+- useIntentFlowStatus.ts
 - use-earn-engine.ts
-- main.tsx
-- vite.config.ts
+- AppShell.tsx
+- AdvancedSurface.tsx
 - compilerOptions
 - Explaining and configuring rules
-- EarnIntentWidget.tsx
+- earn/miden.ts
+- use-earn-quote-target.ts
+- use-gasless-wallet-check.ts
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
@@ -74,13 +77,14 @@
 - Epoch Intent Widget — demo app
 - graphify reference: query, path, explain
 - graphify reference: query, path, explain
+- viem
 - graphify reference: add a URL and watch a folder
 - graphify reference: commit hook and native CLAUDE.md integration
 - graphify reference: incremental update and cluster-only
 - graphify reference: add a URL and watch a folder
 - graphify reference: commit hook and native CLAUDE.md integration
 - graphify reference: incremental update and cluster-only
-- scripts
+- Native ETH Implementation Plan
 - graphify reference: add a URL and watch a folder
 - graphify reference: commit hook and native CLAUDE.md integration
 - graphify reference: incremental update and cluster-only
@@ -103,55 +107,61 @@
 - .codex/skills/graphify/references/extraction-spec.md
 - chains.ts
 - .opencode/skills/graphify/references/extraction-spec.md
-- exports
-- publishConfig
+- @miden-sdk/miden-wallet-adapter-base
+- @miden-sdk/react
 - agent/skills/graphify/references/extraction-spec.md
-- useLatestRef
+- @rainbow-me/rainbowkit
+- sonner
+- react
+- viem
+- wagmi
+- Native ETH across Pay, Swap, and Earn
+- @epoch-protocol/epoch-commons-sdk
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 65 edges
-2. `useEarnEngine()` - 24 edges
-3. `EpochClassNames` - 20 edges
-4. `@epoch-protocol/epoch-intent-widget` - 19 edges
-5. `compilerOptions` - 17 edges
-6. `scripts` - 16 edges
-7. `usePaySwapEngine()` - 15 edges
-8. `compilerOptions` - 14 edges
-9. `Integration Guide` - 14 edges
-10. `useEarnIntentFlow()` - 13 edges
+1. `react` - 80 edges
+2. `cn()` - 65 edges
+3. `useEarnEngine()` - 25 edges
+4. `EpochClassNames` - 20 edges
+5. `@epoch-protocol/epoch-intent-widget` - 19 edges
+6. `compilerOptions` - 17 edges
+7. `scripts` - 16 edges
+8. `wagmi` - 15 edges
+9. `usePaySwapEngine()` - 15 edges
+10. `compilerOptions` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `MainnetMidenProbe()` --calls--> `useEarnEngine()`  [EXTRACTED]
+  test/earn-miden-mainnet.test.tsx → src/earn/use-earn-engine.ts
+- `Probe()` --calls--> `useEarnEngine()`  [EXTRACTED]
   test/earn-miden-mainnet.test.tsx → src/earn/use-earn-engine.ts
 - `Probe()` --calls--> `useEarnIntentFlow()`  [EXTRACTED]
   test/earn-withdraw-origin.test.tsx → src/earn/use-earn-intent-flow.ts
 - `PrivateMidenDestinationProbe()` --calls--> `useEarnMiden()`  [EXTRACTED]
   test/earn-miden-mainnet.test.tsx → src/earn/use-earn-miden.ts
-- `ChainSelector()` --calls--> `cn()`  [EXTRACTED]
-  src/components/ChainSelector.tsx → src/lib/cn.ts
-- `IntentProgressProps` --references--> `EpochClassNames`  [EXTRACTED]
-  src/components/IntentProgress.tsx → src/types.ts
+- `UseMidenBridgeIntentOptions` --references--> `CrossChainIntentParams`  [EXTRACTED]
+  demo/src/miden/hooks/useMidenBridgeIntent.ts → demo/src/miden/types/miden.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (96 total, 21 thin omitted)
+## Communities (106 total, 26 thin omitted)
 
 ### Community 0 - "use-pay-swap-engine.ts"
-Cohesion: 0.13
-Nodes (22): TokenWithChain, usePropOverride(), PAY_SWAP_VARIANTS, PaySwapVariant, PaySwapVariantSpec, SummaryContext, DestinationSelection, useDestinationSelection() (+14 more)
+Cohesion: 0.26
+Nodes (14): UseGaslessWalletResult, PaySwapVariantSpec, DestinationSelection, PaySwapEngine, PLACEHOLDER_INTENT, PaySwapMiden, PaySwapMidenDest, PaySwapMidenSource (+6 more)
 
 ### Community 1 - "src/index.ts"
-Cohesion: 0.12
-Nodes (20): EarnIntentWidgetProps, EarnQuoteTarget, useEarnQuoteTarget(), UseEarnQuoteTargetOptions, DEFAULT_TESTNET_API_BASE_URL, DEFAULT_TESTNET_POSITIONS_BASE_URL, DARK_THEME, DEFAULT_THEME (+12 more)
+Cohesion: 0.06
+Nodes (50): Banner(), EarnMainView(), EarnMainViewProps, EarnWithdrawDetailView(), EarnWithdrawDetailViewProps, EarnFlowPanel(), EarnIntentWidget(), GaslessSection() (+42 more)
 
 ### Community 2 - "PaySwapIntentWidget.tsx"
 Cohesion: 0.06
 Nodes (35): EarnCtaButton(), EarnCtaButtonProps, RetryIcon, NetworkBadge(), NetworkToggle(), NetworkToggleProps, segmentClasses(), CTA_TONE_CLASSES (+27 more)
 
 ### Community 3 - "compilerOptions"
-Cohesion: 0.10
-Nodes (19): compilerOptions, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, isolatedModules, jsx, lib (+11 more)
+Cohesion: 0.08
+Nodes (25): ES2020, node_modules, compilerOptions, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, isolatedModules (+17 more)
 
 ### Community 4 - "api.ts"
 Cohesion: 0.07
@@ -161,53 +171,53 @@ Nodes (40): ConfigsState, DEFAULT_EARN_CONFIGS, DEFAULT_POOL_CHAIN_IDS, filterCo
 Cohesion: 0.14
 Nodes (16): ALL_CHAINS, ALL_LENDERS, DEFAULT_CHAIN_IDS, FAMILY_DISPLAY, FAMILY_DOT, familyOf(), KEEP_UPPER_LENDER_SEG, MarketPickerPage() (+8 more)
 
-### Community 6 - "WithdrawFromCard.tsx"
-Cohesion: 0.21
-Nodes (8): CSS_VARS_TO_MIRROR, Dropdown(), DropdownOption, DropdownProps, SmartWithdrawDestination(), SmartWithdrawDestinationProps, WithdrawFromCardProps, SECTION_LABEL
-
-### Community 7 - "EarnMainView.tsx"
-Cohesion: 0.13
-Nodes (18): Banner(), EarnMainView(), EarnMainViewProps, EarnWithdrawDetailViewProps, EarnFlowPanel(), GaslessSection(), GaslessSectionProps, CheckIcon (+10 more)
-
-### Community 8 - "ui/index.ts"
+### Community 6 - "cn"
 Cohesion: 0.12
-Nodes (17): ChevronDownIcon, Card(), CardTone, Props, TONE_CLASSES, Pill(), PillSize, PillVariant (+9 more)
+Nodes (19): CSS_VARS_TO_MIRROR, Dropdown(), DropdownOption, DropdownProps, GaslessToggle(), GaslessToggleProps, segmentClasses(), CheckIcon (+11 more)
+
+### Community 7 - "miden-mainnet.ts"
+Cohesion: 0.18
+Nodes (9): BASE_MAINNET_USDC, baseUsdc, MIDEN_MAINNET, midenUsdcx, midenUsdg, resolveEpochApiBaseUrl(), ViteApiEnvironment, getApiBaseUrl() (+1 more)
+
+### Community 8 - "cn.ts"
+Cohesion: 0.11
+Nodes (19): ChevronDownIcon, Card(), CardTone, Props, TONE_CLASSES, Pill(), PillSize, PillVariant (+11 more)
 
 ### Community 9 - "dependencies"
 Cohesion: 0.12
-Nodes (16): dependencies, @epoch-protocol/epoch-commons-sdk, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intent-widget, @epoch-protocol/epoch-intents-sdk, @miden-sdk/miden-sdk, @miden-sdk/miden-wallet-adapter-base, @miden-sdk/miden-wallet-adapter-react (+8 more)
+Nodes (17): dependencies, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intent-widget, @epoch-protocol/epoch-intents-sdk, @miden-sdk/miden-sdk, @miden-sdk/miden-wallet-adapter-react, react, react-dom (+9 more)
 
 ### Community 10 - "SwapIntentSummary.tsx"
-Cohesion: 0.12
-Nodes (18): Avatar(), AvatarProps, Props, ArrowDownIcon, ArrowDownUpIcon, LockIcon, WalletIcon, CardData (+10 more)
+Cohesion: 0.14
+Nodes (14): ArrowDownIcon, ArrowDownUpIcon, ChevronRightIcon, WalletIcon, CardData, IntentSummary(), IntentSummaryProps, PayIntentSummaryProps (+6 more)
 
 ### Community 11 - "devDependencies"
-Cohesion: 0.18
-Nodes (11): devDependencies, autoprefixer, postcss, tailwindcss, @tailwindcss/vite, @types/react, @types/react-dom, typescript (+3 more)
+Cohesion: 0.10
+Nodes (21): autoprefixer, devDependencies, autoprefixer, postcss, tailwindcss, @tailwindcss/vite, @types/react, @types/react-dom (+13 more)
 
-### Community 12 - "SwapSurface.tsx"
-Cohesion: 0.23
-Nodes (11): DemoNetwork, SectionLabel(), ScenarioProps, SWAP_SCENARIOS, Props, Props, applyEdits(), editsFromScenario() (+3 more)
+### Community 12 - "DemoNetwork"
+Cohesion: 0.67
+Nodes (3): DemoNetwork, Props, Props
 
-### Community 13 - "RuntimeApp.tsx"
-Cohesion: 0.19
-Nodes (10): MIDEN_MAINNET_WALLET_NETWORK, MidenAccountId, normalizeMidenAccount(), requirePublicMidenAccount(), config, { connectors }, midenConfig, queryClient (+2 more)
+### Community 13 - "useMidenWalletAdapter.ts"
+Cohesion: 0.17
+Nodes (12): MidenBridgeFields(), MidenBridgeFieldsProps, OutputToken, MidenWalletAsset, NormalizedMidenAccountId, resolveAccountId(), stripMidenIdDecorators(), UseMidenWalletAdapterOptions (+4 more)
 
 ### Community 14 - "use-earn-intent-flow.ts"
 Cohesion: 0.16
-Nodes (19): EARN_MIDEN_EXTRA_FIELDS, buildSwapLegTaskInput(), createEarnIntentSdk(), EarnIntentFlowStatus, earnProtocolName(), EarnQuote, EarnQuoteInput, EarnSubmitInput (+11 more)
+Nodes (20): EARN_MIDEN_EXTRA_FIELDS, buildSwapLegTaskInput(), createEarnIntentSdk(), EarnIntentFlowStatus, earnProtocolName(), EarnQuote, EarnQuoteInput, EarnSubmitInput (+12 more)
 
 ### Community 15 - "package.json"
-Cohesion: 0.06
-Nodes (31): bugs, description, files, homepage, @epoch-protocol/epoch-commons-sdk, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intents-sdk, react (+23 more)
+Cohesion: 0.11
+Nodes (18): bugs, description, exports, ./styles.css, files, homepage, dist, license (+10 more)
 
 ### Community 16 - "devDependencies"
-Cohesion: 0.13
-Nodes (15): devDependencies, lucide-react, npm-run-all, react, react-dom, tailwindcss, @tailwindcss/cli, @tanstack/react-query (+7 more)
+Cohesion: 0.12
+Nodes (17): npm-run-all, devDependencies, npm-run-all, tailwindcss, @tailwindcss/cli, tsup, tsx, @types/react (+9 more)
 
-### Community 17 - "useMidenWalletAdapter.ts"
-Cohesion: 0.17
-Nodes (15): useEarnMidenAdapter(), createFeeConversionSalt(), Options, toAccountId(), useMidenP2IDNoteFactory(), NormalizedMidenAccountId, resolveAccountId(), stripMidenIdDecorators() (+7 more)
+### Community 17 - "useMidenBridgeIntent.ts"
+Cohesion: 0.24
+Nodes (11): useEarnMidenAdapter(), isNonceLike(), MidenBridgeIntent, readNonce(), useMidenBridgeIntent(), UseMidenBridgeIntentOptions, createFeeConversionSalt(), Options (+3 more)
 
 ### Community 18 - "scripts"
 Cohesion: 0.12
@@ -227,63 +237,67 @@ Nodes (12): DOT_SIZE, dotStyle(), FilterDropdown(), FilterOption, Props, renderI
 
 ### Community 22 - "EarnSurface.tsx"
 Cohesion: 0.20
-Nodes (11): MultiSelectDropdown(), MultiSelectOption, Props, EARN_DEPOSIT_PROPS, EARN_WITHDRAW_PROPS, CHAIN_OPTIONS, EarnSurface(), KEEP_UPPER (+3 more)
+Nodes (12): MultiSelectDropdown(), MultiSelectOption, Props, EARN_DEPOSIT_PROPS, EARN_WITHDRAW_PROPS, ScenarioProps, CHAIN_OPTIONS, KEEP_UPPER (+4 more)
 
-### Community 23 - "scenarios.ts"
-Cohesion: 0.15
-Nodes (12): Badge(), toneClass, Props, ScenarioCard(), BASE_SEPOLIA_USDC, OP_SEPOLIA_USDC, PAY_TESTNET_SCENARIOS, Scenario (+4 more)
+### Community 23 - "SwapSurface.tsx"
+Cohesion: 0.17
+Nodes (12): BASE_SEPOLIA_USDC, OP_SEPOLIA_USDC, PAY_SCENARIOS, SHARED_CTA_LABELS, SWAP_INITIAL_INTENT, SWAP_SCENARIOS, SWAP_TESTNET_INITIAL_INTENT, SWAP_TESTNET_SCENARIOS (+4 more)
 
 ### Community 24 - "PaySurface.tsx"
 Cohesion: 0.21
-Nodes (10): EditableField(), Props, Row(), PAY_SCENARIOS, applyEdits(), Edits, editsFromScenario(), FlatEdits (+2 more)
+Nodes (10): EditableField(), Props, SectionLabel(), PAY_TESTNET_SCENARIOS, applyEdits(), Edits, editsFromScenario(), FlatEdits (+2 more)
 
 ### Community 25 - "dependencies"
-Cohesion: 0.33
-Nodes (6): dependencies, clsx, @epoch-protocol/epoch-commons-sdk, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intents-sdk, tailwind-merge
+Cohesion: 0.18
+Nodes (11): clsx, dependencies, clsx, @epoch-protocol/epoch-commons-sdk, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intents-sdk, tailwind-merge, @epoch-protocol/epoch-commons-sdk (+3 more)
 
-### Community 26 - "cn"
-Cohesion: 0.12
-Nodes (20): GaslessEnableButton(), GaslessEnableButtonProps, GaslessToggle(), GaslessToggleProps, segmentClasses(), SparklesIcon, PositionRow(), Props (+12 more)
+### Community 26 - "MidenExecutionStatus.tsx"
+Cohesion: 0.29
+Nodes (9): MidenExecutionStatus(), MidenExecutionStatusProps, EVM_EXPLORERS, explorerTxUrl(), MIDEN_CHAIN_ID, MIDENSCAN_BASE, midenscanNoteUrl(), truncateHash() (+1 more)
 
-### Community 27 - "TokenSelector.tsx"
-Cohesion: 0.12
-Nodes (19): CHAIN_DOT, chainDotColor(), FAMILY_LABELS, fmtUsd(), LENDER_DOT, MarketRowCard(), Props, ChevronRightIcon (+11 more)
+### Community 27 - "MarketSelectButton.tsx"
+Cohesion: 0.16
+Nodes (14): CHAIN_DOT, chainDotColor(), FAMILY_LABELS, fmtUsd(), LENDER_DOT, MarketRowCard(), Props, TrendingUpIcon (+6 more)
 
 ### Community 28 - "peerDependencies"
-Cohesion: 0.29
-Nodes (7): peerDependencies, lucide-react, react, react-dom, @tanstack/react-query, viem, wagmi
+Cohesion: 0.12
+Nodes (16): lucide-react, lucide-react, react, react-dom, @tanstack/react-query, wagmi, react, react-dom (+8 more)
 
 ### Community 29 - "use-source-selection.ts"
-Cohesion: 0.19
-Nodes (11): getMidenChainTokens(), MIDEN_CHAIN, TokenPick, useTokenPick(), resolveDefaultSource(), TokenOnChain, DEFAULT_DEST_CHAIN_ID, RequiredToken (+3 more)
+Cohesion: 0.14
+Nodes (14): TokenWithChain, getMidenChainTokens(), MIDEN_CHAIN, TokenPick, useTokenPick(), resolveDefaultSource(), TokenOnChain, DEFAULT_DEST_CHAIN_ID (+6 more)
 
 ### Community 30 - "Icons.tsx"
-Cohesion: 0.13
-Nodes (15): BannerProps, BannerVariant, VARIANT_CLASSES, ChainSelector(), ChainSelectorProps, AlertIcon, ChevronLeftIcon, HistoryToolbarIcon (+7 more)
+Cohesion: 0.11
+Nodes (16): BannerProps, BannerVariant, VARIANT_CLASSES, GaslessEnableButton(), GaslessEnableButtonProps, AlertIcon, CloseIcon, HistoryToolbarIcon (+8 more)
 
 ### Community 31 - "demo/package.json"
-Cohesion: 0.10
-Nodes (19): @epoch-protocol/epoch-commons-sdk, @epoch-protocol/epoch-flows-sdk, @epoch-protocol/epoch-intents-sdk, react, react-dom, tailwindcss, @tanstack/react-query, @types/react (+11 more)
+Cohesion: 0.22
+Nodes (8): name, private, scripts, build, dev, typecheck, type, version
 
-### Community 32 - "MidenBridgeFields.tsx"
-Cohesion: 0.50
-Nodes (4): MidenBridgeFields(), MidenBridgeFieldsProps, OutputToken, MidenWalletAsset
+### Community 32 - "useEpochIntent.ts"
+Cohesion: 0.30
+Nodes (11): useEpochIntent(), buildCrossChainIntent(), buildEpochTaskDataParams(), CrossChainQuote, getCrossChainQuote(), normalizeMidenIdToHex(), IMPORTANT: integer strings (e.g. "1099993") are base units and must use, CrossChainIntentParams (+3 more)
 
 ### Community 33 - "App.tsx"
-Cohesion: 0.16
-Nodes (12): ADVANCED_TAB, App(), EARN_TAB, PAY_TAB, rpcUrls, SWAP_TAB, useAdvancedFlag(), Code() (+4 more)
+Cohesion: 0.22
+Nodes (9): ADVANCED_TAB, App(), EARN_TAB, PAY_TAB, rpcUrls, SWAP_TAB, useAdvancedFlag(), EarnSurface() (+1 more)
 
-### Community 35 - "AppShell.tsx"
-Cohesion: 0.13
-Nodes (17): AppShell(), NETWORK_TABS, Props, LocalSignerButton(), Props, LocalSignerDialog(), Props, LocalSignerForm() (+9 more)
+### Community 34 - "EarnFlowPanel.tsx"
+Cohesion: 0.22
+Nodes (9): Avatar(), AvatarProps, ChainSelector(), ChainSelectorProps, Props, ChevronLeftIcon, LockIcon, TokenChainPill() (+1 more)
+
+### Community 35 - "RuntimeApp.tsx"
+Cohesion: 0.06
+Nodes (38): LocalSignerButton(), Props, LocalSignerDialog(), Props, LocalSignerForm(), Props, DEMO_RPC_PATHS, getBaseRpcUrl() (+30 more)
 
 ### Community 36 - "What You Must Do When Invoked"
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
 ### Community 37 - "MidenBridgePanel.tsx"
-Cohesion: 0.06
-Nodes (51): BASE_MAINNET_USDC, baseUsdc, MIDEN_MAINNET, midenUsdcx, resolveEpochApiBaseUrl(), ViteApiEnvironment, getApiBaseUrl(), MidenExecutionStatus() (+43 more)
+Cohesion: 0.19
+Nodes (12): MidenQuoteCard(), MidenQuoteCardProps, MidenWalletsSection(), MidenWalletsSectionProps, getMidenFaucetDecimals(), isMidenMainnetUsdcx(), toMapKey(), BASE_TOKENS (+4 more)
 
 ### Community 38 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -301,33 +315,41 @@ Nodes (3): repository, type, url
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
-### Community 48 - "EpochClassNames"
-Cohesion: 0.13
-Nodes (18): EarnIntentWidget(), CloseIcon, PoweredIcon, IntentSummaryProps, Modal(), ModalProps, PaySwapMainViewProps, PayIntentSummaryProps (+10 more)
+### Community 43 - "WithdrawDetailPanel.tsx"
+Cohesion: 0.14
+Nodes (13): PositionRow(), Props, SmartWithdrawDestination(), SmartWithdrawDestinationProps, FRACTIONS, WithdrawAmountCard(), WithdrawAmountCardProps, WithdrawFromCard() (+5 more)
+
+### Community 48 - "useIntentFlowStatus.ts"
+Cohesion: 0.29
+Nodes (6): TERMINAL_OK, useIntentFlowStatus(), isTerminal(), TERMINAL_STATUSES, useIntentTransactionStatus(), IntentFlowStatus
 
 ### Community 49 - "use-earn-engine.ts"
-Cohesion: 0.13
-Nodes (22): useUserPositions(), exceedsBalance(), positionWithdrawableRaw(), EarnCtaAction, EarnCtaState, isEarnCtaEnabled(), resolveEarnCta(), ResolveEarnCtaParams (+14 more)
+Cohesion: 0.14
+Nodes (19): useUserPositions(), exceedsBalance(), positionWithdrawableRaw(), EarnCtaAction, EarnCtaState, isEarnCtaEnabled(), resolveEarnCta(), ResolveEarnCtaParams (+11 more)
 
-### Community 50 - "main.tsx"
-Cohesion: 0.39
-Nodes (5): bootScreenStyle, Bootstrap(), DEFAULT_MIDEN_MAINNET_RPC_URL, ensurePragmaMidenMainnetOracle(), MainnetOracleGraph
+### Community 50 - "AppShell.tsx"
+Cohesion: 0.21
+Nodes (9): AppShell(), NETWORK_TABS, Props, Badge(), toneClass, Row(), Props, ScenarioCard() (+1 more)
 
-### Community 51 - "vite.config.ts"
-Cohesion: 0.16
-Nodes (12): DEMO_RPC_PATHS, getBaseRpcUrl(), getDemoChains(), getDemoRpcUrls(), INFURA_NETWORKS, demoRequire, intentsMidenAssets, intentsRequire (+4 more)
+### Community 51 - "AdvancedSurface.tsx"
+Cohesion: 0.40
+Nodes (4): Code(), Props, AdvancedSurface(), Props
 
 ### Community 52 - "compilerOptions"
-Cohesion: 0.12
-Nodes (15): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, isolatedModules, jsx, lib, module, moduleResolution (+7 more)
+Cohesion: 0.10
+Nodes (20): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, isolatedModules, jsx, lib, module, moduleResolution (+12 more)
 
 ### Community 53 - "Explaining and configuring rules"
 Cohesion: 0.14
 Nodes (12): Commands, Config shape, Decision guide, Educating the user, Explaining and configuring rules, Workflow, After making React code changes:, Command (+4 more)
 
-### Community 54 - "EarnIntentWidget.tsx"
-Cohesion: 0.19
-Nodes (14): EarnWithdrawDetailView(), MidenAssetPicker(), MidenAssetPickerProps, WithdrawDetailPanel(), DEFAULT_MIDEN_FAUCET, getMidenGraphTokens(), isDefaultMidenFaucet(), midenFaucetKey() (+6 more)
+### Community 54 - "earn/miden.ts"
+Cohesion: 0.15
+Nodes (19): MidenAssetPicker(), MidenAssetPickerProps, DEFAULT_MIDEN_FAUCET, getMidenGraphTokens(), isDefaultMidenFaucet(), midenFaucetKey(), MidenGraphToken, EarnMiden (+11 more)
+
+### Community 56 - "use-gasless-wallet-check.ts"
+Cohesion: 0.67
+Nodes (3): useGaslessWallet(), useGaslessWalletCheck(), UseGaslessWalletParams
 
 ### Community 57 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -365,6 +387,10 @@ Nodes (5): For /graphify explain, For /graphify path, graphify reference: query,
 Cohesion: 0.33
 Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
 
+### Community 66 - "viem"
+Cohesion: 0.67
+Nodes (3): viem, viem, viem
+
 ### Community 67 - "graphify reference: add a URL and watch a folder"
 Cohesion: 0.50
 Nodes (3): For /graphify add, For --watch, graphify reference: add a URL and watch a folder
@@ -389,9 +415,9 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
-### Community 73 - "scripts"
-Cohesion: 0.50
-Nodes (4): scripts, build, dev, typecheck
+### Community 73 - "Native ETH Implementation Plan"
+Cohesion: 0.25
+Nodes (7): Global Constraints, Native ETH Implementation Plan, Review Focus, Task 1: Native ETH registry and balance reading, Task 2: Native collateral in Pay, Swap, and Earn, Task 3: Widget integration and documentation, Verification
 
 ### Community 74 - "graphify reference: add a URL and watch a folder"
 Cohesion: 0.50
@@ -417,29 +443,33 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
-### Community 101 - "useLatestRef"
-Cohesion: 0.23
-Nodes (10): useLatestRef(), toBigIntOrNull(), usePaySwapCallbacks(), UsePaySwapCallbacksOptions, UseSourceSelectionOptions, EpochIntentWidgetProps, IntentFlowStatus, useIntentFlow() (+2 more)
+### Community 101 - "react"
+Cohesion: 0.27
+Nodes (8): react, useLatestRef(), useOnOpen(), toBigIntOrNull(), usePaySwapCallbacks(), IntentFlowStatus, UseIntentFlowParams, UseIntentFlowReturn
+
+### Community 104 - "Native ETH across Pay, Swap, and Earn"
+Cohesion: 0.33
+Nodes (5): Approach, Behavior, Intent and scope, Native ETH across Pay, Swap, and Earn, Validation and limits
 
 ## Knowledge Gaps
-- **580 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+575 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 655 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **555 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+550 more)
+  These have ≤1 connection - possible missing edges or undocumented components.
+- **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `lucide-react` connect `package.json` to `Icons.tsx`?**
-  _High betweenness centrality (0.019) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `src/index.ts`, `PaySwapIntentWidget.tsx`, `WithdrawFromCard.tsx`, `EarnMainView.tsx`, `ui/index.ts`, `SwapIntentSummary.tsx`, `EpochClassNames`, `WithdrawPanel.tsx`, `TokenSelector.tsx`, `Icons.tsx`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Why does `clsx` connect `package.json` to `cn`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `use-pay-swap-engine.ts`, `src/index.ts`, `PaySwapIntentWidget.tsx`, `api.ts`, `MarketPickerPage.tsx`, `cn`, `cn.ts`, `SwapIntentSummary.tsx`, `useMidenWalletAdapter.ts`, `use-earn-intent-flow.ts`, `useMidenBridgeIntent.ts`, `WithdrawPanel.tsx`, `EarnSurface.tsx`, `SwapSurface.tsx`, `PaySurface.tsx`, `MarketSelectButton.tsx`, `use-source-selection.ts`, `Icons.tsx`, `useEpochIntent.ts`, `App.tsx`, `EarnFlowPanel.tsx`, `RuntimeApp.tsx`, `MidenBridgePanel.tsx`, `WithdrawDetailPanel.tsx`, `useIntentFlowStatus.ts`, `use-earn-engine.ts`, `AppShell.tsx`, `AdvancedSurface.tsx`, `earn/miden.ts`, `use-earn-quote-target.ts`, `use-gasless-wallet-check.ts`?**
+  _High betweenness centrality (0.247) - this node is a cross-community bridge._
+- **Why does `keywords` connect `RuntimeApp.tsx` to `react`, `package.json`?**
+  _High betweenness centrality (0.077) - this node is a cross-community bridge._
+- **Why does `scripts` connect `scripts` to `package.json`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
-  _580 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `use-pay-swap-engine.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
+  _555 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `src/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.11612903225806452 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06252587991718427 - nodes in this community are weakly interconnected._
 - **Should `PaySwapIntentWidget.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06280193236714976 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06376811594202898 - nodes in this community are weakly interconnected._
+- **Should `compilerOptions` be split into smaller, more focused modules?**
+  _Cohesion score 0.07692307692307693 - nodes in this community are weakly interconnected._

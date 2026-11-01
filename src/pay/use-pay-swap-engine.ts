@@ -37,6 +37,17 @@ const PLACEHOLDER_INTENT: IntentProps = {
   config: { protocol: 'transfer', action: 'pay', fixedOutput: false },
 };
 
+function rescaleAmount(
+  amount: bigint,
+  fromDecimals: number,
+  toDecimals: number,
+): bigint {
+  if (fromDecimals === toDecimals) return amount;
+  const decimalShift = BigInt(Math.abs(toDecimals - fromDecimals));
+  const scale = 10n ** decimalShift;
+  return fromDecimals < toDecimals ? amount * scale : amount / scale;
+}
+
 export interface PaySwapEngine {
   spec: PaySwapVariantSpec;
   source: SourceSelection;
@@ -207,6 +218,16 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     locked: lockDestinationToken,
   });
 
+  // For fixed-output swaps, `requiredAmount` belongs to the destination token.
+  // Fixed-input swaps use it as the source amount, so preserve its precision.
+  const requiredAmountForDestination = intentConfig.fixedOutput
+    ? rescaleAmount(
+        requiredAmount,
+        requiredToken.decimals,
+        destination.requiredToken.decimals,
+      )
+    : requiredAmount;
+
   const {
     isMidenSource,
     isMidenDest,
@@ -272,9 +293,10 @@ export function usePaySwapEngine(props: PaySwapIntentWidgetProps): PaySwapEngine
     walletClient,
     address,
     requiredToken: destination.requiredToken,
-    requiredAmount,
+    requiredAmount: requiredAmountForDestination,
     intentConfig: destination.intentConfig,
     isTestnet,
+    originChainId: isMidenSource ? MIDEN_VIRTUAL_CHAIN_ID : undefined,
     sessionId,
     mode: variant,
     receiver,

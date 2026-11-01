@@ -13,6 +13,7 @@ import {
   ZERO_BYTES32,
   isUserWalletRejection,
 } from '@epoch-protocol/epoch-intents-sdk';
+import { isNativeEthAddress } from '@epoch-protocol/epoch-flows-sdk';
 import type { RoutingAndLiquidityOptions } from '../types';
 import type {
   EarnMidenCreateP2IDNote,
@@ -451,6 +452,10 @@ export function useEarnIntentFlow({
         extraData,
         isSameChain,
         isMidenDeposit,
+        isNativeSource:
+          !isWithdraw &&
+          !isMidenDeposit &&
+          isNativeEthAddress(tokenInAddress),
         midenSource: input.midenSource,
       };
     },
@@ -586,7 +591,7 @@ export function useEarnIntentFlow({
           sponsorAddress: address as `0x${string}`,
           taskTypeString,
           intentData,
-          isNative: false,
+          isNative: params.isNativeSource,
           ...(routingAndLiquidityOptions
             ? { routingAndLiquidityOptions }
             : {}),
@@ -946,7 +951,7 @@ export function useEarnIntentFlow({
         onSignRef.current?.({ sessionId });
 
         const solvePayload: Record<string, unknown> = {
-          isNative: false,
+          isNative: submitParams.isNativeSource,
           sponsorAddress: address as `0x${string}`,
           taskTypeString,
           intentData,

@@ -10,8 +10,10 @@ import { useAssetMetadata, toBech32AccountId } from "@miden-sdk/react";
 import { AccountId, Address } from "@miden-sdk/miden-sdk";
 import {
   MIDEN_MAINNET_WALLET_NETWORK,
+  MIDEN_TESTNET_WALLET_NETWORK,
   normalizeMidenAccount,
 } from "../lib/mainnet-wallet-compat";
+import type { DemoNetwork } from "../../app/AppShell";
 
 export interface NormalizedMidenAccountId {
   hex: string;
@@ -28,6 +30,7 @@ export interface MidenWalletAsset {
 
 export interface UseMidenWalletAdapterOptions {
   enabled?: boolean;
+  network?: DemoNetwork;
 }
 
 export interface UseMidenWalletAdapterResult {
@@ -99,7 +102,7 @@ const resolveAccountId = (
 export function useMidenWalletAdapter(
   options: UseMidenWalletAdapterOptions = {},
 ): UseMidenWalletAdapterResult {
-  const { enabled = true } = options;
+  const { enabled = true, network = "mainnet" } = options;
   const {
     connected,
     connect: adapterConnect,
@@ -154,13 +157,15 @@ export function useMidenWalletAdapter(
     error: assetsRequestError,
     refetch,
   } = useQuery({
-    queryKey: ["miden-assets", address],
+    // The same wallet address can be connected on both Miden networks, but
+    // its faucet ids and balances are network-specific. Include the selected
+    // network/account so a cached mainnet asset list cannot mask testnet funds.
+    queryKey: ["miden-assets", network, address, accountId?.hex ?? null],
     queryFn: async () => (await requestAssets!()) ?? [],
     enabled: enabled && connected && !!address && !!requestAssets,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const assetsError =
@@ -225,7 +230,9 @@ export function useMidenWalletAdapter(
       select(target.adapter.name);
       await target.adapter.connect(
         PrivateDataPermission.UponRequest,
-        MIDEN_MAINNET_WALLET_NETWORK,
+        network === "testnet"
+          ? MIDEN_TESTNET_WALLET_NETWORK
+          : MIDEN_MAINNET_WALLET_NETWORK,
         AllowedPrivateData.Assets,
       );
       return;
@@ -241,7 +248,7 @@ export function useMidenWalletAdapter(
     }
 
     await adapterConnect();
-  }, [adapterConnect, connected, connecting, select, wallet, wallets]);
+  }, [adapterConnect, connected, connecting, network, select, wallet, wallets]);
 
   return {
     connected,

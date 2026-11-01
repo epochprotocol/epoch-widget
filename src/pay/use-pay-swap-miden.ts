@@ -90,10 +90,13 @@ export function usePaySwapMiden({
   const midenBalance = useMemo(() => {
     if (!isMidenSource) return null;
     const key = midenFaucetKey(source.tokenAddress);
-    const match = (miden?.assets ?? []).find(
-      (a) => midenFaucetKey(a.faucetId) === key,
+    const matches = (miden?.assets ?? []).filter(
+      (asset) => midenFaucetKey(asset.faucetId) === key,
     );
-    return match?.balance ?? null;
+    if (matches.length === 0) return null;
+    // Wallet adapters may return several fungible entries for one faucet;
+    // sum them instead of showing only whichever matching row comes first.
+    return matches.reduce((total, asset) => total + (asset.balance ?? 0n), 0n);
   }, [isMidenSource, miden?.assets, source.tokenAddress]);
 
   return {

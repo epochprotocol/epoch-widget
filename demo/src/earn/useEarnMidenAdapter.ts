@@ -3,13 +3,14 @@ import { toast } from 'sonner';
 import { type EarnMidenAdapter } from '@epoch-protocol/epoch-intent-widget';
 import { useMidenWalletAdapter } from '../miden/hooks/useMidenWalletAdapter';
 import { useMidenP2IDNoteFactory } from '../miden/hooks/useMidenP2IDNoteFactory';
+import type { DemoNetwork } from '../app/AppShell';
 
 /**
  * Bridges the demo's Miden wallet adapter into {@link EarnMidenAdapter}, shared by
  * the earn and pay/swap flows.
  */
-export function useEarnMidenAdapter(): EarnMidenAdapter {
-  const midenWallet = useMidenWalletAdapter({ enabled: true });
+export function useEarnMidenAdapter(network: DemoNetwork): EarnMidenAdapter {
+  const midenWallet = useMidenWalletAdapter({ enabled: true, network });
 
   const assets = useMemo(() => {
     // Keep the wallet's exact faucet ids. The widget matches these against graph

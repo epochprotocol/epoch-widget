@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { getEpochChains, getEpochTokensByChainEnv } from "../epoch-config";
+import { NATIVE_ETH_ADDRESS } from "@epoch-protocol/epoch-flows-sdk";
 import { useTokenBalance } from "../use-token-balance";
 import { exceedsBalance, positionWithdrawableRaw } from "./balance";
 import { useSessionId } from "../session";
@@ -229,6 +230,7 @@ export function useEarnEngine(props: EarnIntentWidgetProps) {
 
   const allTokens = useMemo<TokenWithChain[]>(() => {
     const allowed = new Set(DUMMY_LENDING_SUPPORTED_ADDRESSES);
+    allowed.add(NATIVE_ETH_ADDRESS);
     const deprecated = DEPRECATED_DUMMY_LENDING_USDC_ADDRESS.toLowerCase();
     return availableChains.flatMap((chain) =>
       getEpochTokensByChainEnv(chain.id, isTestnet).flatMap((tok) => {
