@@ -143,6 +143,7 @@ export function EarnMainView({
         </>
       ) : (
         <>
+          {positionsState.partial && <p role="status" className="m-0 text-[12px] text-fg-muted">Some position sources did not respond. Showing available positions.</p>}
           <GaslessSection
             allowed={effectiveAllowGasless}
             wallet={gaslessWallet}

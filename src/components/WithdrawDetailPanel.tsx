@@ -91,12 +91,9 @@ export function WithdrawDetailPanel({
         approxUsd={approxUsd}
       />
 
-      <SmartWithdrawToggle
-        enabled={smartWithdraw}
-        onChange={onSmartWithdrawChange}
-      />
+      {market.productKind !== 'vault' && <SmartWithdrawToggle enabled={smartWithdraw} onChange={onSmartWithdrawChange} />}
 
-      {smartWithdraw && (
+      {market.productKind !== 'vault' && smartWithdraw && (
         <SmartWithdrawDestination
           smartDestChainId={smartDestChainId}
           smartDestTokenAddress={smartDestTokenAddress}

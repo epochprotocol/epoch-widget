@@ -203,6 +203,9 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
         content: (
           <MarketPickerPage
             rows={picker.rows}
+            vaults={picker.vaults}
+            vaultsLoading={picker.vaultsLoading}
+            vaultsError={picker.vaultsError}
             selectedId={earnSelectedMarket?.id}
             isLoading={picker.isLoading}
             error={picker.error}
@@ -220,6 +223,10 @@ export function EarnIntentWidget(props: EarnIntentWidgetProps) {
             availableChainIds={picker.availableChainIds}
             availableLenders={picker.availableLenders}
             onSelect={(m) => {
+              setEarnSelectedMarket(m);
+              setView("main");
+            }}
+            onSelectVault={(m) => {
               setEarnSelectedMarket(m);
               setView("main");
             }}
